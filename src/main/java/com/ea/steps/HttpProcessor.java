@@ -5,6 +5,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 
+import java.io.BufferedOutputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
@@ -25,7 +27,7 @@ public class HttpProcessor {
                     String response = "HTTP/1.1 200 OK\r\n" +
                             "Content-Type: text/html;charset=UTF-8\r\n" +
                             "\r\n" +
-                            data;
+                            data + "\r\n\0";
                     socket.getOutputStream().write(response.getBytes(StandardCharsets.UTF_8));
                 } catch (IOException e) {
                     String response = "HTTP/1.1 500 Internal Server Error\r\n" +
@@ -34,15 +36,11 @@ public class HttpProcessor {
                             "Server error";
                     socket.getOutputStream().write(response.getBytes(StandardCharsets.UTF_8));
                 }
+            } else {
+                log.info("unknown request");
             }
         } catch (IOException e) {
             log.error("Error while processing HTTP request", e);
-        } finally {
-            try {
-                socket.close();
-            } catch (IOException e) {
-                log.error("Error while closing socket", e);
-            }
         }
     }
 

@@ -33,6 +33,7 @@ public class StatsService {
                 { "CC", "3" }, // <total # of categories in this view>
                 { "IC", "3" }, // <total # of indices in this view>
                 { "VC", "3" }, // <total # of variations in this view>
+                { "TITLE", "TEST" }, // <total # of variations in this view>
                 { "U", "3" },
                 { "SYMS", "3" },
                 { "SS", "3" },
@@ -81,7 +82,8 @@ public class StatsService {
                 { "SEQN", seqn }, // <value provided in request>
                 { "CC", columnNumber }, // <number of columns>
                 { "FC", "1" }, // <number of fixed columns>
-                { "DESC", "" }, // <list-description>
+                { "TITLE", "TEST" },
+                { "DESC", "DESC" }, // <list-description>
                 { "PARAMS", "1,1,1,1,1,1,1,1,1,1,1,1" }, // <comma-separated list of integer parameters>
         }).collect(Collectors.toMap(data -> data[0], data -> data[1]));
 

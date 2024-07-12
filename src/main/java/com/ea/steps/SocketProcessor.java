@@ -49,6 +49,9 @@ public class SocketProcessor {
             case ("auth"):
                 accountService.auth(socket, sessionData, socketData);
                 break;
+            case ("usld"):
+                accountService.usld(socket, sessionData, socketData);
+                break;
             case ("cper"):
                 personaService.cper(socket, sessionData, socketData);
                 break;

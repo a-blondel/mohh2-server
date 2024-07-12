@@ -130,10 +130,17 @@ public class AccountService {
                 Map<String, String> content = Stream.of(new String[][]{
                         { "NAME", accountEntity.getName() },
                         { "ADDR", socket.getInetAddress().getHostAddress() },
-                        { "PERSONAS", personas },
-                        { "LOC", accountEntity.getLoc() },
+                        { "PERSONAS", "" + personas },
+                        { "LOC", "" + accountEntity.getLoc() },
                         { "MAIL", accountEntity.getMail() },
-                        { "SPAM", accountEntity.getSpam() }
+                        { "SPAM", accountEntity.getSpam() },
+                        { "BORN", accountEntity.getBorn() },
+                        { "TOS", "1" },
+                        { "GEND", "M" },
+                        { "FROM", "US" },
+                        { "LANG", "en" },
+                        { "_LUID", "$000000000b32588d" },
+                        { "MID", "0000000000000000000000000000000000000000000000000000000000000000" },
                 }).collect(Collectors.toMap(data -> data[0], data -> data[1]));
                 socketData.setOutputData(content);
             } else {
@@ -154,6 +161,28 @@ public class AccountService {
      */
     public void lost(Socket socket, SocketData socketData) {
 
+    }
+
+    public void usld(Socket socket, SessionData sessionData, SocketData socketData) {
+
+        Map<String, String> content = Stream.of(new String[][]{
+                { "IMGATE", "0" },
+                { "SPM_EA", "0" },
+                { "SPM_PART", "0" },
+                { "QMSG0", "Wanna play?" },
+                { "QMSG1", "I rule!" },
+                { "QMSG2", "Doh!" },
+                { "QMSG3", "Mmmm... doughnuts." },
+                { "QMSG4", "What time is it?" },
+                { "QMSG5", "The truth is out of style." },
+                { "UID", "$000000000b32588d" },
+                { "MID", "0000000000000000000000000000000000000000000000000000000000000000" },
+                //{ "PROMO_RESPONSE", "N" },
+                //{ "PROMO_TEXT", "Test" },
+        }).collect(Collectors.toMap(data -> data[0], data -> data[1]));
+        socketData.setOutputData(content);
+
+        SocketWriter.write(socket, socketData);
     }
 
 }

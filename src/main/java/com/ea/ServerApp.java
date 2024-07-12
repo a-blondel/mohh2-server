@@ -86,8 +86,8 @@ public class ServerApp implements CommandLineRunner {
             CertificateKind certificateKind = env.getActiveProfiles().length > 0
                    && env.getActiveProfiles()[0].contains(WII) ? CertificateKind.MOH_WII : CertificateKind.MOH_PSP;
 
-            SSLServerSocket mohSslServerSocket = serverConfig.createSslServerSocket(props.getSslPort(), certificateKind);
-            startServerThread(mohSslServerSocket, (socket, sessionData) -> new SslSocketThread((SSLSocket) socket));
+            ServerSocket mohSslServerSocket = serverConfig.createTcpServerSocket(props.getSslPort());
+            startServerThread(mohSslServerSocket, TcpSocketThread::new);
             log.info("MoH SSL server started.");
 
             ServerSocket mohTcpServerSocket = serverConfig.createTcpServerSocket(props.getTcpPort());

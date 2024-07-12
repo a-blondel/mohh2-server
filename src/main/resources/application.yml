@@ -7,7 +7,7 @@ ssl:
     enabled: ${SSL_DEBUG_ENABLED:false}
 tcp:
   # Must be machine IP if hosting for other machines. Must be WSL IP if using docker through WSL (local only)
-  host: ${TCP_HOST_IP:127.0.0.1}
+  host: 192.168.1.90
   debug:
     enabled: ${TCP_DEBUG_ENABLED:false}
     exclusions: '~png'
@@ -56,11 +56,11 @@ spring:
       on-profile: wii-pal
 
 ssl:
-  port: 21171
+  port: 20600
 tcp:
-  port: 21172
+  port: 20601
 udp:
-  port: 21173
+  port: 20602
 
 ---
 spring:

@@ -91,7 +91,7 @@ public class PersonaService {
                     { "PERS", personaEntity.getPers() },
                     { "LKEY", "" },
                     { "EX-ticker", "" },
-                    { "LOC", personaEntity.getAccount().getLoc() },
+                    { "LOC", "" + personaEntity.getAccount().getLoc() },
                     { "A", socket.getInetAddress().getHostAddress() },
                     { "LA", socket.getInetAddress().getHostAddress() },
                     { "IDLE", "35000" },

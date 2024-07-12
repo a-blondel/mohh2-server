@@ -54,11 +54,14 @@ public class AuthService {
 
     public void news(Socket socket, SocketData socketData) {
         Map<String, String> content = Stream.of(new String[][] {
-                { "BUDDY_SERVER", props.getTcpHost() },
-                { "BUDDY_PORT", String.valueOf(props.getTcpPort()) },
-                { "TOSAC_URL", "https://tos.ea.com/legalapp/webterms/us/fr/pc/" },
-                { "TOSA_URL", "https://tos.ea.com/legalapp/webterms/us/fr/pc/" },
-                { "TOS_URL", "https://tos.ea.com/legalapp/webterms/us/fr/pc/" },
+                { "NEWS_URL", "http://gos.ea.com/easo/editorial/common/2008/news/news.jsp?lang=us&from=us&game=Burnout&platform=pc" },
+                { "LIVE_NEWS_URL", "http://gos.ea.com/easo/editorial/Burnout/2008/livedata/main.jsp?lang=us&from=us&game=Burnout&platform=pc&env=live&nToken=1" },
+                { "LIVE_NEWS2_URL", "http://gos.ea.com/easo/editorial/Burnout/2008/livedata/main.jsp?lang=us&from=us&game=Burnout&platform=pc&env=live&nToken=1" },
+                { "STORE_DLC_URL", "http://pctrial.burnoutweb.ea.com/pcstore/store_dlc.php?lang=us&from=us&game=Burnout&platform=pc&env=live&nToken=%s&prodid=1" },
+                { "STORE_URL", "http://pctrial.burnoutweb.ea.com/t2b/page/index.php?lang=us&from=us&game=Burnout&platform=pc&env=live&nToken=1" },
+                { "TOSAC_URL", "http://gos.ea.com/easo/editorial/common/2008/tos/tos.jsp?style=accept&lang=us&platform=pc&from=us" },
+                { "TOSA_URL", "http://gos.ea.com/easo/editorial/common/2008/tos/tos.jsp?style=view&lang=us&platform=pc&from=us" },
+                { "TOS_URL", "http://gos.ea.com/easo/editorial/common/2008/tos/tos.jsp?lang=us&platform=pc&from=us" },
         }).collect(Collectors.toMap(data -> data[0], data -> data[1]));
 
         socketData.setOutputData(content);
