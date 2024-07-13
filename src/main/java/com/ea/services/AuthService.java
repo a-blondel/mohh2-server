@@ -115,4 +115,26 @@ public class AuthService {
         }
     }
 
+    public void usld(Socket socket, SessionData sessionData, SocketData socketData) {
+
+        Map<String, String> content = Stream.of(new String[][]{
+                { "IMGATE", "0" },
+                { "SPM_EA", "0" },
+                { "SPM_PART", "0" },
+                { "QMSG0", "Wanna play?" },
+                { "QMSG1", "I rule!" },
+                { "QMSG2", "Doh!" },
+                { "QMSG3", "Mmmm... doughnuts." },
+                { "QMSG4", "What time is it?" },
+                { "QMSG5", "The truth is out of style." },
+                { "UID", "$000000000b32588d" },
+                { "MID", "0000000000000000000000000000000000000000000000000000000000000000" },
+                //{ "PROMO_RESPONSE", "N" },
+                //{ "PROMO_TEXT", "Test" },
+        }).collect(Collectors.toMap(data -> data[0], data -> data[1]));
+        socketData.setOutputData(content);
+
+        SocketWriter.write(socket, socketData);
+    }
+
 }

@@ -84,9 +84,13 @@ public class ServerApp implements CommandLineRunner {
             log.info("Starting servers...");
 
             CertificateKind certificateKind = env.getActiveProfiles().length > 0
-                   && env.getActiveProfiles()[0].contains(WII) ? CertificateKind.MOH_WII : CertificateKind.MOH_PSP;
+                   && env.getActiveProfiles()[0].contains(WII) ? CertificateKind.MOHH2_WII : CertificateKind.MOHH2_PSP;
 
-            SSLServerSocket mohSslServerSocket = serverConfig.createSslServerSocket(props.getSslPort(), certificateKind);
+            SSLServerSocket eaNationSslServerSocket = serverConfig.createSslServerSocket(11191, CertificateKind.MOHH_PSP);
+            startServerThread(eaNationSslServerSocket, (socket, sessionData) -> new SslSocketThread((SSLSocket) socket));
+            log.info("EA Nation SSL server started.");
+
+            SSLServerSocket mohSslServerSocket = serverConfig.createSslServerSocket(props.getSslPort(), CertificateKind.MOHH2_WII);
             startServerThread(mohSslServerSocket, (socket, sessionData) -> new SslSocketThread((SSLSocket) socket));
             log.info("MoH SSL server started.");
 
@@ -95,9 +99,9 @@ public class ServerApp implements CommandLineRunner {
             log.info("MoH TCP server started.");
 
             if(props.isUdpEnabled() && !props.isConnectModeEnabled()) {
-                DatagramSocket mohUdpServerSocket = serverConfig.createUdpServerSocket();
-                new Thread(new UdpSocketThread(mohUdpServerSocket)).start();
-                log.info("MoH UDP server started.");
+                /*DatagramSocket mohUdpServerSocket = serverConfig.createUdpServerSocket();
+                new Thread(new UdpSocketThread(mohUdpServerSocket)).start();*/
+                log.info("MoH UDP server enabled.");
             }
 
             if (props.isTosEnabled()) {

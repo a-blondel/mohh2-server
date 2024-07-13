@@ -40,6 +40,9 @@ public class SocketProcessor {
             case ("sele"):
                 authService.sele(socket, sessionData, socketData);
                 break;
+            case ("usld"):
+                authService.usld(socket, sessionData, socketData);
+                break;
             case ("acct"):
                 accountService.acct(socket, socketData);
                 break;
