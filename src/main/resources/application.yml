@@ -15,13 +15,6 @@ udp:
   # Must be machine IP if hosting for other machines. Must be WSL IP if using docker through WSL (local only)
   # udp.enabled must be set to true if connecting to this server instead of 127.0.0.1 (serverless)
   host: ${UDP_HOST_IP:127.0.0.1}
-  # Creates or not the UDP socket server.
-  # If false, the game will not be able to connect to this server and serverless mode (udp.host = 127.0.0.1) must be used
-  # If true, udp.host can be set to machine IP so that other machines can connect to this server
-  enabled: ${UDP_ENABLED:true}
-  connect-mode.enabled: false # false = listen-mode (default), must replace '41' by '40' at 0x8001BEB4 if set to true
-  debug:
-    enabled: ${UDP_DEBUG_ENABLED:false}
 tos:
   enabled: ${TOS_ENABLED:true} # Stats socket servers on port 80 and 443 to handle TOS HTTP(S) requests
 ssc2:

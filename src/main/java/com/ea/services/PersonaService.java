@@ -39,6 +39,9 @@ public class PersonaService {
     @Autowired
     private PersonaStatsRepository personaStatsRepository;
 
+    @Autowired
+    private SocketManager socketManager;
+
     /**
      * Persona creation
      * @param socket
@@ -82,6 +85,11 @@ public class PersonaService {
      */
     public void pers(Socket socket, SessionData sessionData, SocketData socketData) {
         String pers = getValueFromSocket(socketData.getInputMessage(), "PERS");
+
+        if(pers.contains("@")) {
+            pers = pers.split("@")[0] + pers.split("@")[1];
+            socketManager.setHost(socket.getRemoteSocketAddress().toString(), true);
+        }
 
         Optional<PersonaEntity> personaEntityOpt = personaRepository.findByPers(pers);
         if (personaEntityOpt.isPresent()) {

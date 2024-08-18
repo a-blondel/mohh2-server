@@ -116,6 +116,10 @@ public class AccountService {
         String name = getValueFromSocket(socketData.getInputMessage(), "NAME");
         String pass = getValueFromSocket(socketData.getInputMessage(), "PASS");
 
+        if(name.contains("@")) {
+            name = name.split("@")[0] + name.split("@")[1];
+        }
+
         Optional<AccountEntity> accountEntityOpt = accountRepository.findByName(name);
         if (accountEntityOpt.isPresent()) {
             AccountEntity accountEntity = accountEntityOpt.get();

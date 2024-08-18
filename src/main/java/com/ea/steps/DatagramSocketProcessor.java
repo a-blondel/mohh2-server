@@ -21,6 +21,7 @@ import static com.ea.utils.SocketUtils.formatIntToWord;
 @Slf4j
 public class DatagramSocketProcessor {
 
+    public static final int RAW_PACKET_INIT = 1;
     public static final int RAW_PACKET_CONN = 2;
     public static final int RAW_PACKET_DISC = 3;
     public static final int RAW_PACKET_POKE = 5;
@@ -46,7 +47,12 @@ public class DatagramSocketProcessor {
 
         if (RAW_PACKET_POKE == packetSeq) {
             System.arraycopy(parseHexString(formatIntToWord(RAW_PACKET_CONN)), 0, buf, 0, 4);
+//        if (RAW_PACKET_POKE == packetSeq) {
+//            System.arraycopy(parseHexString(formatIntToWord(RAW_PACKET_INIT)), 0, buf, 0, 4);
+//        } else if (RAW_PACKET_INIT == packetSeq) {
+//            System.arraycopy(parseHexString(formatIntToWord(RAW_PACKET_CONN)), 0, buf, 0, 4);
         } else if (RAW_PACKET_DISC == packetSeq) {
+            // FIXME : There can be multiple lobby reports for the same IP (most likely an error case not correctly handled)
             Optional<LobbyReportEntity> lobbyReportEntityOpt =
                     lobbyReportRepository.findCurrentLobbyReportByIP(
                             SocketUtils.handleLocalhostIp(inputPacket.getAddress().getHostAddress()));

@@ -79,6 +79,9 @@ public class SocketProcessor {
             case ("gpsc"):
                 lobbyService.gpsc(socket, sessionData, socketData);
                 break;
+            case ("gcre"):
+                lobbyService.gcre(socket, sessionData, socketData);
+                break;
             case ("glea"):
                 lobbyService.glea(socket, sessionData, socketData);
                 break;

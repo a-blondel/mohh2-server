@@ -13,7 +13,6 @@ import com.ea.repositories.PersonaConnectionRepository;
 import com.ea.steps.SocketWriter;
 import com.ea.utils.Props;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -48,8 +47,11 @@ public class LobbyService {
     @Autowired
     private PersonaService personaService;
 
+    @Autowired
+    private SocketManager socketManager;
+
     /**
-     * Lobby count
+     * Game count
      * @param socket
      * @param socketData
      */
@@ -67,7 +69,7 @@ public class LobbyService {
     }
 
     /**
-     * List lobbies
+     * List games
      * @param socket
      */
     public void gam(Socket socket, List<LobbyEntity> lobbyEntities) {
@@ -91,7 +93,7 @@ public class LobbyService {
     }
 
     /**
-     * Join lobby
+     * Join a game
      * @param socket
      * @param socketData
      */
@@ -102,6 +104,7 @@ public class LobbyService {
             LobbyEntity lobbyEntity = lobbyEntityOpt.get();
             if(lobbyEntity.getEndTime() == null) {
                 SocketWriter.write(socket, socketData);
+                mgm(socket, sessionData, lobbyEntity);
                 ses(socket, sessionData, lobbyEntity);
             } else {
                 SocketWriter.write(socket, new SocketData("gjoiugam", null, null)); // Game closed
@@ -112,7 +115,7 @@ public class LobbyService {
     }
 
     /**
-     * Create lobby
+     * Create a game on a persistent game spawn service for a user
      * @param socket
      * @param sessionData
      * @param socketData
@@ -125,8 +128,83 @@ public class LobbyService {
         ses(socket, sessionData, lobbyEntity);
     }
 
+    public void mgm(Socket socket, SessionData sessionData, LobbyEntity lobbyEntity) {
+        SocketWriter.write(socketManager.getHostSockets().get(0), new SocketData("+mgm", null, getLobbyInfo(sessionData, lobbyEntity)));
+        SocketWriter.write(socketManager.getHostSockets().get(0), new SocketData("+ses", null, getLobbyInfo(sessionData, lobbyEntity)));
+    }
+
     /**
-     * Leave lobby
+     * Create a new game with the UHS (User Hosted Server)
+     * @param socket
+     * @param sessionData
+     * @param socketData
+     */
+    public void gcre(Socket socket, SessionData sessionData, SocketData socketData) {
+
+        SocketWriter.write(socket, socketData);
+
+        String name = getValueFromSocket(socketData.getInputMessage(), "NAME");
+        String params = getValueFromSocket(socketData.getInputMessage(), "PARAMS");
+        String sysflags = getValueFromSocket(socketData.getInputMessage(), "SYSFLAGS");
+        String room = getValueFromSocket(socketData.getInputMessage(), "ROOM");
+        String minsize = getValueFromSocket(socketData.getInputMessage(), "MINSIZE");
+        String maxsize = getValueFromSocket(socketData.getInputMessage(), "MAXSIZE");
+
+        Map<String, String> content = Stream.of(new String[][] {
+                { "IDENT", "8" },
+                { "NAME", name },
+                { "HOST", "@jack041" },
+                //{ "GPSHOST", "@jack041" },
+                { "PARAMS", params },
+                // { "PARAMS", ",,,b80,d003f6e0656e47423" },
+                // { "PLATPARAMS", "0" },  // ???
+                { "ROOM", room },
+                //{ "CUSTFLAGS", "413007872" },
+                { "SYSFLAGS", sysflags },
+                { "COUNT", "1" },
+                //{ "GPSREGION", "2" },
+                { "PRIV", "0" },
+                { "MINSIZE", minsize },
+                { "MAXSIZE", maxsize },
+                { "NUMPART", "1" },
+                { "SEED", "10" }, // random seed
+                { "WHEN", "2024.8.4-15:38:06" },
+                //{ "WHENC", "2024.8.4-15:38:066" },
+                //{ "GAMEPORT", "3658" },
+                //{ "VOIPPORT", "9683" },
+                //{ "GAMEMODE", "0" }, // ???
+                // { "AUTH", "0" }, // ???
+
+                // loop 0x80022058 only if COUNT>=0
+                { "OPID0", "0" }, // OPID%d
+                { "OPPO0", "@jack041" }, // OPPO%d
+                { "ADDR0", props.getUdpHost() }, // TODO : Set UHS address
+                { "LADDR0", "127.0.0.1" },
+                { "OPFLAG0", "0" },
+                { "MADDR0", "" }, // MADDR%d
+                { "OPPART0", "0" }, // OPPART%d
+                { "OPPARAM0", "chgBAMJQAAAVAAAAUkYAAAUAAAABAAAA" }, // OPPARAM%d
+                { "OPFLAGS0", "0" }, // OPFLAGS%d
+                { "PRES0", "0" }, // PRES%d ???
+
+                // another loop 0x8002225C only if NUMPART>=0
+                { "PARTSIZE0", maxsize }, // PARTSIZE%d
+                { "PARTPARAMS0", "" }, // PARTPARAMS%d
+                // { "SELF", sessionData.getCurrentPersonna().getPers() },
+
+                // { "SESS", "0" }, %s-%s-%08x 0--498ea96f
+
+                { "EVID", "0" },
+                { "EVGID", "0" },
+        }).collect(Collectors.toMap(data -> data[0], data -> data[1]));
+
+        socketData.setOutputData(content);
+
+        SocketWriter.write(socket, new SocketData("+mgm", null, content));
+    }
+
+    /**
+     * Leave game
      * @param socket
      * @param sessionData
      * @param socketData
@@ -162,16 +240,26 @@ public class LobbyService {
 
     private Map<String, String> getLobbyInfo(SessionData sessionData, LobbyEntity lobbyEntity) {
         String params = lobbyEntity.getParams();
-        int serverPortPos = StringUtils.ordinalIndexOf(params, ",", 20);
-        StringBuilder sb = new StringBuilder(params);
-        sb.insert(serverPortPos, Integer.toHexString(props.getUdpPort())); // Set game server port
-        params = sb.toString();
+
+        // MOHH2
+//        int serverPortPos = StringUtils.ordinalIndexOf(params, ",", 20);
+//        StringBuilder sb = new StringBuilder(params);
+//        sb.insert(serverPortPos, Integer.toHexString(props.getUdpPort())); // Set game server port
+//        params = sb.toString();
+
+        // MOHH
+//        int serverPortPos = StringUtils.ordinalIndexOf(params, ",", 11);
+//        StringBuilder sb = new StringBuilder(params);
+//        sb.replace(serverPortPos - 1, serverPortPos, Integer.toHexString(props.getUdpPort())); // Set game server port
+//        params = sb.toString();
+//
+//        log.info("params: {}", params);
 
         Map<String, String> content = Stream.of(new String[][] {
                 { "IDENT", String.valueOf(lobbyEntity.getId()) },
                 { "NAME", lobbyEntity.getName() },
-                { "HOST", props.isConnectModeEnabled() ? sessionData.getCurrentPersonna().getPers() : "@brobot15" },
-                // { "GPSHOST", props.isConnectModeEnabled() ? sessionData.getCurrentPersonna().getPers() : "@brobot15" },
+                { "HOST", "@jack041" },
+                // { "GPSHOST", "@brobot15" },
                 { "PARAMS", params },
                 // { "PARAMS", ",,,b80,d003f6e0656e47423" },
                 // { "PLATPARAMS", "0" },  // ???
@@ -193,12 +281,13 @@ public class LobbyService {
 
                 // loop 0x80022058 only if COUNT>=0
                 { "OPID0", "0" }, // OPID%d
-                { "OPPO0", "@brobot15" }, // OPPO%d
-                { "ADDR0", props.getUdpHost() },
+                { "OPPO0", "@jack041" }, // OPPO%d
+                { "ADDR0", props.getUdpHost() }, // TODO : Set UHS address
                 { "LADDR0", "127.0.0.1" },
+                { "OPFLAG0", "0" },
                 { "MADDR0", "" }, // MADDR%d
                 { "OPPART0", "0" }, // OPPART%d
-                { "OPPARAM0", "AAAAAAAAAAAAAAAAAAAAAQBuDCgAAAAC" }, // OPPARAM%d
+                { "OPPARAM0", "chgBAMJQAAAVAAAAUkYAAAUAAAABAAAA" }, // OPPARAM%d
                 { "OPFLAGS0", "0" }, // OPFLAGS%d
                 { "PRES0", "0" }, // PRES%d ???
 
@@ -226,7 +315,7 @@ public class LobbyService {
                         { "LADDR" + idx[0], personaConnectionEntity.getIp() },
                         { "MADDR" + idx[0], "" },
                         { "OPPART" + idx[0], "0" },
-                        { "OPPARAM" + idx[0], "AAAAAAAAAAAAAAAAAAAAAQBuDCgAAAAC" },
+                        { "OPPARAM" + idx[0], "chgBAMJQAAAVAAAAUkYAAAUAAAABAAAA" },
                         { "OPFLAGS" + idx[0], "413082880" },
                         { "PRES" + idx[0], "0" },
                 }).collect(Collectors.toMap(data -> data[0], data -> data[1])));

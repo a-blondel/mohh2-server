@@ -200,7 +200,7 @@ Replace with your own values.
 
 After a successful build, get into the target folder and execute one the following commands:
 ```
-java -DDB_URL=jdbc:postgresql://localhost:5432/mohh2db -DDB_USERNAME=user -DDB_PASSWORD=password -DLOGS=C:/moh/logs -DTCP_HOST_IP=127.0.0.1 -jar mohh2-server-1.0.0-SNAPSHOT.jar
+java -DDB_URL=jdbc:postgresql://localhost:5432/mohh2db -DDB_USERNAME=user -DDB_PASSWORD=password -DLOGS=C:/moh/logs -DTCP_HOST_IP=127.0.0.1 -jar mohh2-server-0.1.1-SNAPSHOT.jar
 ```
 
 If you need to specify a profile, add the following option :

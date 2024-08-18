@@ -3,10 +3,10 @@ package com.ea;
 import com.ea.config.ServerConfig;
 import com.ea.config.SslSocketThread;
 import com.ea.config.TcpSocketThread;
-import com.ea.config.UdpSocketThread;
 import com.ea.dto.SessionData;
 import com.ea.enums.CertificateKind;
 import com.ea.services.LobbyService;
+import com.ea.services.SocketManager;
 import com.ea.utils.Props;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,7 +19,6 @@ import org.springframework.core.env.Environment;
 import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLSocket;
 import java.io.IOException;
-import java.net.DatagramSocket;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.security.Security;
@@ -50,6 +49,9 @@ public class ServerApp implements CommandLineRunner {
 
     @Autowired
     private LobbyService lobbyService;
+
+    @Autowired
+    private SocketManager socketManager;
 
     public static void main(String[] args) {
         SpringApplication.run(ServerApp.class, args);
@@ -83,22 +85,21 @@ public class ServerApp implements CommandLineRunner {
 
             log.info("Starting servers...");
 
-            CertificateKind certificateKind = env.getActiveProfiles().length > 0
-                   && env.getActiveProfiles()[0].contains(WII) ? CertificateKind.MOH_WII : CertificateKind.MOH_PSP;
+//            CertificateKind certificateKind = env.getActiveProfiles().length > 0
+//                   && env.getActiveProfiles()[0].contains(WII) ? CertificateKind.MOHH2_WII : CertificateKind.MOHH2_PSP;
 
-            SSLServerSocket mohSslServerSocket = serverConfig.createSslServerSocket(props.getSslPort(), certificateKind);
-            startServerThread(mohSslServerSocket, (socket, sessionData) -> new SslSocketThread((SSLSocket) socket));
-            log.info("MoH SSL server started.");
+            // If it's not mohh psp
+            SSLServerSocket eaNationSslServerSocket = serverConfig.createSslServerSocket(11191, CertificateKind.MOHH_PSP);
+            startServerThread(eaNationSslServerSocket, (socket, sessionData) -> new SslSocketThread((SSLSocket) socket));
+            log.info("EA Nation SSL server started.");
+
+//            SSLServerSocket mohSslServerSocket = serverConfig.createSslServerSocket(props.getSslPort(), certificateKind);
+//            startServerThread(mohSslServerSocket, (socket, sessionData) -> new SslSocketThread((SSLSocket) socket));
+//            log.info("MoH SSL server started.");
 
             ServerSocket mohTcpServerSocket = serverConfig.createTcpServerSocket(props.getTcpPort());
             startServerThread(mohTcpServerSocket, TcpSocketThread::new);
             log.info("MoH TCP server started.");
-
-            if(props.isUdpEnabled() && !props.isConnectModeEnabled()) {
-                DatagramSocket mohUdpServerSocket = serverConfig.createUdpServerSocket();
-                new Thread(new UdpSocketThread(mohUdpServerSocket)).start();
-                log.info("MoH UDP server started.");
-            }
 
             if (props.isTosEnabled()) {
                 ServerSocket tosTcpServerSocket = serverConfig.createTcpServerSocket(80);
@@ -121,6 +122,9 @@ public class ServerApp implements CommandLineRunner {
             try {
                 while (true) {
                     Socket socket = serverSocket.accept();
+                    if (!(socket instanceof SSLSocket)) {
+                        socketManager.addSocket(socket.getRemoteSocketAddress().toString(), socket);
+                    }
                     new Thread(runnableFactory.apply(socket, new SessionData())).start();
                 }
             } catch (IOException e) {

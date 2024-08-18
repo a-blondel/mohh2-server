@@ -4,10 +4,12 @@ import com.ea.dto.SessionData;
 import com.ea.dto.SocketData;
 import com.ea.services.LobbyService;
 import com.ea.services.PersonaService;
+import com.ea.services.SocketManager;
 import com.ea.steps.SocketReader;
 import com.ea.steps.SocketWriter;
 import com.ea.utils.BeanUtil;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.io.*;
 import java.net.Socket;
@@ -31,6 +33,9 @@ public class TcpSocketThread implements Runnable {
 
     private ScheduledExecutorService pingExecutor;
 
+    @Autowired
+    private SocketManager socketManager;
+
     public TcpSocketThread(Socket clientSocket, SessionData sessionData) {
         this.clientSocket = clientSocket;
         this.sessionData = sessionData;
@@ -38,6 +43,7 @@ public class TcpSocketThread implements Runnable {
 
     public void run() {
         log.info("TCP client session started: {}:{}", clientSocket.getInetAddress().getHostAddress(), clientSocket.getPort());
+        String socketIdentifier = clientSocket.getRemoteSocketAddress().toString(); // TODO : check if necessary
         try {
             pingExecutor = Executors.newSingleThreadScheduledExecutor();
             pingExecutor.scheduleAtFixedRate(() -> png(clientSocket), 30, 30, TimeUnit.SECONDS);
@@ -47,6 +53,7 @@ public class TcpSocketThread implements Runnable {
             pingExecutor.shutdown();
             lobbyService.endLobbyReport(sessionData); // If the player doesn't leave from the game
             personaService.endPersonaConnection(sessionData);
+//            socketManager.removeSocket(socketIdentifier); // TODO : check NullPointerException
             log.info("TCP client session ended: {}:{}", clientSocket.getInetAddress().getHostAddress(), clientSocket.getPort());
         }
     }
