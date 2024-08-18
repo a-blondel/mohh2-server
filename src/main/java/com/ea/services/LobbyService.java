@@ -2,6 +2,7 @@ package com.ea.services;
 
 import com.ea.dto.SessionData;
 import com.ea.dto.SocketData;
+import com.ea.dto.SocketWrapper;
 import com.ea.entities.LobbyEntity;
 import com.ea.entities.LobbyReportEntity;
 import com.ea.entities.PersonaConnectionEntity;
@@ -104,8 +105,8 @@ public class LobbyService {
             LobbyEntity lobbyEntity = lobbyEntityOpt.get();
             if(lobbyEntity.getEndTime() == null) {
                 SocketWriter.write(socket, socketData);
-                mgm(socket, sessionData, lobbyEntity);
                 ses(socket, sessionData, lobbyEntity);
+                mgm(socket, sessionData, lobbyEntity);
             } else {
                 SocketWriter.write(socket, new SocketData("gjoiugam", null, null)); // Game closed
             }
@@ -143,29 +144,32 @@ public class LobbyService {
 
         SocketWriter.write(socket, socketData);
 
-        String name = getValueFromSocket(socketData.getInputMessage(), "NAME");
-        String params = getValueFromSocket(socketData.getInputMessage(), "PARAMS");
-        String sysflags = getValueFromSocket(socketData.getInputMessage(), "SYSFLAGS");
-        String room = getValueFromSocket(socketData.getInputMessage(), "ROOM");
-        String minsize = getValueFromSocket(socketData.getInputMessage(), "MINSIZE");
-        String maxsize = getValueFromSocket(socketData.getInputMessage(), "MAXSIZE");
+        LobbyEntity lobbyEntity = socketMapper.toLobbyEntityForCreation(socketData.getInputMessage());
+        lobbyEntity.setStartTime(Timestamp.from(Instant.now()));
+        lobbyRepository.save(lobbyEntity);
+
+        String room = getValueFromSocket(socketData.getInputMessage(), "ROOM"); // TODO : add to socketMapper.toLobbyEntityForCreation
+
+        SocketWrapper socketWrapper = socketManager.getSocketWrapper(socket.getRemoteSocketAddress().toString());
+        Long lobbyId = lobbyEntity.getId();
+        socketManager.setLobbyId(socket.getRemoteSocketAddress().toString(), lobbyId);
 
         Map<String, String> content = Stream.of(new String[][] {
-                { "IDENT", "8" },
-                { "NAME", name },
-                { "HOST", "@jack041" },
+                { "IDENT", lobbyId.toString() },
+                { "NAME", lobbyEntity.getName() },
+                { "HOST", socketWrapper.getPers() },
                 //{ "GPSHOST", "@jack041" },
-                { "PARAMS", params },
+                { "PARAMS", lobbyEntity.getParams() },
                 // { "PARAMS", ",,,b80,d003f6e0656e47423" },
                 // { "PLATPARAMS", "0" },  // ???
                 { "ROOM", room },
                 //{ "CUSTFLAGS", "413007872" },
-                { "SYSFLAGS", sysflags },
+                { "SYSFLAGS", lobbyEntity.getSysflags() },
                 { "COUNT", "1" },
                 //{ "GPSREGION", "2" },
                 { "PRIV", "0" },
-                { "MINSIZE", minsize },
-                { "MAXSIZE", maxsize },
+                { "MINSIZE", String.valueOf(lobbyEntity.getMinsize()) },
+                { "MAXSIZE", String.valueOf(lobbyEntity.getMaxsize()) },
                 { "NUMPART", "1" },
                 { "SEED", "10" }, // random seed
                 { "WHEN", "2024.8.4-15:38:06" },
@@ -177,8 +181,8 @@ public class LobbyService {
 
                 // loop 0x80022058 only if COUNT>=0
                 { "OPID0", "0" }, // OPID%d
-                { "OPPO0", "@jack041" }, // OPPO%d
-                { "ADDR0", props.getUdpHost() }, // TODO : Set UHS address
+                { "OPPO0", socketWrapper.getPers() }, // OPPO%d
+                { "ADDR0", socket.getInetAddress().getHostAddress() },
                 { "LADDR0", "127.0.0.1" },
                 { "OPFLAG0", "0" },
                 { "MADDR0", "" }, // MADDR%d
@@ -188,7 +192,7 @@ public class LobbyService {
                 { "PRES0", "0" }, // PRES%d ???
 
                 // another loop 0x8002225C only if NUMPART>=0
-                { "PARTSIZE0", maxsize }, // PARTSIZE%d
+                { "PARTSIZE0", String.valueOf(lobbyEntity.getMaxsize()) }, // PARTSIZE%d
                 { "PARTPARAMS0", "" }, // PARTPARAMS%d
                 // { "SELF", sessionData.getCurrentPersonna().getPers() },
 
@@ -255,11 +259,14 @@ public class LobbyService {
 //
 //        log.info("params: {}", params);
 
+        Long lobbyId = lobbyEntity.getId();
+        SocketWrapper socketWrapper = socketManager.getHostSocketWrapperOfLobby(lobbyId);
+
         Map<String, String> content = Stream.of(new String[][] {
-                { "IDENT", String.valueOf(lobbyEntity.getId()) },
+                { "IDENT", String.valueOf(lobbyId) },
                 { "NAME", lobbyEntity.getName() },
-                { "HOST", "@jack041" },
-                // { "GPSHOST", "@brobot15" },
+                { "HOST", socketWrapper != null ? socketWrapper.getPers() : "@brobot1" },
+                // { "GPSHOST", socketWrapper != null ? socketWrapper.getPers() : "@brobot1" },
                 { "PARAMS", params },
                 // { "PARAMS", ",,,b80,d003f6e0656e47423" },
                 // { "PLATPARAMS", "0" },  // ???
@@ -281,8 +288,8 @@ public class LobbyService {
 
                 // loop 0x80022058 only if COUNT>=0
                 { "OPID0", "0" }, // OPID%d
-                { "OPPO0", "@jack041" }, // OPPO%d
-                { "ADDR0", props.getUdpHost() }, // TODO : Set UHS address
+                { "OPPO0", socketWrapper != null ? socketWrapper.getPers() : "@brobot1" }, // OPPO%d
+                { "ADDR0", socketWrapper != null ? socketWrapper.getSocket().getInetAddress().getHostAddress() : "127.0.0.1" },
                 { "LADDR0", "127.0.0.1" },
                 { "OPFLAG0", "0" },
                 { "MADDR0", "" }, // MADDR%d

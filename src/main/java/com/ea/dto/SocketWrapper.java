@@ -13,4 +13,6 @@ public class SocketWrapper {
     private Socket socket;
     private String identifier;
     private boolean isHost;
+    private String pers;
+    private Long lobbyId;
 }

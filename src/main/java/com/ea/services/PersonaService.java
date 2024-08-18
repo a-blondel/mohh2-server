@@ -85,6 +85,7 @@ public class PersonaService {
      */
     public void pers(Socket socket, SessionData sessionData, SocketData socketData) {
         String pers = getValueFromSocket(socketData.getInputMessage(), "PERS");
+        socketManager.setPers(socket.getRemoteSocketAddress().toString(), pers);
 
         if(pers.contains("@")) {
             pers = pers.split("@")[0] + pers.split("@")[1];

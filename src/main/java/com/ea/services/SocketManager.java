@@ -13,7 +13,7 @@ public class SocketManager {
     private final ConcurrentHashMap<String, SocketWrapper> sockets = new ConcurrentHashMap<>();
 
     public void addSocket(String identifier, Socket socket) {
-        sockets.put(identifier, new SocketWrapper(socket, identifier, false));
+        sockets.put(identifier, new SocketWrapper(socket, identifier, false, null, null));
     }
 
     public void removeSocket(String identifier) {
@@ -25,6 +25,31 @@ public class SocketManager {
         if (wrapper != null) {
             wrapper.setHost(isHost);
         }
+    }
+
+    public void setPers(String identifier, String pers) {
+        SocketWrapper wrapper = sockets.get(identifier);
+        if (wrapper != null) {
+            wrapper.setPers(pers);
+        }
+    }
+
+    public void setLobbyId(String identifier, Long lobbyId) {
+        SocketWrapper wrapper = sockets.get(identifier);
+        if (wrapper != null) {
+            wrapper.setLobbyId(lobbyId);
+        }
+    }
+
+    public SocketWrapper getSocketWrapper(String identifier) {
+        return sockets.get(identifier);
+    }
+
+    public SocketWrapper getHostSocketWrapperOfLobby(Long lobbyId) {
+        return sockets.values().stream()
+                .filter(wrapper -> wrapper.getLobbyId() != null && wrapper.getLobbyId() == lobbyId && wrapper.isHost())
+                .findFirst()
+                .orElse(null);
     }
 
     public List<Socket> getHostSockets() {
