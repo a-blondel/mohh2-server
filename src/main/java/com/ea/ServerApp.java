@@ -4,7 +4,7 @@ import com.ea.config.ServerConfig;
 import com.ea.config.SslSocketThread;
 import com.ea.config.TcpSocketThread;
 import com.ea.dto.SessionData;
-import com.ea.enums.CertificateKind;
+import com.ea.enums.Certificates;
 import com.ea.services.LobbyService;
 import com.ea.services.SocketManager;
 import com.ea.utils.Props;
@@ -85,28 +85,52 @@ public class ServerApp implements CommandLineRunner {
 
             log.info("Starting servers...");
 
-//            CertificateKind certificateKind = env.getActiveProfiles().length > 0
-//                   && env.getActiveProfiles()[0].contains(WII) ? CertificateKind.MOHH2_WII : CertificateKind.MOHH2_PSP;
+            if(props.getHostedGames().contains("mohh_psp_pal")) {
+                SSLServerSocket mohh2PspPalSslServerSocket = serverConfig.createSslServerSocket(11181, Certificates.MOHH_PSP);
+                startServerThread(mohh2PspPalSslServerSocket, (socket, sessionData) -> new SslSocketThread((SSLSocket) socket));
+                log.info("MOHH PSP PAL SSL server started.");
+            }
 
-            // If it's not mohh psp
-            SSLServerSocket eaNationSslServerSocket = serverConfig.createSslServerSocket(11191, CertificateKind.MOHH_PSP);
-            startServerThread(eaNationSslServerSocket, (socket, sessionData) -> new SslSocketThread((SSLSocket) socket));
-            log.info("EA Nation SSL server started.");
+            if(props.getHostedGames().contains("mohh_psp_ntsc")) {
+                SSLServerSocket mohh2PspNtscSslServerSocket = serverConfig.createSslServerSocket(11191, Certificates.MOHH_PSP);
+                startServerThread(mohh2PspNtscSslServerSocket, (socket, sessionData) -> new SslSocketThread((SSLSocket) socket));
+                log.info("MOHH PSP NTSC SSL server started.");
+            }
 
-//            SSLServerSocket mohSslServerSocket = serverConfig.createSslServerSocket(props.getSslPort(), certificateKind);
-//            startServerThread(mohSslServerSocket, (socket, sessionData) -> new SslSocketThread((SSLSocket) socket));
-//            log.info("MoH SSL server started.");
+            if(props.getHostedGames().contains("mohh2_psp_pal")) {
+                SSLServerSocket mohh2PspPalSslServerSocket = serverConfig.createSslServerSocket(21181, Certificates.MOHH2_PSP);
+                startServerThread(mohh2PspPalSslServerSocket, (socket, sessionData) -> new SslSocketThread((SSLSocket) socket));
+                log.info("MOHH2 PSP PAL SSL server started.");
+            }
+
+            if(props.getHostedGames().contains("mohh2_psp_ntsc")) {
+                SSLServerSocket mohh2PspNtscSslServerSocket = serverConfig.createSslServerSocket(21191, Certificates.MOHH2_PSP);
+                startServerThread(mohh2PspNtscSslServerSocket, (socket, sessionData) -> new SslSocketThread((SSLSocket) socket));
+                log.info("MOHH2 PSP NTSC SSL server started.");
+            }
+
+            if(props.getHostedGames().contains("mohh2_wii_pal")) {
+                SSLServerSocket mohh2WiiPalSslServerSocket = serverConfig.createSslServerSocket(21171, Certificates.MOHH2_WII);
+                startServerThread(mohh2WiiPalSslServerSocket, (socket, sessionData) -> new SslSocketThread((SSLSocket) socket));
+                log.info("MOHH2 WII PAL SSL server started.");
+            }
+
+            if(props.getHostedGames().contains("mohh2_wii_ntsc")) {
+                SSLServerSocket mohh2WiiNtscSslServerSocket = serverConfig.createSslServerSocket(21121, Certificates.MOHH2_WII);
+                startServerThread(mohh2WiiNtscSslServerSocket, (socket, sessionData) -> new SslSocketThread((SSLSocket) socket));
+                log.info("MOHH2 WII NTSC SSL server started.");
+            }
 
             ServerSocket mohTcpServerSocket = serverConfig.createTcpServerSocket(props.getTcpPort());
             startServerThread(mohTcpServerSocket, TcpSocketThread::new);
-            log.info("MoH TCP server started.");
+            log.info("TCP server started.");
 
             if (props.isTosEnabled()) {
                 ServerSocket tosTcpServerSocket = serverConfig.createTcpServerSocket(80);
                 startServerThread(tosTcpServerSocket, TcpSocketThread::new);
                 log.info("TOS TCP server started.");
 
-                SSLServerSocket tosSslServerSocket = serverConfig.createSslServerSocket(443, CertificateKind.TOS);
+                SSLServerSocket tosSslServerSocket = serverConfig.createSslServerSocket(443, Certificates.TOS);
                 startServerThread(tosSslServerSocket, (socket, sessionData) -> new SslSocketThread((SSLSocket) socket));
                 log.info("TOS SSL server started.");
             }

@@ -1,12 +1,9 @@
 package com.ea.config;
 
 import com.ea.steps.SocketReader;
-import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.net.ssl.SSLSocket;
-import java.io.*;
-import java.net.SocketException;
 
 /**
  * Thread to handle a unique SSL socket

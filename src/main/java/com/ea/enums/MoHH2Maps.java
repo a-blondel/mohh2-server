@@ -1,6 +1,6 @@
 package com.ea.enums;
 
-public enum MapEnum {
+public enum MoHH2Maps {
     PORT("0"),
     CITY("2"),
     SEWERS("4"),
@@ -10,7 +10,7 @@ public enum MapEnum {
 
     public final String id;
 
-    MapEnum(String id) {
+    MoHH2Maps(String id) {
         this.id = id;
     }
 }

@@ -1,6 +1,6 @@
 package com.ea.enums;
 
-public enum CertificateKind {
+public enum Certificates {
     MOHH_PSP("MOHH_PSP",
             "CN=pspmoh07.ea.com, OU=Global Online Studio, O=Electronic Arts, Inc., ST=California, C=US",
             "OU=Online Technology Group, O=Electronic Arts, Inc., L=Redwood City, ST=California, C=US, CN=OTG3 Certificate Authority"),
@@ -18,7 +18,7 @@ public enum CertificateKind {
     private final String subject;
     private final String issuer;
 
-    CertificateKind(String name, String subject, String issuer) {
+    Certificates(String name, String subject, String issuer) {
         this.name = name;
         this.subject = subject;
         this.issuer = issuer;

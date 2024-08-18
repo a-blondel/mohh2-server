@@ -8,6 +8,7 @@ ssl:
 tcp:
   # Must be machine IP if hosting for other machines. Must be WSL IP if using docker through WSL (local only)
   host: ${TCP_HOST_IP:127.0.0.1}
+  port: 10000
   debug:
     enabled: ${TCP_DEBUG_ENABLED:false}
     exclusions: '~png'
@@ -15,6 +16,7 @@ udp:
   # Must be machine IP if hosting for other machines. Must be WSL IP if using docker through WSL (local only)
   # udp.enabled must be set to true if connecting to this server instead of 127.0.0.1 (serverless)
   host: ${UDP_HOST_IP:127.0.0.1}
+  port: 3658
 tos:
   enabled: ${TOS_ENABLED:true} # Stats socket servers on port 80 and 443 to handle TOS HTTP(S) requests
 ssc2:
@@ -41,55 +43,5 @@ spring:
 #      hibernate:
 #        format_sql: true
 
-
----
-spring:
-  config:
-    activate:
-      on-profile: wii-pal
-
-ssl:
-  port: 21171
-tcp:
-  port: 21172
-udp:
-  port: 21173
-
----
-spring:
-  config:
-    activate:
-      on-profile: wii-ntsc
-
-ssl:
-  port: 21121
-tcp:
-  port: 21122
-udp:
-  port: 21123
-
----
-spring:
-  config:
-    activate:
-      on-profile: psp-pal
-
-ssl:
-  port: 21181
-tcp:
-  port: 21182
-udp:
-  port: 21183
-
----
-spring:
-  config:
-    activate:
-      on-profile: psp-ntsc
-
-ssl:
-  port: 21191
-tcp:
-  port: 21192
-udp:
-  port: 21193
+# List of games that are hosted by the server, remove unneeded games
+hosted-games: mohh_psp_pal,mohh_psp_ntsc,mohh2_psp_pal,mohh2_psp_ntsc,mohh2_wii_pal,mohh2_wii_ntsc

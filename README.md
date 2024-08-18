@@ -1,13 +1,15 @@
-# Medal Of Honor Heroes 2 Server [Wii/PSP]
+# EA NATION SERVER
 
-Designed to replace EA's closed ones.  
+An emulator server for EA Nation games. Targeted games are :
+- Medal of Honor Heroes (PSP)
+- Medal of Honor Heroes 2 (Wii, PSP)
 
 ## Discord
 
 Link : https://discord.gg/fwrQHHxrQQ  
 
 It is used to :
-- Talk about the game
+- Talk about the games
 - Share technical knowledge
 - Centralize documentation
 - Regroup the community and organize events when we'll be ready (hopefully)
@@ -16,14 +18,17 @@ Fell free to join !
 
 ## Wiki
 
-Everything to know is in the [Wiki](https://github.com/a-blondel/mohh2-server/wiki)  
+Everything to know is in the [Wiki](https://github.com/a-blondel/ea-nation-server/wiki)  
 It contains :
-- Generic info about the game (weapons, maps,...)
+- Generic info about the games (weapons, maps,...)
 - Technical knowledge (packet capture, ...)
 
 ## Development Status
 
-**Work In Progress** - The Wii version allows to access the main menu, leaderboards and lobbies while the PSP version disconnects before login screen.  
+**Work In Progress** - Focused on making the UHS (User Hosted Server) to work with MoHH and MoHH2.  
+
+### MoHH2 progress
+
 You can follow the progress on the [project board](https://github.com/users/a-blondel/projects/2/views/1).  
 
 <img src="doc/img/player-details.png" alt="player-details" width="400"/> <img src="doc/img/leaderboards.png" alt="leaderboards" width="400"/><br/>
@@ -31,9 +36,6 @@ You can follow the progress on the [project board](https://github.com/users/a-bl
 
 <img src="doc/img/lobbies.png" alt="lobbies" width="400"/> <img src="doc/img/game-join.png" alt="game-join" width="400"/><br/>
 *Lobbies / Game joining*
-
-<img src="doc/img/game-disconnect.png" alt="game-disconnect" width="400"/><br/>
-*Disconnection*
 
 **Features**
 - [x] Access Nintendo WFC (Either with [nwc-server](https://github.com/a-blondel/nwc-server) or Wiimmfi)
@@ -55,9 +57,7 @@ You can follow the progress on the [project board](https://github.com/users/a-bl
   - [ ] Filter options
   - [x] Create game (almost complete : password protected lobbies isn't handled yet)
   - [x] Join game (almost complete : password protected lobbies isn't handled yet)
-- [ ] In game
-  - [ ] Team, uniform and weapon selection screen (disconnected just before)
-  - [ ] --anything else to handle that we are not aware of yet--
+- [ ] In game (requires to figure out how to make the *User Hosted Server* to work)
 - [x] Leaderboards
   - [x] My EA Leaderboard
   - [x] EA Top 100
@@ -76,7 +76,6 @@ You can follow the progress on the [project board](https://github.com/users/a-bl
 
 Note that error messages eg 'invalid password'/'unknown account' are more or less complete.
 
-
 ## Requirements
 
 ### 1/ Riivolution patches (Wii only)
@@ -92,6 +91,7 @@ In order to intercept requests from the game, you must either use a DNS server o
 
 Add these lines to your hosts file (`C:\Windows\System32\drivers\etc`) :
 ```
+127.0.0.1 pspmoh07.ea.com
 127.0.0.1 wiimoh08.ea.com
 127.0.0.1 pspmoh08.ea.com
 127.0.0.1 naswii.nintendowifi.net
@@ -127,6 +127,9 @@ server:
 	
 	root-hints: "named.cache"
 	
+	local-zone: "pspmoh07.ea.com" static
+	local-data: "pspmoh07.ea.com A 192.168.1.1" # CHANGE IT !
+	
 	local-zone: "wiimoh08.ea.com" static
 	local-data: "wiimoh08.ea.com A 192.168.1.1" # CHANGE IT !
 	
@@ -147,16 +150,6 @@ This project has been initiated with the `JDK 17`, download it if needed.
 ### 4/ Maven
 
 If you have downloaded Intellij, Maven comes bundled with, otherwise download the latest version of Maven.
-
-#### Maven profile
-
-**Some properties like the SSL port are region-dependant, therefore they must be changed accordingly to the version of the game.**  
-A maven profile exists for each region:
-- `wii-pal` : RM2X69 and RM2P69
-- `wii-ntsc` : RM2E69
-
-Currently, all profiles are located in *application.yml* as there won't be many region-based properties.  
-**When you don't specify any maven profile, it fallbacks to `wii-pal`.**
 
 ### 5/ Define the host machine
 
@@ -183,15 +176,9 @@ Create a new Application config in Intellij and set the following entry-point (m
 com.ea.ServerApp
 ```
 
-The default profile is `wii-pal`.  
-If you need to specify a profile, be sure to check `Add VM options` (or use Alt+V), then fill the field with :
-```
--Dspring.profiles.active=wii-ntsc
-```
-
 Define the environment variables matching your need, mostly for the database (see `Database` chapter), e.g. :
 ```
-DB_URL=jdbc:postgresql://localhost:5432/mohh2db;DB_USERNAME=user;DB_PASSWORD=password;LOGS=C:/moh/logs;TCP_HOST_IP=127.0.0.1
+DB_URL=jdbc:postgresql://localhost:5432/ea-nation;DB_USERNAME=user;DB_PASSWORD=password;LOGS=C:/moh/logs;TCP_HOST_IP=127.0.0.1
 ```
 
 Replace with your own values.
@@ -200,12 +187,7 @@ Replace with your own values.
 
 After a successful build, get into the target folder and execute one the following commands:
 ```
-java -DDB_URL=jdbc:postgresql://localhost:5432/mohh2db -DDB_USERNAME=user -DDB_PASSWORD=password -DLOGS=C:/moh/logs -DTCP_HOST_IP=127.0.0.1 -jar mohh2-server-0.1.1-SNAPSHOT.jar
-```
-
-If you need to specify a profile, add the following option :
-```
--Dspring.profiles.active=wii-ntsc
+java -DDB_URL=jdbc:postgresql://localhost:5432/ea-nation -DDB_USERNAME=user -DDB_PASSWORD=password -DLOGS=C:/moh/logs -DTCP_HOST_IP=127.0.0.1 -jar ea-nation-server-0.1.1-SNAPSHOT.jar
 ```
 
 ### 2.c Start with Docker
@@ -217,19 +199,17 @@ cd /mnt/c/path/to/the/project
 
 Create the image
 ```
-docker build --tag mohh2-server:latest .
+docker build --tag ea-nation-server:latest .
 ```
 
-- Wii PAL with postgres
-
-First, you need to start a postgres container after creating a network :
+You need to start a postgres container after creating a network :
 ```
-docker network create mohh2-network
+docker network create ea-nation-network
 
-docker run -d --restart=unless-stopped --network mohh2-network \
+docker run -d --restart=unless-stopped --network ea-nation-network \
   -e POSTGRES_USER=user \
   -e POSTGRES_PASSWORD=password \
-  -e POSTGRES_DB=mohh2db \
+  -e POSTGRES_DB=ea-nation \
   -p 5432:5432 \
   --name postgres \
   postgres:latest
@@ -237,27 +217,13 @@ docker run -d --restart=unless-stopped --network mohh2-network \
 
 Then, you can start the server using the network :
 ```
-docker run --name mohh2-wii-pal --rm -it \
+docker run --name ea-nation-server --rm -it \
   -p 21171:21171 -p 21172:21172 -p 21173:21173 \
-  -e "SPRING_PROFILES_ACTIVE=wii-pal" -e "LOGS=./logs" -e "TCP_HOST_IP=127.0.0.1" \
-  -e "DB_URL=jdbc:postgresql://postgres:5432/mohh2db" \
+  -e "LOGS=./logs" -e "TCP_HOST_IP=127.0.0.1" \
+  -e "DB_URL=jdbc:postgresql://postgres:5432/ea-nation" \
   -e "DB_USERNAME=user" -e "DB_PASSWORD=password" \
-  --network mohh2-network \
-  mohh2-server:latest
-```
-
-- Wii NTSC with postgres
-
-Follow the same steps as above to define the network and add postgres to it.  
-Then, you can start the server using the network :
-```
-docker run --name mohh2-wii-ntsc --rm -it \
-  -p 21121:21121 -p 21172:21172 -p 21173:21173 \
-  -e "SPRING_PROFILES_ACTIVE=wii-ntsc" -e "LOGS=./logs" -e "TCP_HOST_IP=127.0.0.1" \
-  -e "DB_URL=jdbc:postgresql://postgres:5432/mohh2db" \
-  -e "DB_USERNAME=user" -e "DB_PASSWORD=password" \
-  --network mohh2-network \
-  mohh2-server:latest
+  --network ea-nation-network \
+  ea-nation-server:latest
 ```
 
 If started in background, here is how to open a bash in the container :
@@ -286,7 +252,7 @@ docker pull postgres:latest
 docker run -d --rm \
   -e POSTGRES_USER=user \
   -e POSTGRES_PASSWORD=password \
-  -e POSTGRES_DB=mohh2db \
+  -e POSTGRES_DB=ea-nation \
   -p 5432:5432 \
   --name postgres \
   postgres:latest
@@ -301,7 +267,7 @@ mkdir ~/postgres_data
 docker run -d --restart=unless-stopped \
 -e POSTGRES_USER=user \
 -e POSTGRES_PASSWORD=password \
--e POSTGRES_DB=mohh2db \
+-e POSTGRES_DB=ea-nation \
 -p 5432:5432 \
 -v ~/postgres_data:/var/lib/postgresql/data \
 --name postgres \
@@ -310,8 +276,3 @@ postgres:latest
 
 Don't forget to set the environment variables (`DB_URL`, `DB_USER` and `DB_PASSWORD`) of the server !  
 See "Run the server" chapter for a full example.
-
-## Connect Mode
-
-To enable `connect mode`, set `udp.connect-mode.enabled` to `true` in `application.yml`.  
-Don't forget to replace `41` by `40` at `0x8001BEB4`.

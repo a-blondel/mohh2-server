@@ -10,9 +10,6 @@ import java.util.List;
 @Component
 public class Props {
 
-    @Value("${ssl.port}")
-    private int sslPort;
-
     @Value("${ssl.protocols}")
     private String sslProtocols;
 
@@ -51,5 +48,8 @@ public class Props {
 
     @Value("${lobby.close-expired}")
     private boolean closeExpiredLobbiesEnabled;
+
+    @Value("#{'${hosted-games}'.split(',')}")
+    private List<String> hostedGames;
 
 }
