@@ -85,11 +85,11 @@ public class PersonaService {
      */
     public void pers(Socket socket, SessionData sessionData, SocketData socketData) {
         String pers = getValueFromSocket(socketData.getInputMessage(), "PERS");
-        socketManager.setPers(socket.getRemoteSocketAddress().toString(), pers);
+        socketManager.setPers(socket.getInetAddress().getHostAddress(), pers);
 
         if(pers.contains("@")) {
             pers = pers.split("@")[0] + pers.split("@")[1];
-            socketManager.setHost(socket.getRemoteSocketAddress().toString(), true);
+            socketManager.setHost(socket.getInetAddress().getHostAddress(), true);
         }
 
         Optional<PersonaEntity> personaEntityOpt = personaRepository.findByPers(pers);

@@ -150,9 +150,9 @@ public class LobbyService {
 
         String room = getValueFromSocket(socketData.getInputMessage(), "ROOM"); // TODO : add to socketMapper.toLobbyEntityForCreation
 
-        SocketWrapper socketWrapper = socketManager.getSocketWrapper(socket.getRemoteSocketAddress().toString());
+        SocketWrapper socketWrapper = socketManager.getSocketWrapper(socket.getInetAddress().getHostAddress());
         Long lobbyId = lobbyEntity.getId();
-        socketManager.setLobbyId(socket.getRemoteSocketAddress().toString(), lobbyId);
+        socketManager.setLobbyId(socket.getInetAddress().getHostAddress(), lobbyId);
 
         Map<String, String> content = Stream.of(new String[][] {
                 { "IDENT", lobbyId.toString() },

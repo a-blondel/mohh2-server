@@ -147,7 +147,7 @@ public class ServerApp implements CommandLineRunner {
                 while (true) {
                     Socket socket = serverSocket.accept();
                     if (!(socket instanceof SSLSocket)) {
-                        socketManager.addSocket(socket.getRemoteSocketAddress().toString(), socket);
+                        socketManager.addSocket(socket.getInetAddress().getHostAddress(), socket);
                     }
                     new Thread(runnableFactory.apply(socket, new SessionData())).start();
                 }
