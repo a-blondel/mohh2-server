@@ -1,0 +1,14 @@
+databaseChangeLog:
+  - changeSet:
+      id: 001-schema
+      author: ablondel
+      changes:
+        - sqlFile:
+            path: db/changelog/changes/001-schema.sql
+  - changeSet:
+      id: 002-data
+      author: ablondel
+      dbms: h2
+      changes:
+        - sqlFile:
+            path: db/samples/mohh-basic.sql

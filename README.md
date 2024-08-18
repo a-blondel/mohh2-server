@@ -164,6 +164,18 @@ As for `tcp.host`, it depends on your use case :
 
 ## Run the server
 
+### Development profile
+
+By default, the server uses a Postgres database, but it is advised to use an in-memory H2 database for development, which is handy.
+
+To do so, enable the `dev` profile when starting the server (VM Option `-Dspring.profiles.active=dev`).
+
+The h2 console can be accessed in a browser when the server is running :
+```
+http://localhost:8080/h2/
+```
+(Information like database url, user and password can be found in `application.yml`)
+
 ### 1. Build the project
 
 Run the following command :  

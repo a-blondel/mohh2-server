@@ -25,9 +25,6 @@ lobby:
   close-expired: ${LOBBY_CLOSE_EXPIRED:true}
 
 spring:
-  profiles:
-    active:
-      - wii-pal
   datasource:
     url: ${DB_URL}
     port: ${DB_PORT:5432}
@@ -45,3 +42,23 @@ spring:
 
 # List of games that are hosted by the server, remove unneeded games
 hosted-games: mohh_psp_pal,mohh_psp_ntsc,mohh2_psp_pal,mohh2_psp_ntsc,mohh2_wii_pal,mohh2_wii_ntsc
+
+---
+
+spring:
+  config:
+    activate:
+      on-profile: dev
+  h2:
+    console:
+      enabled: true
+      path: /h2
+      settings:
+        web-allow-others: true
+  datasource:
+    url: jdbc:h2:mem:ea-nation;DB_CLOSE_DELAY=-1
+    username: sa
+    password: sa
+    driver-class-name: org.h2.Driver
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master-populate.yaml
