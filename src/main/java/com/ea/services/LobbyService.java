@@ -130,8 +130,8 @@ public class LobbyService {
     }
 
     public void mgm(Socket socket, SessionData sessionData, LobbyEntity lobbyEntity) {
-        SocketWriter.write(socketManager.getHostSockets().get(0), new SocketData("+mgm", null, getLobbyInfo(sessionData, lobbyEntity)));
-        SocketWriter.write(socketManager.getHostSockets().get(0), new SocketData("+ses", null, getLobbyInfo(sessionData, lobbyEntity)));
+        SocketWriter.write(socketManager.getHostSocketWrapperOfLobby(lobbyEntity.getId()).getSocket(), new SocketData("+mgm", null, getLobbyInfo(sessionData, lobbyEntity)));
+        SocketWriter.write(socketManager.getHostSocketWrapperOfLobby(lobbyEntity.getId()).getSocket(), new SocketData("+ses", null, getLobbyInfo(sessionData, lobbyEntity)));
     }
 
     /**
@@ -150,9 +150,9 @@ public class LobbyService {
 
         String room = getValueFromSocket(socketData.getInputMessage(), "ROOM"); // TODO : add to socketMapper.toLobbyEntityForCreation
 
-        SocketWrapper socketWrapper = socketManager.getSocketWrapper(socket.getInetAddress().getHostAddress());
+        SocketWrapper socketWrapper = socketManager.getSocketWrapper(socket.getRemoteSocketAddress().toString());
         Long lobbyId = lobbyEntity.getId();
-        socketManager.setLobbyId(socket.getInetAddress().getHostAddress(), lobbyId);
+        socketManager.setLobbyId(socket.getRemoteSocketAddress().toString(), lobbyId);
 
         Map<String, String> content = Stream.of(new String[][] {
                 { "IDENT", lobbyId.toString() },

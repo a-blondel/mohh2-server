@@ -61,7 +61,7 @@ public class TcpSocketThread implements Runnable {
             lobbyService.endLobbyReport(sessionData); // If the player doesn't leave from the game
             personaService.endPersonaConnection(sessionData);
 
-            SocketWrapper socketWrapper = socketManager.getSocketWrapper(clientSocket.getInetAddress().getHostAddress());
+            SocketWrapper socketWrapper = socketManager.getSocketWrapper(clientSocket.getRemoteSocketAddress().toString());
             if(socketWrapper != null) {
                 if(socketWrapper.isHost()) {
                     LobbyEntity lobbyEntity = lobbyRepository.findById(socketWrapper.getLobbyId()).orElse(null);
