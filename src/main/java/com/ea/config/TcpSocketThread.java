@@ -63,7 +63,7 @@ public class TcpSocketThread implements Runnable {
 
             SocketWrapper socketWrapper = socketManager.getSocketWrapper(clientSocket.getRemoteSocketAddress().toString());
             if(socketWrapper != null) {
-                if(socketWrapper.isHost()) {
+                if(socketWrapper.isHost() && socketWrapper.getLobbyId() != null) {
                     LobbyEntity lobbyEntity = lobbyRepository.findById(socketWrapper.getLobbyId()).orElse(null);
                     if(lobbyEntity != null) {
                         lobbyEntity.setEndTime(Timestamp.from(Instant.now()));

@@ -76,6 +76,12 @@ public class AuthService {
                     { "MORE", "0" },
                     { "SLOTS", "4" },
                     { "STATS", "0" },
+//                    { "GAMES", "1" },
+//                    { "ROOMS", "1" },
+//                    { "USERS", "1" },
+//                    { "MESGS", "1" },
+//                    { "MYGAME", "1" },
+//                    { "ASYNC", "1" },
             }).collect(Collectors.toMap(data -> data[0], data -> data[1]));
         } else {
             String myGame = getValueFromSocket(socketData.getInputMessage(), "MYGAME");
@@ -108,7 +114,7 @@ public class AuthService {
         }
 
         socketData.setOutputData(content);
-        SocketWriter.write(socket, socketData);
+        SocketWriter.write(socket, socketData, " ");
 
         if(null != stats || null != inGame) {
             personaService.who(socket, sessionData);

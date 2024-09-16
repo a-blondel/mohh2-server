@@ -85,6 +85,9 @@ public class SocketProcessor {
             case ("glea"):
                 lobbyService.glea(socket, sessionData, socketData);
                 break;
+            case ("gpss"):
+                lobbyService.gpss(socket, sessionData, socketData);
+                break;
             default:
                 log.info("Unsupported operation: {}", socketData.getIdMessage());
                 SocketWriter.write(socket, socketData);
