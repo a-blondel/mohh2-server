@@ -9,7 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import java.sql.Timestamp;
 import java.time.Instant;
 
-@Mapper(componentModel = "spring", imports = {SocketUtils.class})
+@Mapper(componentModel = "spring", imports = {SocketUtils.class, Timestamp.class, Instant.class})
 public abstract class SocketMapper {
 
     @Autowired
@@ -17,16 +17,17 @@ public abstract class SocketMapper {
 
     @BeanMapping(qualifiedByName = "LobbyEntityForCreation")
     @Mapping(target = "id", ignore = true)
+    @Mapping(target = "userHosted", source = "userHosted")
     @Mapping(target = "name", expression = "java(SocketUtils.getValueFromSocket(socket, \"NAME\"))")
     @Mapping(target = "params", expression = "java(SocketUtils.getValueFromSocket(socket, \"PARAMS\"))")
     @Mapping(target = "sysflags", expression = "java(SocketUtils.getValueFromSocket(socket, \"SYSFLAGS\"))")
     @Mapping(target = "pass", expression = "java(SocketUtils.getValueFromSocket(socket, \"PASS\"))")
     @Mapping(target = "minsize", expression = "java(Integer.parseInt(SocketUtils.getValueFromSocket(socket, \"MINSIZE\")))")
     @Mapping(target = "maxsize", expression = "java(Integer.parseInt(SocketUtils.getValueFromSocket(socket, \"MAXSIZE\")))")
-    @Mapping(target = "startTime", ignore = true)
+    @Mapping(target = "startTime", expression = "java(Timestamp.from(Instant.now()))")
     @Mapping(target = "endTime", ignore = true)
     @Mapping(target = "lobbyReports", ignore = true)
-    public abstract LobbyEntity toLobbyEntityForCreation(String socket);
+    public abstract LobbyEntity toLobbyEntityForCreation(String socket, boolean userHosted);
 
     @BeanMapping(qualifiedByName = "AccountEntityForCreation")
     @Mapping(target = "id", ignore = true)

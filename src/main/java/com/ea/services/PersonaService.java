@@ -87,9 +87,8 @@ public class PersonaService {
         String pers = getValueFromSocket(socketData.getInputMessage(), "PERS");
         socketManager.setPers(socket.getRemoteSocketAddress().toString(), pers);
 
-        if(pers.contains("@")) {
+        if(pers.contains("@")) { // Remove @ from persona name (UHS naming convention)
             pers = pers.split("@")[0] + pers.split("@")[1];
-            socketManager.setHost(socket.getRemoteSocketAddress().toString(), true);
         }
 
         Optional<PersonaEntity> personaEntityOpt = personaRepository.findByPers(pers);
@@ -214,12 +213,12 @@ public class PersonaService {
                     // 0x80021384
                     { "C", "4000,,7,1,1,,1,1,5553" },
                     { "RI", "0" },
-                    { "RT", "0" },
+                    { "RT", "1" },
                     { "RG", "0" },
                     { "RGC", "0" },
                     // 0x80021468 if RI != ?? then read RM and RF
-                    { "RM", "0" },
-                    { "RF", "0" },
+                    { "RM", "MyRoom" },
+                    { "RF", "C" },
             }).collect(Collectors.toMap(data -> data[0], data -> data[1]));
             SocketWriter.write(socket, new SocketData("+who", null, content));
         }

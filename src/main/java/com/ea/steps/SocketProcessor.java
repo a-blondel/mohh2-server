@@ -88,6 +88,12 @@ public class SocketProcessor {
             case ("gpss"):
                 lobbyService.gpss(socket, sessionData, socketData);
                 break;
+            case ("gsta"):
+                lobbyService.gsta(socket, sessionData, socketData);
+                break;
+            case ("gdel"):
+                SocketWriter.write(socket, socketData);
+                break;
             default:
                 log.info("Unsupported operation: {}", socketData.getIdMessage());
                 SocketWriter.write(socket, socketData);

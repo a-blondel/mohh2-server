@@ -1,6 +1,7 @@
 package com.ea.services;
 
 import com.ea.dto.SocketWrapper;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.net.Socket;
@@ -12,19 +13,14 @@ import java.util.stream.Collectors;
 public class SocketManager {
     private final ConcurrentHashMap<String, SocketWrapper> sockets = new ConcurrentHashMap<>();
 
+    // TODO merge SessionData and SocketWrapper
+
     public void addSocket(String identifier, Socket socket) {
-        sockets.put(identifier, new SocketWrapper(socket, identifier, false, null, null));
+        sockets.put(identifier, new SocketWrapper(socket, identifier, null, null));
     }
 
     public void removeSocket(String identifier) {
         sockets.remove(identifier);
-    }
-
-    public void setHost(String identifier, boolean isHost) {
-        SocketWrapper wrapper = sockets.get(identifier);
-        if (wrapper != null) {
-            wrapper.setHost(isHost);
-        }
     }
 
     public void setPers(String identifier, String pers) {
@@ -54,7 +50,7 @@ public class SocketManager {
 
     public List<Socket> getHostSockets() {
         return sockets.values().stream()
-                .filter(SocketWrapper::isHost)
+                .filter(wrapper -> !StringUtils.isEmpty(wrapper.getPers()) && wrapper.getPers().contains("@"))
                 .map(SocketWrapper::getSocket)
                 .collect(Collectors.toList());
     }

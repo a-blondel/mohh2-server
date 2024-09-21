@@ -2,6 +2,7 @@ package com.ea.services;
 
 import com.ea.dto.SessionData;
 import com.ea.dto.SocketData;
+import com.ea.dto.SocketWrapper;
 import com.ea.steps.SocketWriter;
 import com.ea.utils.Props;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,7 +22,13 @@ public class AuthService {
     Props props;
 
     @Autowired
+    private SocketManager socketManager;
+
+    @Autowired
     private PersonaService personaService;
+
+    @Autowired
+    private LobbyService lobbyService;
 
     public void dir(Socket socket, SocketData socketData) {
         Map<String, String> content = Stream.of(new String[][] {
@@ -119,6 +126,19 @@ public class AuthService {
         if(null != stats || null != inGame) {
             personaService.who(socket, sessionData);
         }
+
+        SocketWrapper socketWrapper = socketManager.getSocketWrapper(socket.getRemoteSocketAddress().toString());
+        if(socketWrapper != null) {
+            if (socketWrapper.isHost() && socketWrapper.getLobbyId() == null) {
+                joinRoom(socket, sessionData, socketData);
+            }
+        }
+
+    }
+
+    private void joinRoom(Socket socket, SessionData sessionData, SocketData socketData) {
+        lobbyService.rom(socket, socketData);
+        personaService.who(socket, sessionData);
     }
 
 }

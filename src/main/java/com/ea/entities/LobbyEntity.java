@@ -19,6 +19,8 @@ public class LobbyEntity {
     @GeneratedValue(strategy= GenerationType.IDENTITY)
     private Long id;
 
+    private boolean userHosted;
+
     private String name;
 
     private String params;

@@ -3,6 +3,7 @@ package com.ea.dto;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
+import org.apache.commons.lang3.StringUtils;
 
 import java.net.Socket;
 
@@ -12,7 +13,11 @@ import java.net.Socket;
 public class SocketWrapper {
     private Socket socket;
     private String identifier;
-    private boolean isHost;
     private String pers;
     private Long lobbyId;
+
+    public boolean isHost() {
+        return !StringUtils.isEmpty(pers) && pers.contains("@");
+    }
+
 }

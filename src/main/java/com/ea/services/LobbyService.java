@@ -20,6 +20,7 @@ import org.springframework.stereotype.Component;
 import java.net.Socket;
 import java.sql.Timestamp;
 import java.time.Instant;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -50,6 +51,34 @@ public class LobbyService {
 
     @Autowired
     private SocketManager socketManager;
+
+    /**
+     * Distribute room change updates
+     * @param socket
+     * @param socketData
+     */
+    public void rom(Socket socket, SocketData socketData) {
+        Map<String, String> content = Stream.of(new String[][] {
+                { "I", "0" }, // Room identifier
+                { "N", "MyRoom" }, // Room name
+                { "H", "" }, // Room Host
+                { "D", "" }, // Room description
+                { "F", "CK" }, // Attribute flags
+                { "T", "" }, // Current room population
+                { "L", "33" }, // Max users allowed in room
+                { "P", "0" }, // Room ping
+                { "A", props.getTcpHost() }, // Room address
+        }).collect(Collectors.toMap(data -> data[0], data -> data[1]));
+
+        socketData.setOutputData(content);
+        socketData.setIdMessage("+rom");
+        SocketWriter.write(socket, socketData);
+    }
+
+    public void gsta(Socket socket, SessionData sessionData, SocketData socketData) {
+        SocketWriter.write(socket, socketData);
+        ses(socket, sessionData, sessionData.getCurrentLobby());
+    }
 
     /**
      * Game count
@@ -123,15 +152,17 @@ public class LobbyService {
      */
     public void gpsc(Socket socket, SessionData sessionData, SocketData socketData) {
         SocketWriter.write(socket, socketData);
-        LobbyEntity lobbyEntity = socketMapper.toLobbyEntityForCreation(socketData.getInputMessage());
-        lobbyEntity.setStartTime(Timestamp.from(Instant.now()));
+        LobbyEntity lobbyEntity = socketMapper.toLobbyEntityForCreation(socketData.getInputMessage(), false);
         lobbyRepository.save(lobbyEntity);
         ses(socket, sessionData, lobbyEntity);
     }
 
     public void mgm(Socket socket, SessionData sessionData, LobbyEntity lobbyEntity) {
-        SocketWriter.write(socketManager.getHostSocketWrapperOfLobby(lobbyEntity.getId()).getSocket(), new SocketData("+mgm", null, getLobbyInfo(sessionData, lobbyEntity)));
-        SocketWriter.write(socketManager.getHostSocketWrapperOfLobby(lobbyEntity.getId()).getSocket(), new SocketData("+ses", null, getLobbyInfo(sessionData, lobbyEntity)));
+        SocketWrapper socketWrapper = socketManager.getHostSocketWrapperOfLobby(lobbyEntity.getId());
+        if(socketWrapper != null) {
+            SocketWriter.write(socketWrapper.getSocket(), new SocketData("+mgm", null, getLobbyInfo(sessionData, lobbyEntity)));
+            SocketWriter.write(socketWrapper.getSocket(), new SocketData("+ses", null, getLobbyInfo(sessionData, lobbyEntity)));
+        }
     }
 
     /**
@@ -141,73 +172,18 @@ public class LobbyService {
      * @param socketData
      */
     public void gcre(Socket socket, SessionData sessionData, SocketData socketData) {
-
         SocketWriter.write(socket, socketData);
 
-//        LobbyEntity lobbyEntity = socketMapper.toLobbyEntityForCreation(socketData.getInputMessage());
-//        lobbyEntity.setStartTime(Timestamp.from(Instant.now()));
-//        lobbyRepository.save(lobbyEntity);
-//
-//        String room = getValueFromSocket(socketData.getInputMessage(), "ROOM"); // TODO : add to socketMapper.toLobbyEntityForCreation
-//
-//        SocketWrapper socketWrapper = socketManager.getSocketWrapper(socket.getRemoteSocketAddress().toString());
-//        Long lobbyId = lobbyEntity.getId();
-//        socketManager.setLobbyId(socket.getRemoteSocketAddress().toString(), lobbyId);
-//
-//        Map<String, String> content = Stream.of(new String[][] {
-//                { "IDENT", lobbyId.toString() },
-//                { "NAME", lobbyEntity.getName() },
-//                { "HOST", socketWrapper.getPers() },
-//                //{ "GPSHOST", "@jack041" },
-//                { "PARAMS", lobbyEntity.getParams() },
-//                // { "PARAMS", ",,,b80,d003f6e0656e47423" },
-//                // { "PLATPARAMS", "0" },  // ???
-//                { "ROOM", room },
-//                //{ "CUSTFLAGS", "413007872" },
-//                { "SYSFLAGS", lobbyEntity.getSysflags() },
-//                { "COUNT", "1" },
-//                //{ "GPSREGION", "2" },
-//                { "PRIV", "0" },
-//                { "MINSIZE", String.valueOf(lobbyEntity.getMinsize()) },
-//                { "MAXSIZE", String.valueOf(lobbyEntity.getMaxsize()) },
-//                { "NUMPART", "1" },
-//                { "SEED", "10" }, // random seed
-//                { "WHEN", "2024.8.4-15:38:06" },
-//                //{ "WHENC", "2024.8.4-15:38:066" },
-//                //{ "GAMEPORT", "3658" },
-//                //{ "VOIPPORT", "9683" },
-//                //{ "GAMEMODE", "0" }, // ???
-//                // { "AUTH", "0" }, // ???
-//
-//                // loop 0x80022058 only if COUNT>=0
-//                { "OPID0", "0" }, // OPID%d
-//                { "OPPO0", socketWrapper.getPers() }, // OPPO%d
-//                { "ADDR0", socket.getInetAddress().getHostAddress() },
-//                { "LADDR0", "127.0.0.1" },
-//                { "OPFLAG0", "0" },
-//                { "MADDR0", "" }, // MADDR%d
-//                { "OPPART0", "0" }, // OPPART%d
-//                { "OPPARAM0", "chgBAMJQAAAVAAAAUkYAAAUAAAABAAAA" }, // OPPARAM%d
-//                { "OPFLAGS0", "0" }, // OPFLAGS%d
-//                { "PRES0", "0" }, // PRES%d ???
-//
-//                // another loop 0x8002225C only if NUMPART>=0
-//                { "PARTSIZE0", String.valueOf(lobbyEntity.getMaxsize()) }, // PARTSIZE%d
-//                { "PARTPARAMS0", "" }, // PARTPARAMS%d
-//                // { "SELF", sessionData.getCurrentPersonna().getPers() },
-//
-//                // { "SESS", "0" }, %s-%s-%08x 0--498ea96f
-//
-//                { "EVID", "0" },
-//                { "EVGID", "0" },
-//        }).collect(Collectors.toMap(data -> data[0], data -> data[1]));
-//
-//        socketData.setOutputData(content);
-//
-//        SocketWriter.write(socket, new SocketData("+mgm", null, content));
+        LobbyEntity lobbyEntity = socketMapper.toLobbyEntityForCreation(socketData.getInputMessage(), true);
+        lobbyRepository.save(lobbyEntity);
 
-        //LobbyEntity lobbyEntity = lobbyRepository.findById(1L).orElse(null);
-        //SocketWriter.write(socket, new SocketData("+mgm", null, getLobbyInfo(sessionData, lobbyEntity)));
+        startLobbyReport(sessionData, lobbyEntity);
+
+        //String room = getValueFromSocket(socketData.getInputMessage(), "ROOM"); // Should room be added to the lobby entity?
+
+        socketManager.setLobbyId(socket.getRemoteSocketAddress().toString(), lobbyEntity.getId());
+
+        SocketWriter.write(socket, new SocketData("+mgm", null, getLobbyInfo(sessionData, lobbyEntity)));
     }
 
     /**
@@ -234,23 +210,19 @@ public class LobbyService {
     public void gpss(Socket socket, SessionData sessionData, SocketData socketData) {
         SocketWriter.write(socket, socketData);
 
-        Map<String, String> content = Stream.of(new String[][] {
-                { "PING", "EA60" },
-        }).collect(Collectors.toMap(data -> data[0], data -> data[1]));
-        socketData.setOutputData(content);
-        socketData.setIdMessage("$gps");
+//        Map<String, String> content = Stream.of(new String[][] {
+//                { "PING", "EA60" },
+//        }).collect(Collectors.toMap(data -> data[0], data -> data[1]));
+//        socketData.setOutputData(content);
+//        socketData.setIdMessage("$gps");
 
-        String status = getValueFromSocket(socketData.getInputMessage(), "STATUS");
+//        String status = getValueFromSocket(socketData.getInputMessage(), "STATUS");
 
-        if(("A").equals(status)) {
-            SocketWriter.write(socket, socketData);
-            LobbyEntity lobbyEntity = lobbyRepository.findById(1L).orElse(null);
-            //SocketWriter.write(socket, new SocketData("gcre", null, getLobbyInfo(sessionData, lobbyEntity)));
-            SocketWriter.write(socket, new SocketData("$cre", null, getLobbyInfo(sessionData, lobbyEntity)));
-            //SocketWriter.write(socket, new SocketData("gpsc", null, getLobbyInfo(sessionData, lobbyEntity)));
-            //SocketWriter.write(socket, new SocketData("+mgm", null, getLobbyInfo(sessionData, lobbyEntity)));
-            //SocketWriter.write(socket, new SocketData("+ses", null, getLobbyInfo(sessionData, lobbyEntity)));
-        }
+//        if(("A").equals(status)) {
+//            SocketWriter.write(socket, socketData);
+//            LobbyEntity lobbyEntity = lobbyRepository.findById(1L).orElse(null);
+//            SocketWriter.write(socket, new SocketData("$cre", null, getLobbyInfo(sessionData, lobbyEntity)));
+//        }
 
     }
 
@@ -266,7 +238,7 @@ public class LobbyService {
     }
 
     /**
-     * Lobby details (current opponents, ...)
+     * Game details (current opponents, ...)
      * @param socket
      */
     public void gget(Socket socket, SessionData sessionData, SocketData socketData) {
@@ -301,7 +273,7 @@ public class LobbyService {
         Map<String, String> content = Stream.of(new String[][] {
                 { "IDENT", String.valueOf(lobbyId) },
                 { "NAME", lobbyEntity.getName() },
-                { "HOST", socketWrapper != null ? socketWrapper.getPers() : "jack041" },
+                { "HOST", socketWrapper != null ? socketWrapper.getPers() : "@brobot1" },
                 // { "GPSHOST", socketWrapper != null ? socketWrapper.getPers() : "@brobot1" },
                 { "PARAMS", params },
                 // { "PARAMS", ",,,b80,d003f6e0656e47423" },
@@ -316,7 +288,7 @@ public class LobbyService {
                 { "MAXSIZE", String.valueOf(lobbyEntity.getMaxsize()) },
                 { "NUMPART", "1" },
                 { "SEED", "3" }, // random seed
-                { "WHEN", "2009.2.8-9:44:15" },
+                { "WHEN", DateTimeFormatter.ofPattern("yyyy.M.d-H:mm:ss").format(lobbyEntity.getStartTime().toLocalDateTime()) },
                 // { "GAMEPORT", String.valueOf(props.getUdpPort())},
                 // { "VOIPPORT", "9667" },
                 // { "GAMEMODE", "0" }, // ???
@@ -324,7 +296,7 @@ public class LobbyService {
 
                 // loop 0x80022058 only if COUNT>=0
                 { "OPID0", "0" }, // OPID%d
-                { "OPPO0", socketWrapper != null ? socketWrapper.getPers() : "jack041" }, // OPPO%d
+                { "OPPO0", socketWrapper != null ? socketWrapper.getPers() : "@brobot1" }, // OPPO%d
                 { "ADDR0", socketWrapper != null ? socketWrapper.getSocket().getInetAddress().getHostAddress() : "127.0.0.1" },
                 { "LADDR0", "127.0.0.1" },
                 { "OPFLAG0", "0" },
