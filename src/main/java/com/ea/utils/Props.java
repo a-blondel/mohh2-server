@@ -28,6 +28,9 @@ public class Props {
     @Value("${tcp.host}")
     private String tcpHost;
 
+    @Value("${ea-server}")
+    private boolean eaServer;
+
     @Value("${tcp.debug.enabled}")
     private boolean tcpDebugEnabled;
 

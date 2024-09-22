@@ -77,7 +77,6 @@ public class LobbyService {
 
     public void gsta(Socket socket, SessionData sessionData, SocketData socketData) {
         SocketWriter.write(socket, socketData);
-        ses(socket, sessionData, sessionData.getCurrentLobby());
     }
 
     /**
@@ -111,7 +110,7 @@ public class LobbyService {
                     { "NAME", lobbyEntity.getName() },
                     { "PARAMS", lobbyEntity.getParams() },
                     { "SYSFLAGS", lobbyEntity.getSysflags() },
-                    { "COUNT", String.valueOf(lobbyEntity.getLobbyReports().stream().filter(report -> null == report.getEndTime()).count() + 1) },
+                    { "COUNT", String.valueOf(lobbyEntity.getLobbyReports().stream().filter(report -> null == report.getEndTime()).count()) },
                     { "MAXSIZE", String.valueOf(lobbyEntity.getMaxsize()) },
             }).collect(Collectors.toMap(data -> data[0], data -> data[1])));
         }
@@ -174,16 +173,19 @@ public class LobbyService {
     public void gcre(Socket socket, SessionData sessionData, SocketData socketData) {
         SocketWriter.write(socket, socketData);
 
-        LobbyEntity lobbyEntity = socketMapper.toLobbyEntityForCreation(socketData.getInputMessage(), true);
-        lobbyRepository.save(lobbyEntity);
+        if(!props.isEaServer()) {
+            LobbyEntity lobbyEntity = socketMapper.toLobbyEntityForCreation(socketData.getInputMessage(), true);
+            lobbyRepository.save(lobbyEntity);
 
-        startLobbyReport(sessionData, lobbyEntity);
+            startLobbyReport(sessionData, lobbyEntity);
 
-        //String room = getValueFromSocket(socketData.getInputMessage(), "ROOM"); // Should room be added to the lobby entity?
+            //String room = getValueFromSocket(socketData.getInputMessage(), "ROOM"); // Should room be added to the lobby entity?
 
-        socketManager.setLobbyId(socket.getRemoteSocketAddress().toString(), lobbyEntity.getId());
+            socketManager.setLobbyId(socket.getRemoteSocketAddress().toString(), lobbyEntity.getId());
 
-        SocketWriter.write(socket, new SocketData("+mgm", null, getLobbyInfo(sessionData, lobbyEntity)));
+            SocketWriter.write(socket, new SocketData("+mgm", null, getLobbyInfo(sessionData, lobbyEntity)));
+        }
+
     }
 
     /**
@@ -281,7 +283,7 @@ public class LobbyService {
                 { "ROOM", "1" },
                 { "CUSTFLAGS", "413082880" },
                 { "SYSFLAGS", lobbyEntity.getSysflags() },
-                { "COUNT", String.valueOf(lobbyEntity.getLobbyReports().stream().filter(report -> null == report.getEndTime()).count() + 1) },
+                { "COUNT", String.valueOf(lobbyEntity.getLobbyReports().stream().filter(report -> null == report.getEndTime()).count()) },
                 // { "GPSREGION", "2" },
                 { "PRIV", "0" },
                 { "MINSIZE", String.valueOf(lobbyEntity.getMinsize()) },
