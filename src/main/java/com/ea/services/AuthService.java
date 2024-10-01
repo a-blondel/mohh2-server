@@ -127,12 +127,10 @@ public class AuthService {
             personaService.who(socket, sessionData);
         }
 
-        if(!props.isEaServer()) {
-            SocketWrapper socketWrapper = socketManager.getSocketWrapper(socket.getRemoteSocketAddress().toString());
-            if(socketWrapper != null) {
-                if (socketWrapper.isHost() && socketWrapper.getLobbyId() == null) {
-                    joinRoom(socket, sessionData, socketData);
-                }
+        SocketWrapper socketWrapper = socketManager.getSocketWrapper(socket.getRemoteSocketAddress().toString());
+        if(props.isUhsAutoStart() && socketWrapper != null) {
+            if (socketWrapper.isHost() && socketWrapper.getLobbyId() == null) {
+                joinRoom(socket, sessionData, socketData);
             }
         }
 

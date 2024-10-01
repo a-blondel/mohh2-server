@@ -59,12 +59,12 @@ public class LobbyService {
      */
     public void rom(Socket socket, SocketData socketData) {
         Map<String, String> content = Stream.of(new String[][] {
-                { "I", "0" }, // Room identifier
-                { "N", "MyRoom" }, // Room name
-                { "H", "" }, // Room Host
+                { "I", "1" }, // Room identifier
+                { "N", "room" }, // Room name
+                { "H", socketManager.getSocketWrapper(socket.getRemoteSocketAddress().toString()).getPers() }, // Room Host
                 { "D", "" }, // Room description
                 { "F", "CK" }, // Attribute flags
-                { "T", "" }, // Current room population
+                { "T", "1" }, // Current room population
                 { "L", "33" }, // Max users allowed in room
                 { "P", "0" }, // Room ping
                 { "A", props.getTcpHost() }, // Room address
@@ -173,19 +173,21 @@ public class LobbyService {
     public void gcre(Socket socket, SessionData sessionData, SocketData socketData) {
         SocketWriter.write(socket, socketData);
 
-        if(!props.isEaServer()) {
-            LobbyEntity lobbyEntity = socketMapper.toLobbyEntityForCreation(socketData.getInputMessage(), true);
-            lobbyRepository.save(lobbyEntity);
+        if(props.isUhsAutoStart()) {
+            LobbyEntity lobbyEntity = lobbyRepository.findById(1L).orElse(null);
+
+            if (!props.isUhsEaServerMode()) {
+                //String room = getValueFromSocket(socketData.getInputMessage(), "ROOM"); // Should room be added to the lobby entity?
+                lobbyEntity = socketMapper.toLobbyEntityForCreation(socketData.getInputMessage(), true);
+                lobbyRepository.save(lobbyEntity);
+            }
 
             startLobbyReport(sessionData, lobbyEntity);
-
-            //String room = getValueFromSocket(socketData.getInputMessage(), "ROOM"); // Should room be added to the lobby entity?
 
             socketManager.setLobbyId(socket.getRemoteSocketAddress().toString(), lobbyEntity.getId());
 
             SocketWriter.write(socket, new SocketData("+mgm", null, getLobbyInfo(sessionData, lobbyEntity)));
         }
-
     }
 
     /**
@@ -202,7 +204,7 @@ public class LobbyService {
     /**
      * Update the status of a persistent game spawn service.
      *
-     * If STATUS is "A", then the GPS is avaible to host a game.
+     * If STATUS is "A", then the GPS is available to host a game.
      * If STATUS is "G", then the GPS is hosting a game.
      *
      * @param socket
@@ -212,19 +214,19 @@ public class LobbyService {
     public void gpss(Socket socket, SessionData sessionData, SocketData socketData) {
         SocketWriter.write(socket, socketData);
 
-//        Map<String, String> content = Stream.of(new String[][] {
+        String status = getValueFromSocket(socketData.getInputMessage(), "STATUS");
+
+        // Add a flag in database to indicate that the game is hosted
+        if(props.isUhsAutoStart() && props.isUhsEaServerMode() && ("A").equals(status)) {
+//            Map<String, String> content = Stream.of(new String[][] {
 //                { "PING", "EA60" },
-//        }).collect(Collectors.toMap(data -> data[0], data -> data[1]));
-//        socketData.setOutputData(content);
-//        socketData.setIdMessage("$gps");
+//            }).collect(Collectors.toMap(data -> data[0], data -> data[1]));
+//            socketData.setOutputData(content);
+//            socketData.setIdMessage("$gps");
 
-//        String status = getValueFromSocket(socketData.getInputMessage(), "STATUS");
-
-//        if(("A").equals(status)) {
-//            SocketWriter.write(socket, socketData);
-//            LobbyEntity lobbyEntity = lobbyRepository.findById(1L).orElse(null);
-//            SocketWriter.write(socket, new SocketData("$cre", null, getLobbyInfo(sessionData, lobbyEntity)));
-//        }
+            LobbyEntity lobbyEntity = lobbyRepository.findById(1L).orElse(null);
+            SocketWriter.write(socket, new SocketData("$cre", null, getLobbyInfo(sessionData, lobbyEntity)));
+        }
 
     }
 
@@ -297,20 +299,8 @@ public class LobbyService {
                 // { "AUTH", "0" }, // ???
 
                 // loop 0x80022058 only if COUNT>=0
-                { "OPID0", "0" }, // OPID%d
-                { "OPPO0", socketWrapper != null ? socketWrapper.getPers() : "@brobot1" }, // OPPO%d
-                { "ADDR0", socketWrapper != null ? socketWrapper.getSocket().getInetAddress().getHostAddress() : "127.0.0.1" },
-                { "LADDR0", "127.0.0.1" },
-                { "OPFLAG0", "0" },
-                { "MADDR0", "" }, // MADDR%d
-                { "OPPART0", "0" }, // OPPART%d
-                { "OPPARAM0", "chgBAMJQAAAVAAAAUkYAAAUAAAABAAAA" }, // OPPARAM%d
-                { "OPFLAGS0", "0" }, // OPFLAGS%d
-                { "PRES0", "0" }, // PRES%d ???
 
                 // another loop 0x8002225C only if NUMPART>=0
-                { "PARTSIZE0", String.valueOf(lobbyEntity.getMaxsize()) }, // PARTSIZE%d
-                { "PARTPARAMS0", "" }, // PARTPARAMS%d
                 // { "SELF", sessionData.getCurrentPersonna().getPers() },
 
                 { "SESS", "0" }, // %s-%s-%08x 0--498ea96f
@@ -319,7 +309,7 @@ public class LobbyService {
                 { "EVGID", "0" },
         }).collect(Collectors.toMap(data -> data[0], data -> data[1]));
 
-        int[] idx = { 1 };
+        int[] idx = { 0 };
         lobbyEntity.getLobbyReports().stream().filter(report -> null == report.getEndTime()).forEach(lobbyReportEntity -> {
             PersonaEntity personaEntity = lobbyReportEntity.getPersona();
             Optional<PersonaConnectionEntity> personaConnectionEntityOpt = personaConnectionRepository.findCurrentPersonaConnection(personaEntity);
@@ -333,8 +323,11 @@ public class LobbyService {
                         { "MADDR" + idx[0], "" },
                         { "OPPART" + idx[0], "0" },
                         { "OPPARAM" + idx[0], "chgBAMJQAAAVAAAAUkYAAAUAAAABAAAA" },
+                        { "OPFLAG" + idx[0], "413082880" },
                         { "OPFLAGS" + idx[0], "413082880" },
                         { "PRES" + idx[0], "0" },
+                        { "PARTSIZE" + idx[0], String.valueOf(lobbyEntity.getMaxsize()) },
+                        { "PARTPARAMS" + idx[0], "" },
                 }).collect(Collectors.toMap(data -> data[0], data -> data[1])));
                 idx[0]++;
             }

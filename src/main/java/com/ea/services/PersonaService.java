@@ -187,7 +187,7 @@ public class PersonaService {
             PersonaStatsEntity personaStatsEntity = personaStatsEntityOpt.get();
 
             Map<String, String> content = Stream.of(new String[][] {
-                    { "I", String.valueOf(accountEntity.getId())},
+                    { "I", String.valueOf(accountEntity.getId()) },
                     { "M", accountEntity.getName() },
                     { "N", personaEntity.getPers() },
                     { "F", "U" },
@@ -212,12 +212,12 @@ public class PersonaService {
                     { "LA", socket.getInetAddress().getHostAddress() },
                     // 0x80021384
                     { "C", "4000,,7,1,1,,1,1,5553" },
-                    { "RI", "0" },
+                    { "RI", "1" },
                     { "RT", "1" },
                     { "RG", "0" },
                     { "RGC", "0" },
                     // 0x80021468 if RI != ?? then read RM and RF
-                    { "RM", "MyRoom" },
+                    { "RM", "room" },
                     { "RF", "C" },
             }).collect(Collectors.toMap(data -> data[0], data -> data[1]));
             SocketWriter.write(socket, new SocketData("+who", null, content));
