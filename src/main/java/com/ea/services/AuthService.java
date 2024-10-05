@@ -28,7 +28,7 @@ public class AuthService {
     private PersonaService personaService;
 
     @Autowired
-    private LobbyService lobbyService;
+    private GameService gameService;
 
     public void dir(Socket socket, SocketData socketData) {
         Map<String, String> content = Stream.of(new String[][] {
@@ -129,7 +129,7 @@ public class AuthService {
 
         SocketWrapper socketWrapper = socketManager.getSocketWrapper(socket.getRemoteSocketAddress().toString());
         if(props.isUhsAutoStart() && socketWrapper != null) {
-            if (socketWrapper.isHost() && socketWrapper.getLobbyId() == null) {
+            if (socketWrapper.isHost() && socketWrapper.getGameId() == null) {
                 joinRoom(socket, sessionData, socketData);
             }
         }
@@ -137,8 +137,15 @@ public class AuthService {
     }
 
     private void joinRoom(Socket socket, SessionData sessionData, SocketData socketData) {
-        lobbyService.rom(socket, socketData);
-        personaService.who(socket, sessionData);
+        personaService.who(socket, sessionData); // Used to set the room info
+
+        try {
+            Thread.sleep(100);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+        gameService.rom(socket, socketData);
     }
 
 }

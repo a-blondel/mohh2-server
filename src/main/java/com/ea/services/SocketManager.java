@@ -1,7 +1,6 @@
 package com.ea.services;
 
 import com.ea.dto.SocketWrapper;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.net.Socket;
@@ -30,10 +29,10 @@ public class SocketManager {
         }
     }
 
-    public void setLobbyId(String identifier, Long lobbyId) {
+    public void setGameId(String identifier, Long gameId) {
         SocketWrapper wrapper = sockets.get(identifier);
         if (wrapper != null) {
-            wrapper.setLobbyId(lobbyId);
+            wrapper.setGameId(gameId);
         }
     }
 
@@ -43,14 +42,14 @@ public class SocketManager {
 
     public SocketWrapper getHostSocketWrapperOfLobby(Long lobbyId) {
         return sockets.values().stream()
-                .filter(wrapper -> wrapper.getLobbyId() != null && wrapper.getLobbyId() == lobbyId && wrapper.isHost())
+                .filter(wrapper -> wrapper.getGameId() != null && wrapper.getGameId() == lobbyId && wrapper.isHost())
                 .findFirst()
                 .orElse(null);
     }
 
     public List<Socket> getHostSockets() {
         return sockets.values().stream()
-                .filter(wrapper -> !StringUtils.isEmpty(wrapper.getPers()) && wrapper.getPers().contains("@"))
+                .filter(wrapper -> wrapper.isHost())
                 .map(SocketWrapper::getSocket)
                 .collect(Collectors.toList());
     }

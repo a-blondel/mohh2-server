@@ -29,7 +29,7 @@ import static com.ea.utils.SocketUtils.getValueFromSocket;
 
 @Component
 @Slf4j
-public class LobbyService {
+public class GameService {
 
     @Autowired
     private Props props;
@@ -157,10 +157,10 @@ public class LobbyService {
     }
 
     public void mgm(Socket socket, SessionData sessionData, LobbyEntity lobbyEntity) {
-        SocketWrapper socketWrapper = socketManager.getHostSocketWrapperOfLobby(lobbyEntity.getId());
-        if(socketWrapper != null) {
-            SocketWriter.write(socketWrapper.getSocket(), new SocketData("+mgm", null, getLobbyInfo(sessionData, lobbyEntity)));
-            SocketWriter.write(socketWrapper.getSocket(), new SocketData("+ses", null, getLobbyInfo(sessionData, lobbyEntity)));
+        SocketWrapper hostSocketWrapper = socketManager.getHostSocketWrapperOfLobby(lobbyEntity.getId());
+        if(hostSocketWrapper != null) {
+            SocketWriter.write(hostSocketWrapper.getSocket(), new SocketData("+mgm", null, getLobbyInfo(sessionData, lobbyEntity)));
+            SocketWriter.write(hostSocketWrapper.getSocket(), new SocketData("+ses", null, getLobbyInfo(sessionData, lobbyEntity)));
         }
     }
 
@@ -184,7 +184,15 @@ public class LobbyService {
 
             startLobbyReport(sessionData, lobbyEntity);
 
-            socketManager.setLobbyId(socket.getRemoteSocketAddress().toString(), lobbyEntity.getId());
+            socketManager.setGameId(socket.getRemoteSocketAddress().toString(), lobbyEntity.getId());
+
+            personaService.who(socket, sessionData); // Used to set the game id
+
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            }
 
             SocketWriter.write(socket, new SocketData("+mgm", null, getLobbyInfo(sessionData, lobbyEntity)));
         }
@@ -218,16 +226,29 @@ public class LobbyService {
 
         // Add a flag in database to indicate that the game is hosted
         if(props.isUhsAutoStart() && props.isUhsEaServerMode() && ("A").equals(status)) {
-//            Map<String, String> content = Stream.of(new String[][] {
-//                { "PING", "EA60" },
-//            }).collect(Collectors.toMap(data -> data[0], data -> data[1]));
-//            socketData.setOutputData(content);
-//            socketData.setIdMessage("$gps");
-
+            //gps(socket, sessionData, socketData); // Not needed yet
             LobbyEntity lobbyEntity = lobbyRepository.findById(1L).orElse(null);
             SocketWriter.write(socket, new SocketData("$cre", null, getLobbyInfo(sessionData, lobbyEntity)));
+        } else if(props.isUhsAutoStart() && ("G").equals(status)) {
+            // We can't send +ses here as we need at least the host + 1 player (COUNT=2) to start a game
         }
 
+    }
+
+    /**
+     * Get periodic status from the GPS
+     *
+     * @param socket
+     * @param sessionData
+     * @param socketData
+     */
+    private void gps(Socket socket, SessionData sessionData, SocketData socketData) {
+            Map<String, String> content = Stream.of(new String[][] {
+                { "PING", "EA60" },
+            }).collect(Collectors.toMap(data -> data[0], data -> data[1]));
+            socketData.setOutputData(content);
+            socketData.setIdMessage("$gps");
+            SocketWriter.write(socket, socketData);
     }
 
     /**
@@ -296,7 +317,7 @@ public class LobbyService {
                 // { "GAMEPORT", String.valueOf(props.getUdpPort())},
                 // { "VOIPPORT", "9667" },
                 // { "GAMEMODE", "0" }, // ???
-                // { "AUTH", "0" }, // ???
+                // { "AUTH", "098f6bcd4621d373cade4e832627b4f6" },
 
                 // loop 0x80022058 only if COUNT>=0
 
@@ -316,7 +337,7 @@ public class LobbyService {
             if(personaConnectionEntityOpt.isPresent()) {
                 PersonaConnectionEntity personaConnectionEntity = personaConnectionEntityOpt.get();
                 content.putAll(Stream.of(new String[][] {
-                        { "OPID" + idx[0], String.valueOf(idx[0]) },
+                        { "OPID" + idx[0], String.valueOf(personaEntity.getId()) },
                         { "OPPO" + idx[0], personaEntity.getPers() },
                         { "ADDR" + idx[0], personaConnectionEntity.getIp() },
                         { "LADDR" + idx[0], personaConnectionEntity.getIp() },

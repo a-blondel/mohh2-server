@@ -5,7 +5,7 @@ import com.ea.config.SslSocketThread;
 import com.ea.config.TcpSocketThread;
 import com.ea.dto.SessionData;
 import com.ea.enums.Certificates;
-import com.ea.services.LobbyService;
+import com.ea.services.GameService;
 import com.ea.services.SocketManager;
 import com.ea.utils.Props;
 import lombok.extern.slf4j.Slf4j;
@@ -48,7 +48,7 @@ public class ServerApp implements CommandLineRunner {
     private ServerConfig serverConfig;
 
     @Autowired
-    private LobbyService lobbyService;
+    private GameService gameService;
 
     @Autowired
     private SocketManager socketManager;
@@ -73,7 +73,7 @@ public class ServerApp implements CommandLineRunner {
             if(props.isCloseExpiredLobbiesEnabled()) {
                 closeExpiredLobbiesThread.scheduleAtFixedRate(() -> {
                     try {
-                        lobbyService.closeExpiredLobbies();
+                        gameService.closeExpiredLobbies();
                     } catch (Exception e) {
                         log.error("Error cleaning up expired lobbies", e);
                     }

@@ -14,10 +14,17 @@ public class SocketWrapper {
     private Socket socket;
     private String identifier;
     private String pers;
-    private Long lobbyId;
+    private Long gameId;
 
     public boolean isHost() {
         return !StringUtils.isEmpty(pers) && pers.contains("@");
+    }
+
+    public String getPers() {
+        if (pers != null && pers.contains("@")) {
+            return pers.split("@")[1];
+        }
+        return pers;
     }
 
 }

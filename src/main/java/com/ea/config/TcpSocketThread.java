@@ -7,7 +7,7 @@ import com.ea.entities.LobbyEntity;
 import com.ea.entities.LobbyReportEntity;
 import com.ea.repositories.LobbyReportRepository;
 import com.ea.repositories.LobbyRepository;
-import com.ea.services.LobbyService;
+import com.ea.services.GameService;
 import com.ea.services.PersonaService;
 import com.ea.services.SocketManager;
 import com.ea.steps.SocketReader;
@@ -30,7 +30,7 @@ public class TcpSocketThread implements Runnable {
 
     private static PersonaService personaService = BeanUtil.getBean(PersonaService.class);
 
-    private static LobbyService lobbyService = BeanUtil.getBean(LobbyService.class);
+    private static GameService gameService = BeanUtil.getBean(GameService.class);
 
     private static SocketManager socketManager = BeanUtil.getBean(SocketManager.class);
 
@@ -58,13 +58,13 @@ public class TcpSocketThread implements Runnable {
             SocketReader.read(clientSocket, sessionData);
         } finally {
             pingExecutor.shutdown();
-            lobbyService.endLobbyReport(sessionData); // If the player doesn't leave from the game
+            gameService.endLobbyReport(sessionData); // If the player doesn't leave from the game
             personaService.endPersonaConnection(sessionData);
 
             SocketWrapper socketWrapper = socketManager.getSocketWrapper(clientSocket.getRemoteSocketAddress().toString());
             if(socketWrapper != null) {
-                if(socketWrapper.isHost() && socketWrapper.getLobbyId() != null) {
-                    LobbyEntity lobbyEntity = lobbyRepository.findById(socketWrapper.getLobbyId()).orElse(null);
+                if(socketWrapper.isHost() && socketWrapper.getGameId() != null) {
+                    LobbyEntity lobbyEntity = lobbyRepository.findById(socketWrapper.getGameId()).orElse(null);
                     if(lobbyEntity != null) {
                         lobbyEntity.setEndTime(Timestamp.from(Instant.now()));
                         for(LobbyReportEntity lobbyReportEntity : lobbyEntity.getLobbyReports()) {

@@ -14,7 +14,7 @@ public class SocketProcessor {
     private static AccountService accountService = BeanUtil.getBean(AccountService.class);
     private static PersonaService personaService = BeanUtil.getBean(PersonaService.class);
     private static StatsService statsService = BeanUtil.getBean(StatsService.class);
-    private static LobbyService lobbyService = BeanUtil.getBean(LobbyService.class);
+    private static GameService gameService = BeanUtil.getBean(GameService.class);
 
     /**
      * Dispatch to appropriate service based on request type
@@ -68,28 +68,28 @@ public class SocketProcessor {
                 statsService.snap(socket, sessionData, socketData);
                 break;
             case ("gsea"):
-                lobbyService.gsea(socket, socketData);
+                gameService.gsea(socket, socketData);
                 break;
             case ("gget"):
-                lobbyService.gget(socket, sessionData, socketData);
+                gameService.gget(socket, sessionData, socketData);
                 break;
             case ("gjoi"):
-                lobbyService.gjoi(socket, sessionData, socketData);
+                gameService.gjoi(socket, sessionData, socketData);
                 break;
             case ("gpsc"):
-                lobbyService.gpsc(socket, sessionData, socketData);
+                gameService.gpsc(socket, sessionData, socketData);
                 break;
             case ("gcre"):
-                lobbyService.gcre(socket, sessionData, socketData);
+                gameService.gcre(socket, sessionData, socketData);
                 break;
             case ("glea"):
-                lobbyService.glea(socket, sessionData, socketData);
+                gameService.glea(socket, sessionData, socketData);
                 break;
             case ("gpss"):
-                lobbyService.gpss(socket, sessionData, socketData);
+                gameService.gpss(socket, sessionData, socketData);
                 break;
             case ("gsta"):
-                lobbyService.gsta(socket, sessionData, socketData);
+                gameService.gsta(socket, sessionData, socketData);
                 break;
             case ("gdel"):
                 SocketWriter.write(socket, socketData);

@@ -186,6 +186,8 @@ public class PersonaService {
         if (personaStatsEntityOpt.isPresent()) {
             PersonaStatsEntity personaStatsEntity = personaStatsEntityOpt.get();
 
+            Long gameId = socketManager.getSocketWrapper(socket.getRemoteSocketAddress().toString()).getGameId();
+
             Map<String, String> content = Stream.of(new String[][] {
                     { "I", String.valueOf(accountEntity.getId()) },
                     { "M", accountEntity.getName() },
@@ -195,7 +197,7 @@ public class PersonaService {
                     // Stats : kills (in hex) at 8th position, deaths (in hex) at 9th
                     { "S", ",,,,,,," + Long.toHexString(personaStatsEntity.getTotalKills()) + "," + Long.toHexString(personaStatsEntity.getTotalDeaths()) },
                     { "X", "0" },
-                    { "G", "0" },
+                    { "G", gameId != null ? String.valueOf(gameId) : "0" },
                     { "AT", "" },
                     { "CL", "511" },
                     { "LV", "1049601" },
