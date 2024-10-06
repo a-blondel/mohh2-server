@@ -132,9 +132,19 @@ public class GameService {
         if(lobbyEntityOpt.isPresent()) {
             LobbyEntity lobbyEntity = lobbyEntityOpt.get();
             if(lobbyEntity.getEndTime() == null) {
+                startLobbyReport(sessionData, lobbyEntity);
+
                 SocketWriter.write(socket, socketData);
+
+                refreshHostInfo(socket, sessionData, lobbyEntity);
+
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+
                 ses(socket, sessionData, lobbyEntity);
-                mgm(socket, sessionData, lobbyEntity);
             } else {
                 SocketWriter.write(socket, new SocketData("gjoiugam", null, null)); // Game closed
             }
@@ -156,7 +166,7 @@ public class GameService {
         ses(socket, sessionData, lobbyEntity);
     }
 
-    public void mgm(Socket socket, SessionData sessionData, LobbyEntity lobbyEntity) {
+    public void refreshHostInfo(Socket socket, SessionData sessionData, LobbyEntity lobbyEntity) {
         SocketWrapper hostSocketWrapper = socketManager.getHostSocketWrapperOfLobby(lobbyEntity.getId());
         if(hostSocketWrapper != null) {
             SocketWriter.write(hostSocketWrapper.getSocket(), new SocketData("+mgm", null, getLobbyInfo(sessionData, lobbyEntity)));
@@ -258,7 +268,6 @@ public class GameService {
      * @param lobbyEntity
      */
     public void ses(Socket socket, SessionData sessionData, LobbyEntity lobbyEntity) {
-        startLobbyReport(sessionData, lobbyEntity);
         SocketWriter.write(socket, new SocketData("+ses", null, getLobbyInfo(sessionData, lobbyEntity)));
     }
 
@@ -331,15 +340,16 @@ public class GameService {
         }).collect(Collectors.toMap(data -> data[0], data -> data[1]));
 
         int[] idx = { 0 };
-        lobbyEntity.getLobbyReports().stream().filter(report -> null == report.getEndTime()).forEach(lobbyReportEntity -> {
+        lobbyEntity.getLobbyReports().stream()
+                .filter(report -> null == report.getEndTime())
+                .sorted(Comparator.comparing(LobbyReportEntity::getId))
+                .forEach(lobbyReportEntity -> {
             PersonaEntity personaEntity = lobbyReportEntity.getPersona();
             Optional<PersonaConnectionEntity> personaConnectionEntityOpt = personaConnectionRepository.findCurrentPersonaConnection(personaEntity);
             if(personaConnectionEntityOpt.isPresent()) {
                 PersonaConnectionEntity personaConnectionEntity = personaConnectionEntityOpt.get();
-                String hostPrefix = "";
-                if(hostSocketWrapperOfLobby.getPers().equals("@" + personaEntity.getPers())) {
-                    hostPrefix = "@";
-                }
+                boolean isHost = hostSocketWrapperOfLobby.getPers().equals("@" + personaEntity.getPers());
+                String hostPrefix = isHost ? "@" : "";
                 content.putAll(Stream.of(new String[][] {
                         { "OPID" + idx[0], String.valueOf(personaEntity.getId()) },
                         { "OPPO" + idx[0], hostPrefix + personaEntity.getPers() },
