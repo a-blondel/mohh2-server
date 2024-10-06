@@ -20,11 +20,4 @@ public class SocketWrapper {
         return !StringUtils.isEmpty(pers) && pers.contains("@");
     }
 
-    public String getPers() {
-        if (pers != null && pers.contains("@")) {
-            return pers.split("@")[1];
-        }
-        return pers;
-    }
-
 }

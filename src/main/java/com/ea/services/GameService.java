@@ -61,13 +61,13 @@ public class GameService {
         Map<String, String> content = Stream.of(new String[][] {
                 { "I", "1" }, // Room identifier
                 { "N", "room" }, // Room name
-                { "H", socketManager.getSocketWrapper(socket.getRemoteSocketAddress().toString()).getPers() }, // Room Host
-                { "D", "" }, // Room description
-                { "F", "CK" }, // Attribute flags
-                { "T", "1" }, // Current room population
-                { "L", "33" }, // Max users allowed in room
-                { "P", "0" }, // Room ping
-                { "A", props.getTcpHost() }, // Room address
+//                { "H", socketManager.getSocketWrapper(socket.getRemoteSocketAddress().toString()).getPers() }, // Room Host
+//                { "D", "" }, // Room description
+//                { "F", "CK" }, // Attribute flags
+//                { "T", "1" }, // Current room population
+//                { "L", "33" }, // Max users allowed in room
+//                { "P", "0" }, // Room ping
+//                { "A", props.getTcpHost() }, // Room address
         }).collect(Collectors.toMap(data -> data[0], data -> data[1]));
 
         socketData.setOutputData(content);
@@ -293,13 +293,13 @@ public class GameService {
 //        log.info("params: {}", params);
 
         Long lobbyId = lobbyEntity.getId();
-        SocketWrapper socketWrapper = socketManager.getHostSocketWrapperOfLobby(lobbyId);
+        SocketWrapper hostSocketWrapperOfLobby = socketManager.getHostSocketWrapperOfLobby(lobbyId);
 
         Map<String, String> content = Stream.of(new String[][] {
                 { "IDENT", String.valueOf(lobbyId) },
                 { "NAME", lobbyEntity.getName() },
-                { "HOST", socketWrapper != null ? socketWrapper.getPers() : "@brobot1" },
-                // { "GPSHOST", socketWrapper != null ? socketWrapper.getPers() : "@brobot1" },
+                { "HOST", hostSocketWrapperOfLobby.getPers() },
+                // { "GPSHOST", hostSocketWrapperOfLobby.getPers() },
                 { "PARAMS", params },
                 // { "PARAMS", ",,,b80,d003f6e0656e47423" },
                 { "PLATPARAMS", "0" },  // ???
@@ -336,9 +336,13 @@ public class GameService {
             Optional<PersonaConnectionEntity> personaConnectionEntityOpt = personaConnectionRepository.findCurrentPersonaConnection(personaEntity);
             if(personaConnectionEntityOpt.isPresent()) {
                 PersonaConnectionEntity personaConnectionEntity = personaConnectionEntityOpt.get();
+                String hostPrefix = "";
+                if(hostSocketWrapperOfLobby.getPers().equals("@" + personaEntity.getPers())) {
+                    hostPrefix = "@";
+                }
                 content.putAll(Stream.of(new String[][] {
                         { "OPID" + idx[0], String.valueOf(personaEntity.getId()) },
-                        { "OPPO" + idx[0], personaEntity.getPers() },
+                        { "OPPO" + idx[0], hostPrefix + personaEntity.getPers() },
                         { "ADDR" + idx[0], personaConnectionEntity.getIp() },
                         { "LADDR" + idx[0], personaConnectionEntity.getIp() },
                         { "MADDR" + idx[0], "" },

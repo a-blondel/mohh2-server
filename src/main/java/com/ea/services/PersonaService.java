@@ -2,6 +2,7 @@ package com.ea.services;
 
 import com.ea.dto.SessionData;
 import com.ea.dto.SocketData;
+import com.ea.dto.SocketWrapper;
 import com.ea.entities.AccountEntity;
 import com.ea.entities.PersonaConnectionEntity;
 import com.ea.entities.PersonaEntity;
@@ -186,12 +187,14 @@ public class PersonaService {
         if (personaStatsEntityOpt.isPresent()) {
             PersonaStatsEntity personaStatsEntity = personaStatsEntityOpt.get();
 
-            Long gameId = socketManager.getSocketWrapper(socket.getRemoteSocketAddress().toString()).getGameId();
+            SocketWrapper socketWrapper = socketManager.getSocketWrapper(socket.getRemoteSocketAddress().toString());
+            Long gameId = socketWrapper.getGameId();
+            String hostPrefix = socketWrapper.isHost() ? "@" : "";
 
             Map<String, String> content = Stream.of(new String[][] {
                     { "I", String.valueOf(accountEntity.getId()) },
-                    { "M", accountEntity.getName() },
-                    { "N", personaEntity.getPers() },
+                    { "M", hostPrefix + accountEntity.getName() },
+                    { "N", hostPrefix + personaEntity.getPers() },
                     { "F", "U" },
                     { "P", "40" },
                     // Stats : kills (in hex) at 8th position, deaths (in hex) at 9th
