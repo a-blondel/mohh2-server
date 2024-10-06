@@ -26,6 +26,8 @@ public class LobbyReportEntity {
     @JoinColumn(name="PERSONA_ID", nullable=false)
     private PersonaEntity persona;
 
+    private boolean isHost;
+
     private int kills;
 
     private int deaths;

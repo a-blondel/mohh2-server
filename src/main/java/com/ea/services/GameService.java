@@ -132,7 +132,7 @@ public class GameService {
         if(lobbyEntityOpt.isPresent()) {
             LobbyEntity lobbyEntity = lobbyEntityOpt.get();
             if(lobbyEntity.getEndTime() == null) {
-                startLobbyReport(sessionData, lobbyEntity);
+                startLobbyReport(sessionData, lobbyEntity, false);
 
                 SocketWriter.write(socket, socketData);
 
@@ -192,7 +192,7 @@ public class GameService {
                 lobbyRepository.save(lobbyEntity);
             }
 
-            startLobbyReport(sessionData, lobbyEntity);
+            startLobbyReport(sessionData, lobbyEntity, true);
 
             socketManager.setGameId(socket.getRemoteSocketAddress().toString(), lobbyEntity.getId());
 
@@ -348,8 +348,7 @@ public class GameService {
             Optional<PersonaConnectionEntity> personaConnectionEntityOpt = personaConnectionRepository.findCurrentPersonaConnection(personaEntity);
             if(personaConnectionEntityOpt.isPresent()) {
                 PersonaConnectionEntity personaConnectionEntity = personaConnectionEntityOpt.get();
-                boolean isHost = hostSocketWrapperOfLobby.getPers().equals("@" + personaEntity.getPers());
-                String hostPrefix = isHost ? "@" : "";
+                String hostPrefix = lobbyReportEntity.isHost() ? "@" : "";
                 content.putAll(Stream.of(new String[][] {
                         { "OPID" + idx[0], String.valueOf(personaEntity.getId()) },
                         { "OPPO" + idx[0], hostPrefix + personaEntity.getPers() },
@@ -375,13 +374,14 @@ public class GameService {
      * Registers a lobby entry
      * @param lobbyEntity
      */
-    private void startLobbyReport(SessionData sessionData, LobbyEntity lobbyEntity) {
+    private void startLobbyReport(SessionData sessionData, LobbyEntity lobbyEntity, boolean isHost) {
         // Close any lobby report that wasn't property ended (e.g. use Dolphin save state to leave)
         endLobbyReport(sessionData);
 
         LobbyReportEntity lobbyReportEntity = new LobbyReportEntity();
         lobbyReportEntity.setLobby(lobbyEntity);
         lobbyReportEntity.setPersona(sessionData.getCurrentPersonna());
+        lobbyReportEntity.setHost(isHost);
         lobbyReportEntity.setStartTime(Timestamp.from(Instant.now()));
         lobbyReportRepository.save(lobbyReportEntity);
 
