@@ -1,7 +1,7 @@
 package com.ea.services;
 
 import com.ea.dto.SocketWrapper;
-import com.ea.entities.LobbyEntity;
+import com.ea.entities.GameEntity;
 import java.io.IOException;
 import java.net.Socket;
 import java.util.List;
@@ -29,10 +29,10 @@ public class SocketManager {
         }
     }
 
-    public static void setLobbyEntity(String identifier, LobbyEntity lobbyEntity) {
+    public static void setGameEntity(String identifier, GameEntity gameEntity) {
         SocketWrapper wrapper = sockets.get(identifier);
         if (wrapper != null) {
-            wrapper.setLobbyEntity(lobbyEntity);
+            wrapper.setGameEntity(gameEntity);
         }
     }
 
@@ -44,9 +44,9 @@ public class SocketManager {
         return sockets.get(identifier);
     }
 
-    public static SocketWrapper getHostSocketWrapperOfLobby(Long lobbyId) {
+    public static SocketWrapper getHostSocketWrapperOfGame(Long gameId) {
         return sockets.values().stream()
-                .filter(wrapper -> wrapper.getGameId() != null && wrapper.getGameId() == lobbyId && wrapper.isHost())
+                .filter(wrapper -> wrapper.getGameEntity() != null && wrapper.getGameEntity().getId() == gameId && wrapper.isHost())
                 .findFirst()
                 .orElse(null);
     }

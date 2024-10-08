@@ -2,10 +2,10 @@ package com.ea.config;
 
 import com.ea.dto.SocketData;
 import com.ea.dto.SocketWrapper;
-import com.ea.entities.LobbyEntity;
-import com.ea.entities.LobbyReportEntity;
-import com.ea.repositories.LobbyReportRepository;
-import com.ea.repositories.LobbyRepository;
+import com.ea.entities.GameEntity;
+import com.ea.entities.GameReportEntity;
+import com.ea.repositories.GameReportRepository;
+import com.ea.repositories.GameRepository;
 import com.ea.services.GameService;
 import com.ea.services.PersonaService;
 import com.ea.services.SocketManager;
@@ -31,9 +31,9 @@ public class TcpSocketThread implements Runnable {
 
     private static GameService gameService = BeanUtil.getBean(GameService.class);
 
-    private static LobbyRepository lobbyRepository = BeanUtil.getBean(LobbyRepository.class);
+    private static GameRepository gameRepository = BeanUtil.getBean(GameRepository.class);
 
-    private static LobbyReportRepository lobbyReportRepository = BeanUtil.getBean(LobbyReportRepository.class);
+    private static GameReportRepository gameReportRepository = BeanUtil.getBean(GameReportRepository.class);
 
     private final Socket clientSocket;
 
@@ -53,20 +53,20 @@ public class TcpSocketThread implements Runnable {
         } finally {
             pingExecutor.shutdown();
             SocketWrapper socketWrapper = SocketManager.getSocketWrapper(clientSocket);
-            gameService.endLobbyReport(socketWrapper); // If the player doesn't leave from the game
+            gameService.endGameReport(socketWrapper); // If the player doesn't leave from the game
             personaService.endPersonaConnection(socketWrapper);
 
             if(socketWrapper != null) {
-                if(socketWrapper.isHost() && socketWrapper.getLobbyEntity() != null) {
-                    LobbyEntity lobbyEntity = socketWrapper.getLobbyEntity();
-                    lobbyEntity.setEndTime(Timestamp.from(Instant.now()));
-                    for(LobbyReportEntity lobbyReportEntity : lobbyEntity.getLobbyReports()) {
-                        if(lobbyReportEntity.getEndTime() == null) {
-                            lobbyReportEntity.setEndTime(Timestamp.from(Instant.now()));
-                            lobbyReportRepository.save(lobbyReportEntity);
+                if(socketWrapper.isHost() && socketWrapper.getGameEntity() != null) {
+                    GameEntity gameEntity = socketWrapper.getGameEntity();
+                    gameEntity.setEndTime(Timestamp.from(Instant.now()));
+                    for(GameReportEntity gameReportEntity : gameEntity.getGameReports()) {
+                        if(gameReportEntity.getEndTime() == null) {
+                            gameReportEntity.setEndTime(Timestamp.from(Instant.now()));
+                            gameReportRepository.save(gameReportEntity);
                         }
                     }
-                    lobbyRepository.save(lobbyEntity);
+                    gameRepository.save(gameEntity);
                 }
                 SocketManager.removeSocket(socketWrapper.getIdentifier());
             }

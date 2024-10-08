@@ -1,7 +1,7 @@
 package com.ea.utils;
 
 import com.ea.dirtysdk.CryptSSC2;
-import com.ea.dirtysdk.LobbyTagField;
+import com.ea.dirtysdk.GameTagField;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -81,7 +81,7 @@ public class PasswordUtils {
         }
 
         input = HexUtils.stringToHex(input);
-        input = LobbyTagField.decodeString(input);
+        input = GameTagField.decodeString(input);
         input = HexUtils.hexToString(input);
 
         return input;

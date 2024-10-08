@@ -19,7 +19,7 @@ public class SocketWrapper {
     private AccountEntity accountEntity;
     private PersonaEntity personaEntity;
     private PersonaConnectionEntity personaConnectionEntity;
-    private LobbyEntity lobbyEntity;
-    private LobbyReportEntity lobbyReportEntity;
+    private GameEntity gameEntity;
+    private GameReportEntity gameReportEntity;
 
 }

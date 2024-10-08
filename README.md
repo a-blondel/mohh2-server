@@ -57,7 +57,7 @@ You can follow the progress on the [project board](https://github.com/users/a-bl
   - [ ] Filter options
   - [x] Create game (almost complete : password protected lobbies isn't handled yet)
   - [x] Join game (almost complete : password protected lobbies isn't handled yet)
-- [ ] In game (requires to figure out how to make the *User Hosted Server* to work)
+- [X] In game (using the *User Hosted Server* for MoHH)
 - [x] Leaderboards
   - [x] My EA Leaderboard
   - [x] EA Top 100

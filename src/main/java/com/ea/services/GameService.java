@@ -2,13 +2,13 @@ package com.ea.services;
 
 import com.ea.dto.SocketData;
 import com.ea.dto.SocketWrapper;
-import com.ea.entities.LobbyEntity;
-import com.ea.entities.LobbyReportEntity;
+import com.ea.entities.GameEntity;
+import com.ea.entities.GameReportEntity;
 import com.ea.entities.PersonaConnectionEntity;
 import com.ea.entities.PersonaEntity;
 import com.ea.mappers.SocketMapper;
-import com.ea.repositories.LobbyReportRepository;
-import com.ea.repositories.LobbyRepository;
+import com.ea.repositories.GameReportRepository;
+import com.ea.repositories.GameRepository;
 import com.ea.repositories.PersonaConnectionRepository;
 import com.ea.steps.SocketWriter;
 import com.ea.utils.Props;
@@ -34,10 +34,10 @@ public class GameService {
     private Props props;
 
     @Autowired
-    private LobbyRepository lobbyRepository;
+    private GameRepository gameRepository;
 
     @Autowired
-    private LobbyReportRepository lobbyReportRepository;
+    private GameReportRepository gameReportRepository;
 
     @Autowired
     private PersonaConnectionRepository personaConnectionRepository;
@@ -81,38 +81,38 @@ public class GameService {
      * @param socketData
      */
     public void gsea(Socket socket, SocketData socketData) {
-        List<LobbyEntity> lobbyEntities = lobbyRepository.findByEndTime(null);
+        List<GameEntity> gameEntities = gameRepository.findByEndTime(null);
 
         Map<String, String> content = Stream.of(new String[][] {
-                { "COUNT", String.valueOf(lobbyEntities.size()) },
+                { "COUNT", String.valueOf(gameEntities.size()) },
         }).collect(Collectors.toMap(data -> data[0], data -> data[1]));
 
         socketData.setOutputData(content);
         SocketWriter.write(socket, socketData);
 
-        gam(socket, lobbyEntities);
+        gam(socket, gameEntities);
     }
 
     /**
      * List games
      * @param socket
      */
-    public void gam(Socket socket, List<LobbyEntity> lobbyEntities) {
+    public void gam(Socket socket, List<GameEntity> gameEntities) {
         List<Map<String, String>> lobbies = new ArrayList<>();
 
-        for(LobbyEntity lobbyEntity : lobbyEntities) {
+        for(GameEntity gameEntity : gameEntities) {
             lobbies.add(Stream.of(new String[][] {
-                    { "IDENT", String.valueOf(lobbyEntity.getId()) },
-                    { "NAME", lobbyEntity.getName() },
-                    { "PARAMS", lobbyEntity.getParams() },
-                    { "SYSFLAGS", lobbyEntity.getSysflags() },
-                    { "COUNT", String.valueOf(lobbyEntity.getLobbyReports().stream().filter(report -> null == report.getEndTime()).count()) },
-                    { "MAXSIZE", String.valueOf(lobbyEntity.getMaxsize()) },
+                    { "IDENT", String.valueOf(gameEntity.getId()) },
+                    { "NAME", gameEntity.getName() },
+                    { "PARAMS", gameEntity.getParams() },
+                    { "SYSFLAGS", gameEntity.getSysflags() },
+                    { "COUNT", String.valueOf(gameEntity.getGameReports().stream().filter(report -> null == report.getEndTime()).count()) },
+                    { "MAXSIZE", String.valueOf(gameEntity.getMaxsize()) },
             }).collect(Collectors.toMap(data -> data[0], data -> data[1])));
         }
 
-        for (Map<String, String> lobby : lobbies) {
-            SocketData socketData = new SocketData("+gam", null, lobby);
+        for (Map<String, String> game : lobbies) {
+            SocketData socketData = new SocketData("+gam", null, game);
             SocketWriter.write(socket, socketData);
         }
     }
@@ -124,15 +124,15 @@ public class GameService {
      */
     public void gjoi(Socket socket, SocketData socketData, SocketWrapper socketWrapper) {
         String ident = getValueFromSocket(socketData.getInputMessage(), "IDENT");
-        Optional<LobbyEntity> lobbyEntityOpt = lobbyRepository.findById(Long.valueOf(ident));
-        if(lobbyEntityOpt.isPresent()) {
-            LobbyEntity lobbyEntity = lobbyEntityOpt.get();
-            if(lobbyEntity.getEndTime() == null) {
-                startLobbyReport(socket, socketWrapper, lobbyEntity, false);
+        Optional<GameEntity> gameEntityOpt = gameRepository.findById(Long.valueOf(ident));
+        if(gameEntityOpt.isPresent()) {
+            GameEntity gameEntity = gameEntityOpt.get();
+            if(gameEntity.getEndTime() == null) {
+                startGameReport(socket, socketWrapper, gameEntity, false);
 
                 SocketWriter.write(socket, socketData);
 
-                updatePlayerListOfHost(lobbyEntity);
+                updatePlayerListOfHost(gameEntity);
 
                 try {
                     Thread.sleep(100);
@@ -140,7 +140,7 @@ public class GameService {
                     throw new RuntimeException(e);
                 }
 
-                ses(socket, lobbyEntity);
+                ses(socket, gameEntity);
             } else {
                 SocketWriter.write(socket, new SocketData("gjoiugam", null, null)); // Game closed
             }
@@ -156,16 +156,16 @@ public class GameService {
      */
     public void gpsc(Socket socket, SocketData socketData) {
         SocketWriter.write(socket, socketData);
-        LobbyEntity lobbyEntity = socketMapper.toLobbyEntityForCreation(socketData.getInputMessage(), false);
-        lobbyRepository.save(lobbyEntity);
-        ses(socket, lobbyEntity);
+        GameEntity gameEntity = socketMapper.toGameEntityForCreation(socketData.getInputMessage(), false);
+        gameRepository.save(gameEntity);
+        ses(socket, gameEntity);
     }
 
-    public void updatePlayerListOfHost(LobbyEntity lobbyEntity) {
-        SocketWrapper hostSocketWrapper = SocketManager.getHostSocketWrapperOfLobby(lobbyEntity.getId());
+    public void updatePlayerListOfHost(GameEntity gameEntity) {
+        SocketWrapper hostSocketWrapper = SocketManager.getHostSocketWrapperOfGame(gameEntity.getId());
         if(hostSocketWrapper != null) {
-            SocketWriter.write(hostSocketWrapper.getSocket(), new SocketData("+mgm", null, getLobbyInfo(lobbyEntity)));
-            SocketWriter.write(hostSocketWrapper.getSocket(), new SocketData("+ses", null, getLobbyInfo(lobbyEntity)));
+            SocketWriter.write(hostSocketWrapper.getSocket(), new SocketData("+mgm", null, getGameInfo(gameEntity)));
+            SocketWriter.write(hostSocketWrapper.getSocket(), new SocketData("+ses", null, getGameInfo(gameEntity)));
         }
     }
 
@@ -178,17 +178,17 @@ public class GameService {
         SocketWriter.write(socket, socketData);
 
         if(props.isUhsAutoStart()) {
-            LobbyEntity lobbyEntity = lobbyRepository.findById(1L).orElse(null);
+            GameEntity gameEntity = gameRepository.findById(1L).orElse(null);
 
             if (!props.isUhsEaServerMode()) {
-                //String room = getValueFromSocket(socketData.getInputMessage(), "ROOM"); // Should room be added to the lobby entity?
-                lobbyEntity = socketMapper.toLobbyEntityForCreation(socketData.getInputMessage(), true);
-                lobbyRepository.save(lobbyEntity);
+                //String room = getValueFromSocket(socketData.getInputMessage(), "ROOM"); // Should room be added to the game entity?
+                gameEntity = socketMapper.toGameEntityForCreation(socketData.getInputMessage(), true);
+                gameRepository.save(gameEntity);
             }
 
-            startLobbyReport(socket, socketWrapper, lobbyEntity, true);
+            startGameReport(socket, socketWrapper, gameEntity, true);
 
-            SocketManager.setLobbyEntity(socket.getRemoteSocketAddress().toString(), lobbyEntity);
+            SocketManager.setGameEntity(socket.getRemoteSocketAddress().toString(), gameEntity);
 
             personaService.who(socket, socketWrapper); // Used to set the game id
 
@@ -198,7 +198,7 @@ public class GameService {
                 throw new RuntimeException(e);
             }
 
-            SocketWriter.write(socket, new SocketData("+mgm", null, getLobbyInfo(lobbyEntity)));
+            SocketWriter.write(socket, new SocketData("+mgm", null, getGameInfo(gameEntity)));
         }
     }
 
@@ -208,7 +208,7 @@ public class GameService {
      * @param socketData
      */
     public void glea(Socket socket, SocketData socketData, SocketWrapper socketWrapper) {
-        endLobbyReport(socketWrapper);
+        endGameReport(socketWrapper);
         SocketWriter.write(socket, socketData);
     }
 
@@ -229,8 +229,8 @@ public class GameService {
         // Add a flag in database to indicate that the game is hosted
         if(props.isUhsAutoStart() && props.isUhsEaServerMode() && ("A").equals(status)) {
             //gps(socket, socketData); // Not needed yet
-            LobbyEntity lobbyEntity = lobbyRepository.findById(1L).orElse(null);
-            SocketWriter.write(socket, new SocketData("$cre", null, getLobbyInfo(lobbyEntity)));
+            GameEntity gameEntity = gameRepository.findById(1L).orElse(null);
+            SocketWriter.write(socket, new SocketData("$cre", null, getGameInfo(gameEntity)));
         } else if(props.isUhsAutoStart() && ("G").equals(status)) {
             // We can't send +ses here as we need at least the host + 1 player (COUNT=2) to start a game
         }
@@ -255,10 +255,10 @@ public class GameService {
     /**
      * Start session
      * @param socket
-     * @param lobbyEntity
+     * @param gameEntity
      */
-    public void ses(Socket socket, LobbyEntity lobbyEntity) {
-        SocketWriter.write(socket, new SocketData("+ses", null, getLobbyInfo(lobbyEntity)));
+    public void ses(Socket socket, GameEntity gameEntity) {
+        SocketWriter.write(socket, new SocketData("+ses", null, getGameInfo(gameEntity)));
     }
 
     /**
@@ -267,15 +267,15 @@ public class GameService {
      */
     public void gget(Socket socket, SocketData socketData) {
         String ident = getValueFromSocket(socketData.getInputMessage(), "IDENT");
-        Optional<LobbyEntity> lobbyEntityOpt = lobbyRepository.findById(Long.valueOf(ident));
-        if(lobbyEntityOpt.isPresent()) {
-            LobbyEntity lobbyEntity = lobbyEntityOpt.get();
-            SocketWriter.write(socket, new SocketData("gget", null, getLobbyInfo(lobbyEntity)));
+        Optional<GameEntity> gameEntityOpt = gameRepository.findById(Long.valueOf(ident));
+        if(gameEntityOpt.isPresent()) {
+            GameEntity gameEntity = gameEntityOpt.get();
+            SocketWriter.write(socket, new SocketData("gget", null, getGameInfo(gameEntity)));
         }
     }
 
-    public Map<String, String> getLobbyInfo(LobbyEntity lobbyEntity) {
-        String params = lobbyEntity.getParams();
+    public Map<String, String> getGameInfo(GameEntity gameEntity) {
+        String params = gameEntity.getParams();
 
         // MOHH2
 //        int serverPortPos = StringUtils.ordinalIndexOf(params, ",", 20);
@@ -291,28 +291,28 @@ public class GameService {
 //
 //        log.info("params: {}", params);
 
-        Long lobbyId = lobbyEntity.getId();
-        SocketWrapper hostSocketWrapperOfLobby = SocketManager.getHostSocketWrapperOfLobby(lobbyId);
+        Long gameId = gameEntity.getId();
+        SocketWrapper hostSocketWrapperOfGame = SocketManager.getHostSocketWrapperOfGame(gameId);
 
         Map<String, String> content = Stream.of(new String[][] {
-                { "IDENT", String.valueOf(lobbyId) },
-                { "NAME", lobbyEntity.getName() },
-                { "HOST", "@" + hostSocketWrapperOfLobby.getPersonaEntity().getPers() },
-                // { "GPSHOST", hostSocketWrapperOfLobby.getPers() },
+                { "IDENT", String.valueOf(gameId) },
+                { "NAME", gameEntity.getName() },
+                { "HOST", "@" + hostSocketWrapperOfGame.getPersonaEntity().getPers() },
+                // { "GPSHOST", hostSocketWrapperOfGame.getPers() },
                 { "PARAMS", params },
                 // { "PARAMS", ",,,b80,d003f6e0656e47423" },
                 { "PLATPARAMS", "0" },  // ???
                 { "ROOM", "1" },
                 { "CUSTFLAGS", "413082880" },
-                { "SYSFLAGS", lobbyEntity.getSysflags() },
-                { "COUNT", String.valueOf(lobbyEntity.getLobbyReports().stream().filter(report -> null == report.getEndTime()).count()) },
+                { "SYSFLAGS", gameEntity.getSysflags() },
+                { "COUNT", String.valueOf(gameEntity.getGameReports().stream().filter(report -> null == report.getEndTime()).count()) },
                 // { "GPSREGION", "2" },
                 { "PRIV", "0" },
-                { "MINSIZE", String.valueOf(lobbyEntity.getMinsize()) },
-                { "MAXSIZE", String.valueOf(lobbyEntity.getMaxsize()) },
+                { "MINSIZE", String.valueOf(gameEntity.getMinsize()) },
+                { "MAXSIZE", String.valueOf(gameEntity.getMaxsize()) },
                 { "NUMPART", "1" },
                 { "SEED", "3" }, // random seed
-                { "WHEN", DateTimeFormatter.ofPattern("yyyy.M.d-H:mm:ss").format(lobbyEntity.getStartTime().toLocalDateTime()) },
+                { "WHEN", DateTimeFormatter.ofPattern("yyyy.M.d-H:mm:ss").format(gameEntity.getStartTime().toLocalDateTime()) },
                 // { "GAMEPORT", String.valueOf(props.getUdpPort())},
                 // { "VOIPPORT", "9667" },
                 // { "GAMEMODE", "0" }, // ???
@@ -330,15 +330,15 @@ public class GameService {
         }).collect(Collectors.toMap(data -> data[0], data -> data[1]));
 
         int[] idx = { 0 };
-        lobbyEntity.getLobbyReports().stream()
+        gameEntity.getGameReports().stream()
                 .filter(report -> null == report.getEndTime())
-                .sorted(Comparator.comparing(LobbyReportEntity::getId))
-                .forEach(lobbyReportEntity -> {
-            PersonaEntity personaEntity = lobbyReportEntity.getPersona();
+                .sorted(Comparator.comparing(GameReportEntity::getId))
+                .forEach(gameReportEntity -> {
+            PersonaEntity personaEntity = gameReportEntity.getPersona();
             Optional<PersonaConnectionEntity> personaConnectionEntityOpt = personaConnectionRepository.findCurrentPersonaConnection(personaEntity);
             if(personaConnectionEntityOpt.isPresent()) {
                 PersonaConnectionEntity personaConnectionEntity = personaConnectionEntityOpt.get();
-                String hostPrefix = lobbyReportEntity.isHost() ? "@" : "";
+                String hostPrefix = gameReportEntity.isHost() ? "@" : "";
                 content.putAll(Stream.of(new String[][] {
                         { "OPID" + idx[0], String.valueOf(personaEntity.getId()) },
                         { "OPPO" + idx[0], hostPrefix + personaEntity.getPers() },
@@ -350,7 +350,7 @@ public class GameService {
                         { "OPFLAG" + idx[0], "413082880" },
                         { "OPFLAGS" + idx[0], "413082880" },
                         { "PRES" + idx[0], "0" },
-                        { "PARTSIZE" + idx[0], String.valueOf(lobbyEntity.getMaxsize()) },
+                        { "PARTSIZE" + idx[0], String.valueOf(gameEntity.getMaxsize()) },
                         { "PARTPARAMS" + idx[0], "" },
                 }).collect(Collectors.toMap(data -> data[0], data -> data[1])));
                 idx[0]++;
@@ -361,55 +361,55 @@ public class GameService {
     }
 
     /**
-     * Registers a lobby entry
-     * @param lobbyEntity
+     * Registers a game entry
+     * @param gameEntity
      */
-    private void startLobbyReport(Socket socket, SocketWrapper socketWrapper, LobbyEntity lobbyEntity, boolean isHost) {
-        // Close any lobby report that wasn't property ended (e.g. use Dolphin save state to leave)
-        endLobbyReport(socketWrapper);
+    private void startGameReport(Socket socket, SocketWrapper socketWrapper, GameEntity gameEntity, boolean isHost) {
+        // Close any game report that wasn't property ended (e.g. use Dolphin save state to leave)
+        endGameReport(socketWrapper);
 
-        LobbyReportEntity lobbyReportEntity = new LobbyReportEntity();
-        lobbyReportEntity.setLobby(lobbyEntity);
-        lobbyReportEntity.setPersona(socketWrapper.getPersonaEntity());
-        lobbyReportEntity.setHost(isHost);
-        lobbyReportEntity.setStartTime(Timestamp.from(Instant.now()));
-        lobbyReportRepository.save(lobbyReportEntity);
+        GameReportEntity gameReportEntity = new GameReportEntity();
+        gameReportEntity.setGame(gameEntity);
+        gameReportEntity.setPersona(socketWrapper.getPersonaEntity());
+        gameReportEntity.setHost(isHost);
+        gameReportEntity.setStartTime(Timestamp.from(Instant.now()));
+        gameReportRepository.save(gameReportEntity);
 
-        if(lobbyEntity.getLobbyReports() == null) {
-            lobbyEntity.setLobbyReports(new HashSet<>());
+        if(gameEntity.getGameReports() == null) {
+            gameEntity.setGameReports(new HashSet<>());
         }
 
-        lobbyEntity.getLobbyReports().add(lobbyReportEntity);
-        socketWrapper.setLobbyEntity(lobbyEntity);
-        socketWrapper.setLobbyReportEntity(lobbyReportEntity);
+        gameEntity.getGameReports().add(gameReportEntity);
+        socketWrapper.setGameEntity(gameEntity);
+        socketWrapper.setGameReportEntity(gameReportEntity);
     }
 
     /**
-     * Ends the lobby report because the player has left the lobby
+     * Ends the game report because the player has left the game
      */
-    public void endLobbyReport(SocketWrapper socketWrapper) {
-        LobbyReportEntity lobbyReportEntity = socketWrapper.getLobbyReportEntity();
-        if (lobbyReportEntity != null) {
-            lobbyReportEntity.setEndTime(Timestamp.from(Instant.now()));
-            lobbyReportRepository.save(lobbyReportEntity);
-            socketWrapper.setLobbyEntity(null);
-            socketWrapper.setLobbyReportEntity(null);
+    public void endGameReport(SocketWrapper socketWrapper) {
+        GameReportEntity gameReportEntity = socketWrapper.getGameReportEntity();
+        if (gameReportEntity != null) {
+            gameReportEntity.setEndTime(Timestamp.from(Instant.now()));
+            gameReportRepository.save(gameReportEntity);
+            socketWrapper.setGameEntity(null);
+            socketWrapper.setGameReportEntity(null);
         }
     }
 
     /**
      * Close expired lobbies
-     * If no one is in the lobby after 2 minutes, close it
+     * If no one is in the game after 2 minutes, close it
      */
     public void closeExpiredLobbies() {
-        List<LobbyEntity> lobbyEntities = lobbyRepository.findByEndTime(null);
-        lobbyEntities.forEach(lobbyEntity -> {
-            Set<LobbyReportEntity> lobbyReports = lobbyEntity.getLobbyReports();
-            if(lobbyReports.stream().noneMatch(report -> null == report.getEndTime())) {
-                if(lobbyReports.stream().allMatch(report -> report.getEndTime().toInstant().plusSeconds(120).isBefore(Instant.now()))) {
-                    log.info("Closing expired lobby: {} - {}", lobbyEntity.getId(), lobbyEntity.getName());
-                    lobbyEntity.setEndTime(Timestamp.from(Instant.now()));
-                    lobbyRepository.save(lobbyEntity);
+        List<GameEntity> gameEntities = gameRepository.findByEndTime(null);
+        gameEntities.forEach(gameEntity -> {
+            Set<GameReportEntity> gameReports = gameEntity.getGameReports();
+            if(gameReports.stream().noneMatch(report -> null == report.getEndTime())) {
+                if(gameReports.stream().allMatch(report -> report.getEndTime().toInstant().plusSeconds(120).isBefore(Instant.now()))) {
+                    log.info("Closing expired game: {} - {}", gameEntity.getId(), gameEntity.getName());
+                    gameEntity.setEndTime(Timestamp.from(Instant.now()));
+                    gameRepository.save(gameEntity);
                 }
             }
         });

@@ -46,7 +46,7 @@ public class Props {
     @Value("${ssc2.key}")
     private String ssc2Key;
 
-    @Value("${lobby.close-expired}")
+    @Value("${game.close-expired}")
     private boolean closeExpiredLobbiesEnabled;
 
     @Value("#{'${hosted-games}'.split(',')}")

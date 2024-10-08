@@ -124,7 +124,7 @@ public class AuthService {
         }
 
         if(props.isUhsAutoStart() && socketWrapper != null) {
-            if (socketWrapper.isHost() && socketWrapper.getLobbyEntity() == null) {
+            if (socketWrapper.isHost() && socketWrapper.getGameEntity() == null) {
                 joinRoom(socket, socketData, socketWrapper);
             }
         }

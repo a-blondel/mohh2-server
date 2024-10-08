@@ -185,8 +185,8 @@ public class PersonaService {
         if (personaStatsEntityOpt.isPresent()) {
             PersonaStatsEntity personaStatsEntity = personaStatsEntityOpt.get();
 
-            Long gameId = null != socketWrapper.getLobbyEntity() && null != socketWrapper.getLobbyEntity().getId() ?
-                    socketWrapper.getLobbyEntity().getId() : 0L;
+            Long gameId = null != socketWrapper.getGameEntity() && null != socketWrapper.getGameEntity().getId() ?
+                    socketWrapper.getGameEntity().getId() : 0L;
             String hostPrefix = socketWrapper.isHost() ? "@" : "";
 
             Map<String, String> content = Stream.of(new String[][] {

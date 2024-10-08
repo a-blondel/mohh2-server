@@ -16,8 +16,8 @@ tos:
   enabled: ${TOS_ENABLED:true} # Stats socket servers on port 80 and 443 to handle TOS HTTP(S) requests
 ssc2:
   key: 51ba8aee64ddfacae5baefa6bf61e009
-lobby:
-  close-expired: ${LOBBY_CLOSE_EXPIRED:true}
+game:
+  close-expired: ${GAME_CLOSE_EXPIRED:true}
 uhs:
   ea-server-mode: false
   auto-start: true
@@ -64,5 +64,5 @@ spring:
 tcp:
   debug:
     enabled: true
-lobby:
+game:
   close-expired: false

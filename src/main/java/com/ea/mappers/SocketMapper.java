@@ -1,7 +1,7 @@
 package com.ea.mappers;
 
 import com.ea.entities.AccountEntity;
-import com.ea.entities.LobbyEntity;
+import com.ea.entities.GameEntity;
 import com.ea.utils.*;
 import org.mapstruct.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,7 +15,7 @@ public abstract class SocketMapper {
     @Autowired
     protected PasswordUtils passwordUtils;
 
-    @BeanMapping(qualifiedByName = "LobbyEntityForCreation")
+    @BeanMapping(qualifiedByName = "GameEntityForCreation")
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "userHosted", source = "userHosted")
     @Mapping(target = "name", expression = "java(SocketUtils.getValueFromSocket(socket, \"NAME\"))")
@@ -26,8 +26,8 @@ public abstract class SocketMapper {
     @Mapping(target = "maxsize", expression = "java(Integer.parseInt(SocketUtils.getValueFromSocket(socket, \"MAXSIZE\")))")
     @Mapping(target = "startTime", expression = "java(Timestamp.from(Instant.now()))")
     @Mapping(target = "endTime", ignore = true)
-    @Mapping(target = "lobbyReports", ignore = true)
-    public abstract LobbyEntity toLobbyEntityForCreation(String socket, boolean userHosted);
+    @Mapping(target = "gameReports", ignore = true)
+    public abstract GameEntity toGameEntityForCreation(String socket, boolean userHosted);
 
     @BeanMapping(qualifiedByName = "AccountEntityForCreation")
     @Mapping(target = "id", ignore = true)
