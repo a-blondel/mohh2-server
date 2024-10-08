@@ -2,7 +2,6 @@ package com.ea.steps;
 
 import com.ea.dto.HttpRequestData;
 import com.ea.utils.*;
-import com.ea.dto.SessionData;
 import com.ea.dto.SocketData;
 import lombok.extern.slf4j.Slf4j;
 
@@ -23,12 +22,11 @@ public class SocketParser {
      * @param buffer the buffer to read from
      * @param readLength the size of written content in buffer
      */
-
-    public static void parse(Socket socket, SessionData sessionData, byte[] buffer, int readLength) {
+    public static void parse(Socket socket, byte[] buffer, int readLength) {
         if (HttpRequestUtils.isHttpPacket(buffer)) {
             handleHttpRequest(socket, buffer);
         } else {
-            handleSocketData(socket, sessionData, buffer, readLength);
+            handleSocketData(socket, buffer, readLength);
         }
     }
 
@@ -37,7 +35,7 @@ public class SocketParser {
         HttpProcessor.process(socket, request);
     }
 
-    private static void handleSocketData(Socket socket, SessionData sessionData, byte[] buffer, int readLength) {
+    private static void handleSocketData(Socket socket, byte[] buffer, int readLength) {
         if (messageBuffer.remaining() < readLength) {
             ByteBuffer newBuffer = ByteBuffer.allocate(messageBuffer.capacity() + readLength);
             messageBuffer.flip();
@@ -53,7 +51,7 @@ public class SocketParser {
             if (messageBuffer.remaining() >= messageSize) {
                 byte[] message = new byte[messageSize];
                 messageBuffer.get(message);
-                processCompleteMessage(socket, sessionData, message, messageSize);
+                processCompleteMessage(socket, message, messageSize);
             } else {
                 break;
             }
@@ -62,7 +60,7 @@ public class SocketParser {
         messageBuffer.compact();
     }
 
-    private static void processCompleteMessage(Socket socket, SessionData sessionData, byte[] message, int messageSize) {
+    private static void processCompleteMessage(Socket socket, byte[] message, int messageSize) {
         String id = new String(message, 0, 4);
         String content = new String(message, 12, messageSize - 12);
         SocketData socketData = new SocketData(id, content, null);
@@ -71,7 +69,7 @@ public class SocketParser {
             log.info("Received from {}:{} :\n{}", socket.getInetAddress().getHostAddress(), socket.getPort(), HexUtils.formatHexDump(message));
         }
 
-        SocketProcessor.process(socket, sessionData, socketData);
+        SocketProcessor.process(socket, socketData);
     }
 
 }

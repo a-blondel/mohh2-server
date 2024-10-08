@@ -1,6 +1,5 @@
 package com.ea.services;
 
-import com.ea.dto.SessionData;
 import com.ea.dto.SocketData;
 import com.ea.dto.SocketWrapper;
 import com.ea.steps.SocketWriter;
@@ -20,9 +19,6 @@ public class AuthService {
 
     @Autowired
     Props props;
-
-    @Autowired
-    private SocketManager socketManager;
 
     @Autowired
     private PersonaService personaService;
@@ -72,7 +68,7 @@ public class AuthService {
         SocketWriter.write(socket, socketData);
     }
 
-    public void sele(Socket socket, SessionData sessionData, SocketData socketData) {
+    public void sele(Socket socket, SocketData socketData, SocketWrapper socketWrapper) {
         String stats = getValueFromSocket(socketData.getInputMessage(), "STATS");
         String inGame = getValueFromSocket(socketData.getInputMessage(), "INGAME");
 
@@ -124,20 +120,19 @@ public class AuthService {
         SocketWriter.write(socket, socketData, " ");
 
         if(null != stats || null != inGame) {
-            personaService.who(socket, sessionData);
+            personaService.who(socket, socketWrapper);
         }
 
-        SocketWrapper socketWrapper = socketManager.getSocketWrapper(socket.getRemoteSocketAddress().toString());
         if(props.isUhsAutoStart() && socketWrapper != null) {
-            if (socketWrapper.isHost() && socketWrapper.getGameId() == null) {
-                joinRoom(socket, sessionData, socketData);
+            if (socketWrapper.isHost() && socketWrapper.getLobbyEntity() == null) {
+                joinRoom(socket, socketData, socketWrapper);
             }
         }
 
     }
 
-    private void joinRoom(Socket socket, SessionData sessionData, SocketData socketData) {
-        personaService.who(socket, sessionData); // Used to set the room info
+    private void joinRoom(Socket socket, SocketData socketData, SocketWrapper socketWrapper) {
+        personaService.who(socket, socketWrapper); // Used to set the room info
 
         try {
             Thread.sleep(100);

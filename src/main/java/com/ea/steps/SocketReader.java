@@ -1,6 +1,5 @@
 package com.ea.steps;
 
-import com.ea.dto.SessionData;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
@@ -17,13 +16,13 @@ public class SocketReader {
      * @param socket the socket to read
      * @throws IOException
      */
-    public static void read(Socket socket, SessionData sessionData) {
+    public static void read(Socket socket) {
         try {
             InputStream is = socket.getInputStream();
             byte[] buffer = new byte[1024];
             int readLength;
             while((readLength = is.read(buffer)) != -1) {
-                SocketParser.parse(socket, sessionData, buffer, readLength);
+                SocketParser.parse(socket, buffer, readLength);
             }
         } catch (SocketException e) {
             log.warn("Socket closed, stopping reading");

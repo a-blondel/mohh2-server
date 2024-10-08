@@ -1,53 +1,57 @@
 package com.ea.services;
 
 import com.ea.dto.SocketWrapper;
-import org.springframework.stereotype.Service;
+import com.ea.entities.LobbyEntity;
 import java.io.IOException;
 import java.net.Socket;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
-@Service
 public class SocketManager {
-    private final ConcurrentHashMap<String, SocketWrapper> sockets = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<String, SocketWrapper> sockets = new ConcurrentHashMap<>();
 
-    // TODO merge SessionData and SocketWrapper
-
-    public void addSocket(String identifier, Socket socket) {
-        sockets.put(identifier, new SocketWrapper(socket, identifier, null, null));
+    public static void addSocket(String identifier, Socket socket) {
+        SocketWrapper wrapper = new SocketWrapper();
+        wrapper.setSocket(socket);
+        wrapper.setIdentifier(identifier);
+        sockets.put(identifier, wrapper);
     }
 
-    public void removeSocket(String identifier) {
+    public static void removeSocket(String identifier) {
         sockets.remove(identifier);
     }
 
-    public void setPers(String identifier, String pers) {
+    public static void setHost(String identifier, boolean isHost) {
         SocketWrapper wrapper = sockets.get(identifier);
         if (wrapper != null) {
-            wrapper.setPers(pers);
+            wrapper.setHost(isHost);
         }
     }
 
-    public void setGameId(String identifier, Long gameId) {
+    public static void setLobbyEntity(String identifier, LobbyEntity lobbyEntity) {
         SocketWrapper wrapper = sockets.get(identifier);
         if (wrapper != null) {
-            wrapper.setGameId(gameId);
+            wrapper.setLobbyEntity(lobbyEntity);
         }
     }
 
-    public SocketWrapper getSocketWrapper(String identifier) {
+    public static SocketWrapper getSocketWrapper(Socket socket) {
+        return getSocketWrapper(socket.getRemoteSocketAddress().toString());
+    }
+
+    private static SocketWrapper getSocketWrapper(String identifier) {
         return sockets.get(identifier);
     }
 
-    public SocketWrapper getHostSocketWrapperOfLobby(Long lobbyId) {
+    public static SocketWrapper getHostSocketWrapperOfLobby(Long lobbyId) {
         return sockets.values().stream()
                 .filter(wrapper -> wrapper.getGameId() != null && wrapper.getGameId() == lobbyId && wrapper.isHost())
                 .findFirst()
                 .orElse(null);
     }
 
-    public List<Socket> getHostSockets() {
+    public static List<Socket> getHostSockets() {
         return sockets.values().stream()
                 .filter(wrapper -> wrapper.isHost())
                 .map(SocketWrapper::getSocket)

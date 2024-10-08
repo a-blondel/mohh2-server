@@ -155,9 +155,7 @@ If you have downloaded Intellij, Maven comes bundled with, otherwise download th
 
 Configuration is defined in `application.yml`.
 
-Currently, multiplayer isn't supported (only single player online), so `udp.host` can remain `127.0.0.1`, players will "host themselves".
-
-As for `tcp.host`, it depends on your use case :
+For `tcp.host`, it depends on your use case :
 - If you are running the server (not in WSL) and the game on the same machine (using Dolphin), and you don't need to host for other machines, then no changes are needed.
 - If you are running the server (in WSL) and the game on the same machine (using Dolphin), and you don't need to host for other machines, then you must set the WSL's eth0 IP.
 - If you are running the server for other machines (i.e. Wii/PSP, or another computer using Dolphin), then you must set the machine IP (works for private and public networks).

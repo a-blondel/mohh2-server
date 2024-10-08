@@ -1,6 +1,5 @@
 package com.ea.services;
 
-import com.ea.dto.SessionData;
 import com.ea.dto.SocketData;
 import com.ea.dto.SocketWrapper;
 import com.ea.entities.AccountEntity;
@@ -40,16 +39,12 @@ public class PersonaService {
     @Autowired
     private PersonaStatsRepository personaStatsRepository;
 
-    @Autowired
-    private SocketManager socketManager;
-
     /**
      * Persona creation
      * @param socket
-     * @param sessionData
      * @param socketData
      */
-    public void cper(Socket socket, SessionData sessionData, SocketData socketData) {
+    public void cper(Socket socket, SocketData socketData, SocketWrapper socketWrapper) {
         String pers = getValueFromSocket(socketData.getInputMessage(), "PERS");
 
         Optional<PersonaEntity> personaEntityOpt = personaRepository.findByPers(pers);
@@ -65,7 +60,7 @@ public class PersonaService {
             }
         } else {
             PersonaEntity personaEntity = new PersonaEntity();
-            personaEntity.setAccount(sessionData.getCurrentAccount());
+            personaEntity.setAccount(socketWrapper.getAccountEntity());
             personaEntity.setPers(pers);
             personaEntity.setCreatedOn(Timestamp.from(Instant.now()));
 
@@ -84,9 +79,9 @@ public class PersonaService {
      * @param socket
      * @param socketData
      */
-    public void pers(Socket socket, SessionData sessionData, SocketData socketData) {
+    public void pers(Socket socket, SocketData socketData, SocketWrapper socketWrapper) {
         String pers = getValueFromSocket(socketData.getInputMessage(), "PERS");
-        socketManager.setPers(socket.getRemoteSocketAddress().toString(), pers);
+        SocketManager.setHost(socket.getRemoteSocketAddress().toString(), pers.contains("@"));
 
         if(pers.contains("@")) { // Remove @ from persona name (UHS naming convention)
             pers = pers.split("@")[0] + pers.split("@")[1];
@@ -95,7 +90,7 @@ public class PersonaService {
         Optional<PersonaEntity> personaEntityOpt = personaRepository.findByPers(pers);
         if (personaEntityOpt.isPresent()) {
             PersonaEntity personaEntity = personaEntityOpt.get();
-            sessionData.setCurrentPersonna(personaEntity);
+            socketWrapper.setPersonaEntity(personaEntity);
             Map<String, String> content = Stream.of(new String[][] {
                     { "PERS", personaEntity.getPers() },
                     { "LKEY", "" },
@@ -109,21 +104,20 @@ public class PersonaService {
             socketData.setOutputData(content);
             SocketWriter.write(socket, socketData);
 
-            startPersonaConnection(socket, sessionData, personaEntity);
+            startPersonaConnection(socket, socketWrapper, personaEntity);
         }
     }
 
     /**
      * Registers a connection of the persona
      * @param socket
-     * @param sessionData
      * @param personaEntity
      */
-    private void startPersonaConnection(Socket socket, SessionData sessionData, PersonaEntity personaEntity) {
+    private void startPersonaConnection(Socket socket, SocketWrapper socketWrapper, PersonaEntity personaEntity) {
         // Close current connection if the user got a "soft" disconnection (TCP connection is still active)
-        if(null != sessionData.getCurrentPersonaConnection()) {
+        if(null != socketWrapper.getPersonaConnectionEntity()) {
             log.error("User wasn't properly disconnected");
-            endPersonaConnection(sessionData);
+            endPersonaConnection(socketWrapper);
         }
         Optional<PersonaConnectionEntity> personaConnectionEntityOpt = personaConnectionRepository.findCurrentPersonaConnection(personaEntity);
         if(personaConnectionEntityOpt.isPresent()) {
@@ -136,14 +130,14 @@ public class PersonaService {
         personaConnectionEntity.setPersona(personaEntity);
         personaConnectionEntity.setStartTime(Timestamp.from(Instant.now()));
         personaConnectionRepository.save(personaConnectionEntity);
-        sessionData.setCurrentPersonaConnection(personaConnectionEntity);
+        socketWrapper.setPersonaConnectionEntity(personaConnectionEntity);
     }
 
     /**
      * Ends the current connection of the persona
      */
-    public void endPersonaConnection(SessionData sessionData) {
-        PersonaConnectionEntity personaConnectionEntity = sessionData.getCurrentPersonaConnection();
+    public void endPersonaConnection(SocketWrapper socketWrapper) {
+        PersonaConnectionEntity personaConnectionEntity = socketWrapper.getPersonaConnectionEntity();
         if(null != personaConnectionEntity) {
             personaConnectionEntity.setEndTime(Timestamp.from(Instant.now()));
             personaConnectionRepository.save(personaConnectionEntity);
@@ -166,7 +160,7 @@ public class PersonaService {
         SocketWriter.write(socket, socketData);
     }
 
-    public void llvl(Socket socket, SessionData sessionData, SocketData socketData) {
+    public void llvl(Socket socket, SocketData socketData, SocketWrapper socketWrapper) {
         Map<String, String> content = Stream.of(new String[][] {
                 { "SKILL_PTS", "211" },
                 { "SKILL_LVL", "1049601" },
@@ -176,19 +170,23 @@ public class PersonaService {
         socketData.setOutputData(content);
         SocketWriter.write(socket, socketData);
 
-        who(socket, sessionData);
+        who(socket, socketWrapper);
     }
 
-    public void who(Socket socket, SessionData sessionData) {
-        PersonaEntity personaEntity = sessionData.getCurrentPersonna();
-        AccountEntity accountEntity = sessionData.getCurrentAccount();
+    /**
+     * Send a user update record for the current logged in user.
+     * @param socket
+     */
+    public void who(Socket socket, SocketWrapper socketWrapper) {
+        PersonaEntity personaEntity = socketWrapper.getPersonaEntity();
+        AccountEntity accountEntity = socketWrapper.getAccountEntity();
 
         Optional<PersonaStatsEntity> personaStatsEntityOpt = personaStatsRepository.findByPersonaId(personaEntity.getId());
         if (personaStatsEntityOpt.isPresent()) {
             PersonaStatsEntity personaStatsEntity = personaStatsEntityOpt.get();
 
-            SocketWrapper socketWrapper = socketManager.getSocketWrapper(socket.getRemoteSocketAddress().toString());
-            Long gameId = socketWrapper.getGameId();
+            Long gameId = null != socketWrapper.getLobbyEntity() && null != socketWrapper.getLobbyEntity().getId() ?
+                    socketWrapper.getLobbyEntity().getId() : 0L;
             String hostPrefix = socketWrapper.isHost() ? "@" : "";
 
             Map<String, String> content = Stream.of(new String[][] {
@@ -200,7 +198,7 @@ public class PersonaService {
                     // Stats : kills (in hex) at 8th position, deaths (in hex) at 9th
                     { "S", ",,,,,,," + Long.toHexString(personaStatsEntity.getTotalKills()) + "," + Long.toHexString(personaStatsEntity.getTotalDeaths()) },
                     { "X", "0" },
-                    { "G", gameId != null ? String.valueOf(gameId) : "0" },
+                    { "G", String.valueOf(gameId) },
                     { "AT", "" },
                     { "CL", "511" },
                     { "LV", "1049601" },
@@ -209,7 +207,7 @@ public class PersonaService {
                     { "US", "0" },
                     { "HW", "0" },
                     { "RP", String.valueOf(personaEntity.getRp()) }, // Reputation (0 to 5 stars)
-                    { "LO", sessionData.getCurrentAccount().getLoc() }, // Locale (used to display country flag)
+                    { "LO", accountEntity.getLoc() }, // Locale (used to display country flag)
                     { "CI", "0" },
                     { "CT", "0" },
                     // 0x800225E0

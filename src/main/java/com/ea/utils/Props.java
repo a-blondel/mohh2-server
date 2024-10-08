@@ -40,12 +40,6 @@ public class Props {
     @Value("${tcp.debug.exclusions}")
     private List<String> tcpDebugExclusions;
 
-    @Value("${udp.port}")
-    private int udpPort;
-
-    @Value("${udp.host}")
-    private String udpHost;
-
     @Value("${tos.enabled}")
     private boolean tosEnabled;
 

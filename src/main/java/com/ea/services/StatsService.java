@@ -1,7 +1,7 @@
 package com.ea.services;
 
-import com.ea.dto.SessionData;
 import com.ea.dto.SocketData;
+import com.ea.dto.SocketWrapper;
 import com.ea.entities.PersonaStatsEntity;
 import com.ea.enums.MoHH2Maps;
 import com.ea.enums.RankingCategories;
@@ -47,7 +47,7 @@ public class StatsService {
      * Request ranking snapshot
      * @param socket
      */
-    public void snap(Socket socket, SessionData sessionData, SocketData socketData) {
+    public void snap(Socket socket, SocketData socketData, SocketWrapper socketWrapper) {
 
         String chan = getValueFromSocket(socketData.getInputMessage(), "CHAN");
         String seqn = getValueFromSocket(socketData.getInputMessage(), "SEQN");
@@ -67,7 +67,7 @@ public class StatsService {
         if(RankingCategories.MY_LEADERBOARD.id.equals(categoryIndex)) {
             personaStatsEntityList = personaStatsRepository.getLeaderboard(100, offset);
         } else if (RankingCategories.TOP_100.id.equals(categoryIndex)) {
-            offset = personaStatsRepository.getRankByPersonaId(sessionData.getCurrentPersonna().getId());
+            offset = personaStatsRepository.getRankByPersonaId(socketWrapper.getPersonaEntity().getId());
             offset = Math.max(offset - 50, 0);
             personaStatsEntityList = personaStatsRepository.getLeaderboard(100, offset);
         } else if (RankingCategories.WEAPON_LEADERS.id.equals(categoryIndex)) {

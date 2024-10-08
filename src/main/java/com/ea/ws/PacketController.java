@@ -11,14 +11,11 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class PacketController {
 
-    @Autowired
-    private SocketManager socketManager;
-
     @PostMapping("/packet")
     public void sendPacket(@RequestBody PacketDTO packet) {
-        if(socketManager.getHostSockets() != null && !socketManager.getHostSockets().isEmpty()) {
+        if(SocketManager.getHostSockets() != null && !SocketManager.getHostSockets().isEmpty()) {
             SocketData socketData = new SocketData(packet.getPacketId(), null, packet.getPacketData());
-            SocketWriter.write(socketManager.getHostSockets().get(0), socketData);
+            SocketWriter.write(SocketManager.getHostSockets().get(0), socketData);
         }
     }
 

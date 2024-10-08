@@ -12,11 +12,6 @@ tcp:
   debug:
     enabled: ${TCP_DEBUG_ENABLED:false}
     exclusions: '~png'
-udp:
-  # Must be machine IP if hosting for other machines. Must be WSL IP if using docker through WSL (local only)
-  # udp.enabled must be set to true if connecting to this server instead of 127.0.0.1 (serverless)
-  host: ${UDP_HOST_IP:127.0.0.1}
-  port: 3658
 tos:
   enabled: ${TOS_ENABLED:true} # Stats socket servers on port 80 and 443 to handle TOS HTTP(S) requests
 ssc2:

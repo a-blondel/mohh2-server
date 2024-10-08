@@ -1,6 +1,5 @@
 package com.ea.services;
 
-import com.ea.dto.SessionData;
 import com.ea.dto.SocketData;
 import com.ea.dto.SocketWrapper;
 import com.ea.entities.LobbyEntity;
@@ -49,9 +48,6 @@ public class GameService {
     @Autowired
     private PersonaService personaService;
 
-    @Autowired
-    private SocketManager socketManager;
-
     /**
      * Distribute room change updates
      * @param socket
@@ -75,7 +71,7 @@ public class GameService {
         SocketWriter.write(socket, socketData);
     }
 
-    public void gsta(Socket socket, SessionData sessionData, SocketData socketData) {
+    public void gsta(Socket socket, SocketData socketData) {
         SocketWriter.write(socket, socketData);
     }
 
@@ -126,17 +122,17 @@ public class GameService {
      * @param socket
      * @param socketData
      */
-    public void gjoi(Socket socket, SessionData sessionData, SocketData socketData) {
+    public void gjoi(Socket socket, SocketData socketData, SocketWrapper socketWrapper) {
         String ident = getValueFromSocket(socketData.getInputMessage(), "IDENT");
         Optional<LobbyEntity> lobbyEntityOpt = lobbyRepository.findById(Long.valueOf(ident));
         if(lobbyEntityOpt.isPresent()) {
             LobbyEntity lobbyEntity = lobbyEntityOpt.get();
             if(lobbyEntity.getEndTime() == null) {
-                startLobbyReport(sessionData, lobbyEntity, false);
+                startLobbyReport(socket, socketWrapper, lobbyEntity, false);
 
                 SocketWriter.write(socket, socketData);
 
-                refreshHostInfo(socket, sessionData, lobbyEntity);
+                updatePlayerListOfHost(lobbyEntity);
 
                 try {
                     Thread.sleep(100);
@@ -144,7 +140,7 @@ public class GameService {
                     throw new RuntimeException(e);
                 }
 
-                ses(socket, sessionData, lobbyEntity);
+                ses(socket, lobbyEntity);
             } else {
                 SocketWriter.write(socket, new SocketData("gjoiugam", null, null)); // Game closed
             }
@@ -156,31 +152,29 @@ public class GameService {
     /**
      * Create a game on a persistent game spawn service for a user
      * @param socket
-     * @param sessionData
      * @param socketData
      */
-    public void gpsc(Socket socket, SessionData sessionData, SocketData socketData) {
+    public void gpsc(Socket socket, SocketData socketData) {
         SocketWriter.write(socket, socketData);
         LobbyEntity lobbyEntity = socketMapper.toLobbyEntityForCreation(socketData.getInputMessage(), false);
         lobbyRepository.save(lobbyEntity);
-        ses(socket, sessionData, lobbyEntity);
+        ses(socket, lobbyEntity);
     }
 
-    public void refreshHostInfo(Socket socket, SessionData sessionData, LobbyEntity lobbyEntity) {
-        SocketWrapper hostSocketWrapper = socketManager.getHostSocketWrapperOfLobby(lobbyEntity.getId());
+    public void updatePlayerListOfHost(LobbyEntity lobbyEntity) {
+        SocketWrapper hostSocketWrapper = SocketManager.getHostSocketWrapperOfLobby(lobbyEntity.getId());
         if(hostSocketWrapper != null) {
-            SocketWriter.write(hostSocketWrapper.getSocket(), new SocketData("+mgm", null, getLobbyInfo(sessionData, lobbyEntity)));
-            SocketWriter.write(hostSocketWrapper.getSocket(), new SocketData("+ses", null, getLobbyInfo(sessionData, lobbyEntity)));
+            SocketWriter.write(hostSocketWrapper.getSocket(), new SocketData("+mgm", null, getLobbyInfo(lobbyEntity)));
+            SocketWriter.write(hostSocketWrapper.getSocket(), new SocketData("+ses", null, getLobbyInfo(lobbyEntity)));
         }
     }
 
     /**
      * Create a new game with the UHS (User Hosted Server)
      * @param socket
-     * @param sessionData
      * @param socketData
      */
-    public void gcre(Socket socket, SessionData sessionData, SocketData socketData) {
+    public void gcre(Socket socket, SocketData socketData, SocketWrapper socketWrapper) {
         SocketWriter.write(socket, socketData);
 
         if(props.isUhsAutoStart()) {
@@ -192,11 +186,11 @@ public class GameService {
                 lobbyRepository.save(lobbyEntity);
             }
 
-            startLobbyReport(sessionData, lobbyEntity, true);
+            startLobbyReport(socket, socketWrapper, lobbyEntity, true);
 
-            socketManager.setGameId(socket.getRemoteSocketAddress().toString(), lobbyEntity.getId());
+            SocketManager.setLobbyEntity(socket.getRemoteSocketAddress().toString(), lobbyEntity);
 
-            personaService.who(socket, sessionData); // Used to set the game id
+            personaService.who(socket, socketWrapper); // Used to set the game id
 
             try {
                 Thread.sleep(100);
@@ -204,18 +198,17 @@ public class GameService {
                 throw new RuntimeException(e);
             }
 
-            SocketWriter.write(socket, new SocketData("+mgm", null, getLobbyInfo(sessionData, lobbyEntity)));
+            SocketWriter.write(socket, new SocketData("+mgm", null, getLobbyInfo(lobbyEntity)));
         }
     }
 
     /**
      * Leave game
      * @param socket
-     * @param sessionData
      * @param socketData
      */
-    public void glea(Socket socket, SessionData sessionData, SocketData socketData) {
-        endLobbyReport(sessionData);
+    public void glea(Socket socket, SocketData socketData, SocketWrapper socketWrapper) {
+        endLobbyReport(socketWrapper);
         SocketWriter.write(socket, socketData);
     }
 
@@ -226,19 +219,18 @@ public class GameService {
      * If STATUS is "G", then the GPS is hosting a game.
      *
      * @param socket
-     * @param sessionData
      * @param socketData
      */
-    public void gpss(Socket socket, SessionData sessionData, SocketData socketData) {
+    public void gpss(Socket socket, SocketData socketData) {
         SocketWriter.write(socket, socketData);
 
         String status = getValueFromSocket(socketData.getInputMessage(), "STATUS");
 
         // Add a flag in database to indicate that the game is hosted
         if(props.isUhsAutoStart() && props.isUhsEaServerMode() && ("A").equals(status)) {
-            //gps(socket, sessionData, socketData); // Not needed yet
+            //gps(socket, socketData); // Not needed yet
             LobbyEntity lobbyEntity = lobbyRepository.findById(1L).orElse(null);
-            SocketWriter.write(socket, new SocketData("$cre", null, getLobbyInfo(sessionData, lobbyEntity)));
+            SocketWriter.write(socket, new SocketData("$cre", null, getLobbyInfo(lobbyEntity)));
         } else if(props.isUhsAutoStart() && ("G").equals(status)) {
             // We can't send +ses here as we need at least the host + 1 player (COUNT=2) to start a game
         }
@@ -249,10 +241,9 @@ public class GameService {
      * Get periodic status from the GPS
      *
      * @param socket
-     * @param sessionData
      * @param socketData
      */
-    private void gps(Socket socket, SessionData sessionData, SocketData socketData) {
+    private void gps(Socket socket, SocketData socketData) {
             Map<String, String> content = Stream.of(new String[][] {
                 { "PING", "EA60" },
             }).collect(Collectors.toMap(data -> data[0], data -> data[1]));
@@ -264,27 +255,26 @@ public class GameService {
     /**
      * Start session
      * @param socket
-     * @param sessionData
      * @param lobbyEntity
      */
-    public void ses(Socket socket, SessionData sessionData, LobbyEntity lobbyEntity) {
-        SocketWriter.write(socket, new SocketData("+ses", null, getLobbyInfo(sessionData, lobbyEntity)));
+    public void ses(Socket socket, LobbyEntity lobbyEntity) {
+        SocketWriter.write(socket, new SocketData("+ses", null, getLobbyInfo(lobbyEntity)));
     }
 
     /**
      * Game details (current opponents, ...)
      * @param socket
      */
-    public void gget(Socket socket, SessionData sessionData, SocketData socketData) {
+    public void gget(Socket socket, SocketData socketData) {
         String ident = getValueFromSocket(socketData.getInputMessage(), "IDENT");
         Optional<LobbyEntity> lobbyEntityOpt = lobbyRepository.findById(Long.valueOf(ident));
         if(lobbyEntityOpt.isPresent()) {
             LobbyEntity lobbyEntity = lobbyEntityOpt.get();
-            SocketWriter.write(socket, new SocketData("gget", null, getLobbyInfo(sessionData, lobbyEntity)));
+            SocketWriter.write(socket, new SocketData("gget", null, getLobbyInfo(lobbyEntity)));
         }
     }
 
-    public Map<String, String> getLobbyInfo(SessionData sessionData, LobbyEntity lobbyEntity) {
+    public Map<String, String> getLobbyInfo(LobbyEntity lobbyEntity) {
         String params = lobbyEntity.getParams();
 
         // MOHH2
@@ -302,12 +292,12 @@ public class GameService {
 //        log.info("params: {}", params);
 
         Long lobbyId = lobbyEntity.getId();
-        SocketWrapper hostSocketWrapperOfLobby = socketManager.getHostSocketWrapperOfLobby(lobbyId);
+        SocketWrapper hostSocketWrapperOfLobby = SocketManager.getHostSocketWrapperOfLobby(lobbyId);
 
         Map<String, String> content = Stream.of(new String[][] {
                 { "IDENT", String.valueOf(lobbyId) },
                 { "NAME", lobbyEntity.getName() },
-                { "HOST", hostSocketWrapperOfLobby.getPers() },
+                { "HOST", "@" + hostSocketWrapperOfLobby.getPersonaEntity().getPers() },
                 // { "GPSHOST", hostSocketWrapperOfLobby.getPers() },
                 { "PARAMS", params },
                 // { "PARAMS", ",,,b80,d003f6e0656e47423" },
@@ -331,7 +321,7 @@ public class GameService {
                 // loop 0x80022058 only if COUNT>=0
 
                 // another loop 0x8002225C only if NUMPART>=0
-                // { "SELF", sessionData.getCurrentPersonna().getPers() },
+                // { "SELF", "" },
 
                 { "SESS", "0" }, // %s-%s-%08x 0--498ea96f
 
@@ -374,13 +364,13 @@ public class GameService {
      * Registers a lobby entry
      * @param lobbyEntity
      */
-    private void startLobbyReport(SessionData sessionData, LobbyEntity lobbyEntity, boolean isHost) {
+    private void startLobbyReport(Socket socket, SocketWrapper socketWrapper, LobbyEntity lobbyEntity, boolean isHost) {
         // Close any lobby report that wasn't property ended (e.g. use Dolphin save state to leave)
-        endLobbyReport(sessionData);
+        endLobbyReport(socketWrapper);
 
         LobbyReportEntity lobbyReportEntity = new LobbyReportEntity();
         lobbyReportEntity.setLobby(lobbyEntity);
-        lobbyReportEntity.setPersona(sessionData.getCurrentPersonna());
+        lobbyReportEntity.setPersona(socketWrapper.getPersonaEntity());
         lobbyReportEntity.setHost(isHost);
         lobbyReportEntity.setStartTime(Timestamp.from(Instant.now()));
         lobbyReportRepository.save(lobbyReportEntity);
@@ -390,24 +380,20 @@ public class GameService {
         }
 
         lobbyEntity.getLobbyReports().add(lobbyReportEntity);
-        sessionData.setCurrentLobby(lobbyEntity);
-        sessionData.setCurrentLobbyReport(lobbyReportEntity);
+        socketWrapper.setLobbyEntity(lobbyEntity);
+        socketWrapper.setLobbyReportEntity(lobbyReportEntity);
     }
 
     /**
      * Ends the lobby report because the player has left the lobby
      */
-    public void endLobbyReport(SessionData sessionData) {
-        if(sessionData != null) {
-            LobbyReportEntity lobbyReportEntity = sessionData.getCurrentLobbyReport();
-            if (lobbyReportEntity != null) {
-                lobbyReportEntity.setEndTime(Timestamp.from(Instant.now()));
-                lobbyReportRepository.save(lobbyReportEntity);
-                sessionData.setCurrentLobby(null);
-                sessionData.setCurrentLobbyReport(null);
-            }
-        } else {
-            log.error("sessionData is null ?!");
+    public void endLobbyReport(SocketWrapper socketWrapper) {
+        LobbyReportEntity lobbyReportEntity = socketWrapper.getLobbyReportEntity();
+        if (lobbyReportEntity != null) {
+            lobbyReportEntity.setEndTime(Timestamp.from(Instant.now()));
+            lobbyReportRepository.save(lobbyReportEntity);
+            socketWrapper.setLobbyEntity(null);
+            socketWrapper.setLobbyReportEntity(null);
         }
     }
 

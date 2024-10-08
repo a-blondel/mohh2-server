@@ -1,7 +1,7 @@
 package com.ea.services;
 
-import com.ea.dto.SessionData;
 import com.ea.dto.SocketData;
+import com.ea.dto.SocketWrapper;
 import com.ea.entities.AccountEntity;
 import com.ea.mappers.SocketMapper;
 import com.ea.repositories.AccountRepository;
@@ -112,7 +112,7 @@ public class AccountService {
      * @param socket
      * @param socketData
      */
-    public void auth(Socket socket, SessionData sessionData, SocketData socketData) {
+    public void auth(Socket socket, SocketData socketData, SocketWrapper socketWrapper) {
         String name = getValueFromSocket(socketData.getInputMessage(), "NAME");
         String pass = getValueFromSocket(socketData.getInputMessage(), "PASS");
 
@@ -125,7 +125,7 @@ public class AccountService {
             AccountEntity accountEntity = accountEntityOpt.get();
             String decodedPass = passwordUtils.ssc2Decode(pass);
             if (passwordUtils.bCryptMatches(decodedPass, accountEntity.getPass())) {
-                sessionData.setCurrentAccount(accountEntity);
+                socketWrapper.setAccountEntity(accountEntity);
 
                 String personas = accountEntity.getPersonas().stream()
                         .filter(p -> p.getDeletedOn() == null)

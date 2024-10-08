@@ -1,6 +1,5 @@
 package com.ea.config;
 
-import com.ea.dto.SessionData;
 import com.ea.dto.SocketData;
 import com.ea.dto.SocketWrapper;
 import com.ea.entities.LobbyEntity;
@@ -32,21 +31,16 @@ public class TcpSocketThread implements Runnable {
 
     private static GameService gameService = BeanUtil.getBean(GameService.class);
 
-    private static SocketManager socketManager = BeanUtil.getBean(SocketManager.class);
-
     private static LobbyRepository lobbyRepository = BeanUtil.getBean(LobbyRepository.class);
 
     private static LobbyReportRepository lobbyReportRepository = BeanUtil.getBean(LobbyReportRepository.class);
 
     private final Socket clientSocket;
 
-    private final SessionData sessionData;
-
     private ScheduledExecutorService pingExecutor;
 
-    public TcpSocketThread(Socket clientSocket, SessionData sessionData) {
+    public TcpSocketThread(Socket clientSocket) {
         this.clientSocket = clientSocket;
-        this.sessionData = sessionData;
     }
 
     public void run() {
@@ -55,28 +49,26 @@ public class TcpSocketThread implements Runnable {
             pingExecutor = Executors.newSingleThreadScheduledExecutor();
             pingExecutor.scheduleAtFixedRate(() -> png(clientSocket), 30, 30, TimeUnit.SECONDS);
 
-            SocketReader.read(clientSocket, sessionData);
+            SocketReader.read(clientSocket);
         } finally {
             pingExecutor.shutdown();
-            gameService.endLobbyReport(sessionData); // If the player doesn't leave from the game
-            personaService.endPersonaConnection(sessionData);
+            SocketWrapper socketWrapper = SocketManager.getSocketWrapper(clientSocket);
+            gameService.endLobbyReport(socketWrapper); // If the player doesn't leave from the game
+            personaService.endPersonaConnection(socketWrapper);
 
-            SocketWrapper socketWrapper = socketManager.getSocketWrapper(clientSocket.getRemoteSocketAddress().toString());
             if(socketWrapper != null) {
-                if(socketWrapper.isHost() && socketWrapper.getGameId() != null) {
-                    LobbyEntity lobbyEntity = lobbyRepository.findById(socketWrapper.getGameId()).orElse(null);
-                    if(lobbyEntity != null) {
-                        lobbyEntity.setEndTime(Timestamp.from(Instant.now()));
-                        for(LobbyReportEntity lobbyReportEntity : lobbyEntity.getLobbyReports()) {
-                            if(lobbyReportEntity.getEndTime() == null) {
-                                lobbyReportEntity.setEndTime(Timestamp.from(Instant.now()));
-                                lobbyReportRepository.save(lobbyReportEntity);
-                            }
+                if(socketWrapper.isHost() && socketWrapper.getLobbyEntity() != null) {
+                    LobbyEntity lobbyEntity = socketWrapper.getLobbyEntity();
+                    lobbyEntity.setEndTime(Timestamp.from(Instant.now()));
+                    for(LobbyReportEntity lobbyReportEntity : lobbyEntity.getLobbyReports()) {
+                        if(lobbyReportEntity.getEndTime() == null) {
+                            lobbyReportEntity.setEndTime(Timestamp.from(Instant.now()));
+                            lobbyReportRepository.save(lobbyReportEntity);
                         }
-                        lobbyRepository.save(lobbyEntity);
                     }
+                    lobbyRepository.save(lobbyEntity);
                 }
-                socketManager.removeSocket(socketWrapper.getIdentifier());
+                SocketManager.removeSocket(socketWrapper.getIdentifier());
             }
             log.info("TCP client session ended: {}:{}", clientSocket.getInetAddress().getHostAddress(), clientSocket.getPort());
         }
