@@ -96,6 +96,7 @@ public class GameService {
     /**
      * List games
      * @param socket
+     * @param gameEntities
      */
     public void gam(Socket socket, List<GameEntity> gameEntities) {
         List<Map<String, String>> lobbies = new ArrayList<>();
@@ -121,6 +122,7 @@ public class GameService {
      * Join a game
      * @param socket
      * @param socketData
+     * @param socketWrapper
      */
     public void gjoi(Socket socket, SocketData socketData, SocketWrapper socketWrapper) {
         String ident = getValueFromSocket(socketData.getInputMessage(), "IDENT");
@@ -128,7 +130,7 @@ public class GameService {
         if(gameEntityOpt.isPresent()) {
             GameEntity gameEntity = gameEntityOpt.get();
             if(gameEntity.getEndTime() == null) {
-                startGameReport(socket, socketWrapper, gameEntity, false);
+                startGameReport(socketWrapper, gameEntity, false);
 
                 SocketWriter.write(socket, socketData);
 
@@ -173,6 +175,7 @@ public class GameService {
      * Create a new game with the UHS (User Hosted Server)
      * @param socket
      * @param socketData
+     * @param socketWrapper
      */
     public void gcre(Socket socket, SocketData socketData, SocketWrapper socketWrapper) {
         SocketWriter.write(socket, socketData);
@@ -186,7 +189,7 @@ public class GameService {
                 gameRepository.save(gameEntity);
             }
 
-            startGameReport(socket, socketWrapper, gameEntity, true);
+            startGameReport(socketWrapper, gameEntity, true);
 
             SocketManager.setGameEntity(socket.getRemoteSocketAddress().toString(), gameEntity);
 
@@ -206,6 +209,7 @@ public class GameService {
      * Leave game
      * @param socket
      * @param socketData
+     * @param socketWrapper
      */
     public void glea(Socket socket, SocketData socketData, SocketWrapper socketWrapper) {
         endGameReport(socketWrapper);
@@ -264,6 +268,7 @@ public class GameService {
     /**
      * Game details (current opponents, ...)
      * @param socket
+     * @param socketData
      */
     public void gget(Socket socket, SocketData socketData) {
         String ident = getValueFromSocket(socketData.getInputMessage(), "IDENT");
@@ -362,9 +367,11 @@ public class GameService {
 
     /**
      * Registers a game entry
+     * @param socketWrapper
      * @param gameEntity
+     * @param isHost
      */
-    private void startGameReport(Socket socket, SocketWrapper socketWrapper, GameEntity gameEntity, boolean isHost) {
+    private void startGameReport(SocketWrapper socketWrapper, GameEntity gameEntity, boolean isHost) {
         // Close any game report that wasn't property ended (e.g. use Dolphin save state to leave)
         endGameReport(socketWrapper);
 

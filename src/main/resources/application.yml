@@ -13,7 +13,7 @@ tcp:
     enabled: ${TCP_DEBUG_ENABLED:false}
     exclusions: '~png'
 tos:
-  enabled: ${TOS_ENABLED:true} # Stats socket servers on port 80 and 443 to handle TOS HTTP(S) requests
+  enabled: ${TOS_ENABLED:true} # Starts socket servers on port 80 and 443 to handle TOS HTTP(S) requests
 ssc2:
   key: 51ba8aee64ddfacae5baefa6bf61e009
 game:
@@ -54,7 +54,7 @@ spring:
       settings:
         web-allow-others: true
   datasource:
-    url: jdbc:h2:mem:ea-nation;DB_CLOSE_DELAY=-1
+    url: jdbc:h2:mem:mohh2-server;DB_CLOSE_DELAY=-1
     username: sa
     password: sa
     driver-class-name: org.h2.Driver

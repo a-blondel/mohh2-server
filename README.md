@@ -1,44 +1,30 @@
-# EA NATION SERVER
-
-An emulator server for EA Nation games. Targeted games are :
-- Medal of Honor Heroes (PSP)
-- Medal of Honor Heroes 2 (Wii, PSP)
+# Medal Of Honor Heroes 1 & 2 Master Server
 
 ## Discord
 
 Link : https://discord.gg/fwrQHHxrQQ  
 
 It is used to :
-- Talk about the games
+- Talk about the game
 - Share technical knowledge
 - Centralize documentation
-- Regroup the community and organize events when we'll be ready (hopefully)
+- Regroup the community and organize events
 
 Fell free to join !
 
 ## Wiki
 
-Everything to know is in the [Wiki](https://github.com/a-blondel/ea-nation-server/wiki)  
+Everything to know is in the [Wiki](https://github.com/a-blondel/mohh2-server/wiki)  
 It contains :
-- Generic info about the games (weapons, maps,...)
+- Generic info about the game (weapons, maps,...)
 - Technical knowledge (packet capture, ...)
 
 ## Development Status
 
-**Work In Progress** - Focused on making the UHS (User Hosted Server) to work with MoHH and MoHH2.  
+You can follow the progress on the [project board](https://github.com/users/a-blondel/projects/2/views/1)
 
-### MoHH2 progress
-
-You can follow the progress on the [project board](https://github.com/users/a-blondel/projects/2/views/1).  
-
-<img src="doc/img/player-details.png" alt="player-details" width="400"/> <img src="doc/img/leaderboards.png" alt="leaderboards" width="400"/><br/>
-*Player details / Leaderboards*
-
-<img src="doc/img/lobbies.png" alt="lobbies" width="400"/> <img src="doc/img/game-join.png" alt="game-join" width="400"/><br/>
-*Lobbies / Game joining*
-
-**Features**
-- [x] Access Nintendo WFC (Either with [nwc-server](https://github.com/a-blondel/nwc-server) or Wiimmfi)
+### Features
+- [x] Access Nintendo WFC (Either with [nwc-server](https://github.com/a-blondel/nwc-server) or Wiimmfi) for the Wii version of MoHH2
 - [ ] EA account management
   - [x] Create account
   - [x] Update account
@@ -57,7 +43,6 @@ You can follow the progress on the [project board](https://github.com/users/a-bl
   - [ ] Filter options
   - [x] Create game (almost complete : password protected lobbies isn't handled yet)
   - [x] Join game (almost complete : password protected lobbies isn't handled yet)
-- [X] In game (using the *User Hosted Server* for MoHH)
 - [x] Leaderboards
   - [x] My EA Leaderboard
   - [x] EA Top 100
@@ -75,6 +60,28 @@ You can follow the progress on the [project board](https://github.com/users/a-bl
   - [ ] Comment
 
 Note that error messages eg 'invalid password'/'unknown account' are more or less complete.
+
+MoHH screenshots :  
+
+<img src="doc/img/mohh-player-details.jpg" alt="player-details" width="400"/> <img src="doc/img/mohh-leaderboards.jpg" alt="leaderboards" width="400"/><br/>
+*Player details / Leaderboards*
+
+<img src="doc/img/mohh-lobbies.jpg" alt="lobbies" width="400"/> <img src="doc/img/mohh-ingame.jpg" alt="game-join" width="400"/><br/>
+*Lobbies / In Game*
+
+
+MoHH2 screenshots :  
+
+<img src="doc/img/mohh2-player-details.png" alt="player-details" width="400"/> <img src="doc/img/mohh2-leaderboards.png" alt="leaderboards" width="400"/><br/>
+*Player details / Leaderboards*
+
+<img src="doc/img/mohh2-lobbies.png" alt="lobbies" width="400"/> <img src="doc/img/mohh2-ingame.png" alt="game-join" width="400"/><br/>
+*Lobbies / In Game (serverless patch)*
+
+### Play online
+
+- MoHH multiplayer is functional - Games can be hosted using the UHS (User Hosted Server)
+- MoHH2 multiplayer isn't functional yet - Work is in progress. However, it's possible to play alone on MP maps thanks to a patch (see below).
 
 ## Requirements
 
@@ -188,7 +195,7 @@ com.ea.ServerApp
 
 Define the environment variables matching your need, mostly for the database (see `Database` chapter), e.g. :
 ```
-DB_URL=jdbc:postgresql://localhost:5432/ea-nation;DB_USERNAME=user;DB_PASSWORD=password;LOGS=C:/moh/logs;TCP_HOST_IP=127.0.0.1
+DB_URL=jdbc:postgresql://localhost:5432/mohh2db;DB_USERNAME=user;DB_PASSWORD=password;LOGS=C:/moh/logs;TCP_HOST_IP=127.0.0.1
 ```
 
 Replace with your own values.
@@ -197,7 +204,7 @@ Replace with your own values.
 
 After a successful build, get into the target folder and execute one the following commands:
 ```
-java -DDB_URL=jdbc:postgresql://localhost:5432/ea-nation -DDB_USERNAME=user -DDB_PASSWORD=password -DLOGS=C:/moh/logs -DTCP_HOST_IP=127.0.0.1 -jar ea-nation-server-0.1.1-SNAPSHOT.jar
+java -DDB_URL=jdbc:postgresql://localhost:5432/mohh2db -DDB_USERNAME=user -DDB_PASSWORD=password -DLOGS=C:/moh/logs -DTCP_HOST_IP=127.0.0.1 -jar mohh2-server-0.1.1-SNAPSHOT.jar
 ```
 
 ### 2.c Start with Docker
@@ -209,17 +216,17 @@ cd /mnt/c/path/to/the/project
 
 Create the image
 ```
-docker build --tag ea-nation-server:latest .
+docker build --tag mohh2-server:latest .
 ```
 
 You need to start a postgres container after creating a network :
 ```
-docker network create ea-nation-network
+docker network create mohh2-network
 
-docker run -d --restart=unless-stopped --network ea-nation-network \
+docker run -d --restart=unless-stopped --network mohh2-network \
   -e POSTGRES_USER=user \
   -e POSTGRES_PASSWORD=password \
-  -e POSTGRES_DB=ea-nation \
+  -e POSTGRES_DB=mohh2db \
   -p 5432:5432 \
   --name postgres \
   postgres:latest
@@ -227,13 +234,13 @@ docker run -d --restart=unless-stopped --network ea-nation-network \
 
 Then, you can start the server using the network :
 ```
-docker run --name ea-nation-server --rm -it \
+docker run --name mohh2-server --rm -it \
   -p 21171:21171 -p 21172:21172 -p 21173:21173 \
   -e "LOGS=./logs" -e "TCP_HOST_IP=127.0.0.1" \
-  -e "DB_URL=jdbc:postgresql://postgres:5432/ea-nation" \
+  -e "DB_URL=jdbc:postgresql://postgres:5432/mohh2db" \
   -e "DB_USERNAME=user" -e "DB_PASSWORD=password" \
-  --network ea-nation-network \
-  ea-nation-server:latest
+  --network mohh2-network \
+  mohh2-server:latest
 ```
 
 If started in background, here is how to open a bash in the container :
@@ -262,7 +269,7 @@ docker pull postgres:latest
 docker run -d --rm \
   -e POSTGRES_USER=user \
   -e POSTGRES_PASSWORD=password \
-  -e POSTGRES_DB=ea-nation \
+  -e POSTGRES_DB=mohh2db \
   -p 5432:5432 \
   --name postgres \
   postgres:latest
@@ -277,7 +284,7 @@ mkdir ~/postgres_data
 docker run -d --restart=unless-stopped \
 -e POSTGRES_USER=user \
 -e POSTGRES_PASSWORD=password \
--e POSTGRES_DB=ea-nation \
+-e POSTGRES_DB=mohh2db \
 -p 5432:5432 \
 -v ~/postgres_data:/var/lib/postgresql/data \
 --name postgres \

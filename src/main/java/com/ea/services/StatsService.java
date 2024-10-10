@@ -46,6 +46,8 @@ public class StatsService {
     /**
      * Request ranking snapshot
      * @param socket
+     * @param socketData
+     * @param socketWrapper
      */
     public void snap(Socket socket, SocketData socketData, SocketWrapper socketWrapper) {
 
@@ -208,6 +210,9 @@ public class StatsService {
     /**
      * Send ranking snapshot
      * @param socket
+     * @param categoryIndex
+     * @param personaStatsEntityList
+     * @param offset
      */
     public void snp(Socket socket, String categoryIndex, List<PersonaStatsEntity> personaStatsEntityList, long offset) {
         List<Map<String, String>> rankingList = new ArrayList<>();

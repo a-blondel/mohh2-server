@@ -111,6 +111,7 @@ public class AccountService {
      * Account login
      * @param socket
      * @param socketData
+     * @param socketWrapper
      */
     public void auth(Socket socket, SocketData socketData, SocketWrapper socketWrapper) {
         String name = getValueFromSocket(socketData.getInputMessage(), "NAME");

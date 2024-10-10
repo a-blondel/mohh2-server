@@ -43,6 +43,7 @@ public class PersonaService {
      * Persona creation
      * @param socket
      * @param socketData
+     * @param socketWrapper
      */
     public void cper(Socket socket, SocketData socketData, SocketWrapper socketWrapper) {
         String pers = getValueFromSocket(socketData.getInputMessage(), "PERS");
@@ -78,6 +79,7 @@ public class PersonaService {
      * Get persona
      * @param socket
      * @param socketData
+     * @param socketWrapper
      */
     public void pers(Socket socket, SocketData socketData, SocketWrapper socketWrapper) {
         String pers = getValueFromSocket(socketData.getInputMessage(), "PERS");
@@ -111,6 +113,7 @@ public class PersonaService {
     /**
      * Registers a connection of the persona
      * @param socket
+     * @param socketWrapper
      * @param personaEntity
      */
     private void startPersonaConnection(Socket socket, SocketWrapper socketWrapper, PersonaEntity personaEntity) {
@@ -176,6 +179,7 @@ public class PersonaService {
     /**
      * Send a user update record for the current logged in user.
      * @param socket
+     * @param socketWrapper
      */
     public void who(Socket socket, SocketWrapper socketWrapper) {
         PersonaEntity personaEntity = socketWrapper.getPersonaEntity();
