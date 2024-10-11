@@ -46,7 +46,8 @@ public class SocketManager {
 
     public static SocketWrapper getHostSocketWrapperOfGame(Long gameId) {
         return sockets.values().stream()
-                .filter(wrapper -> wrapper.getGameEntity() != null && wrapper.getGameEntity().getId() == gameId && wrapper.isHost())
+                //.filter(wrapper -> wrapper.getGameEntity() != null && wrapper.getGameEntity().getId() == gameId && wrapper.isHost())
+                .filter(wrapper -> wrapper.isHost())
                 .findFirst()
                 .orElse(null);
     }

@@ -19,7 +19,7 @@ ssc2:
 game:
   close-expired: ${GAME_CLOSE_EXPIRED:true}
 uhs:
-  ea-server-mode: false
+  ea-server-mode: true
   auto-start: true
 
 spring:
@@ -54,7 +54,7 @@ spring:
       settings:
         web-allow-others: true
   datasource:
-    url: jdbc:h2:mem:mohh2-server;DB_CLOSE_DELAY=-1
+    url: jdbc:h2:mem:mohh2db;DB_CLOSE_DELAY=-1
     username: sa
     password: sa
     driver-class-name: org.h2.Driver

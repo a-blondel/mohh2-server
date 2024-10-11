@@ -168,8 +168,9 @@ public class GameService {
     public void updatePlayerListOfHost(GameEntity gameEntity) {
         SocketWrapper hostSocketWrapper = SocketManager.getHostSocketWrapperOfGame(gameEntity.getId());
         if(hostSocketWrapper != null) {
-            SocketWriter.write(hostSocketWrapper.getSocket(), new SocketData("+mgm", null, getGameInfo(gameEntity)));
-            SocketWriter.write(hostSocketWrapper.getSocket(), new SocketData("+ses", null, getGameInfo(gameEntity)));
+            String params = "8,b5,,1,-1,,,,1,e4a,e68,,114f0022";
+            SocketWriter.write(hostSocketWrapper.getSocket(), new SocketData("+mgm", null, getGameInfo(gameEntity, params)));
+            SocketWriter.write(hostSocketWrapper.getSocket(), new SocketData("+ses", null, getGameInfo(gameEntity, params)));
         }
     }
 
@@ -203,7 +204,8 @@ public class GameService {
                 throw new RuntimeException(e);
             }
 
-            SocketWriter.write(socket, new SocketData("+mgm", null, getGameInfo(gameEntity)));
+            String params = "8,b5,,1,-1,,,,1,e4a,e68,,114f0022";
+            SocketWriter.write(socket, new SocketData("+mgm", null, getGameInfo(gameEntity, params)));
         }
     }
 
@@ -236,7 +238,8 @@ public class GameService {
         if(props.isUhsAutoStart() && props.isUhsEaServerMode() && ("A").equals(status)) {
             //gps(socket, socketData); // Not needed yet
             GameEntity gameEntity = gameRepository.findById(1L).orElse(null);
-            SocketWriter.write(socket, new SocketData("$cre", null, getGameInfo(gameEntity)));
+            String params = "8,b5,,1,-1,,,,1,e4a,e68,,114f0022";
+            SocketWriter.write(socket, new SocketData("$cre", null, getGameInfo(gameEntity, params)));
         } else if(props.isUhsAutoStart() && ("G").equals(status)) {
             // We can't send +ses here as we need at least the host + 1 player (COUNT=2) to start a game
         }
@@ -264,7 +267,8 @@ public class GameService {
      * @param gameEntity
      */
     public void ses(Socket socket, GameEntity gameEntity) {
-        SocketWriter.write(socket, new SocketData("+ses", null, getGameInfo(gameEntity)));
+        String params = "8,1f5,,,5,,14,,,-1,1,1,1,1,1,1,1,1,10,e4a,e68,15f90,122d0022";
+        SocketWriter.write(socket, new SocketData("+ses", null, getGameInfo(gameEntity, params)));
     }
 
     /**
@@ -277,11 +281,12 @@ public class GameService {
         Optional<GameEntity> gameEntityOpt = gameRepository.findById(Long.valueOf(ident));
         if(gameEntityOpt.isPresent()) {
             GameEntity gameEntity = gameEntityOpt.get();
-            SocketWriter.write(socket, new SocketData("gget", null, getGameInfo(gameEntity)));
+            String params = "8,b5,,1,-1,,,,1,e4a,e68,,114f0022";
+            SocketWriter.write(socket, new SocketData("gget", null, getGameInfo(gameEntity, params)));
         }
     }
 
-    public Map<String, String> getGameInfo(GameEntity gameEntity) {
+    public Map<String, String> getGameInfo(GameEntity gameEntity, String params) {
 
         Long gameId = gameEntity.getId();
         SocketWrapper hostSocketWrapperOfGame = SocketManager.getHostSocketWrapperOfGame(gameId);
@@ -297,7 +302,7 @@ public class GameService {
                 { "NAME", gameEntity.getName() },
                 { "HOST", host },
                 // { "GPSHOST", hostSocketWrapperOfGame.getPers() },
-                { "PARAMS", gameEntity.getParams() },
+                { "PARAMS", params },
                 // { "PARAMS", ",,,b80,d003f6e0656e47423" },
                 { "PLATPARAMS", "0" },  // ???
                 { "ROOM", "1" },
