@@ -169,8 +169,8 @@ public class GameService {
         SocketWrapper hostSocketWrapper = SocketManager.getHostSocketWrapperOfGame(gameEntity.getId());
         if(hostSocketWrapper != null) {
             String params = "8,b5,,1,-1,,,,1,e4a,e68,,114f0022";
-            SocketWriter.write(hostSocketWrapper.getSocket(), new SocketData("+mgm", null, getGameInfo(gameEntity, params)));
-            SocketWriter.write(hostSocketWrapper.getSocket(), new SocketData("+ses", null, getGameInfo(gameEntity, params)));
+            SocketWriter.write(hostSocketWrapper.getSocket(), new SocketData("+mgm", null, getGameInfo(hostSocketWrapper.getSocket(), gameEntity, params)));
+            SocketWriter.write(hostSocketWrapper.getSocket(), new SocketData("+ses", null, getGameInfo(hostSocketWrapper.getSocket(), gameEntity, params)));
         }
     }
 
@@ -205,7 +205,7 @@ public class GameService {
             }
 
             String params = "8,b5,,1,-1,,,,1,e4a,e68,,114f0022";
-            SocketWriter.write(socket, new SocketData("+mgm", null, getGameInfo(gameEntity, params)));
+            SocketWriter.write(socket, new SocketData("+mgm", null, getGameInfo(socket, gameEntity, params)));
         }
     }
 
@@ -239,7 +239,7 @@ public class GameService {
             //gps(socket, socketData); // Not needed yet
             GameEntity gameEntity = gameRepository.findById(1L).orElse(null);
             String params = "8,b5,,1,-1,,,,1,e4a,e68,,114f0022";
-            SocketWriter.write(socket, new SocketData("$cre", null, getGameInfo(gameEntity, params)));
+            SocketWriter.write(socket, new SocketData("$cre", null, getGameInfo(socket, gameEntity, params)));
         } else if(props.isUhsAutoStart() && ("G").equals(status)) {
             // We can't send +ses here as we need at least the host + 1 player (COUNT=2) to start a game
         }
@@ -267,8 +267,9 @@ public class GameService {
      * @param gameEntity
      */
     public void ses(Socket socket, GameEntity gameEntity) {
-        String params = "8,1f5,,,5,,14,,,-1,1,1,1,1,1,1,1,1,10,e4a,e68,15f90,122d0022";
-        SocketWriter.write(socket, new SocketData("+ses", null, getGameInfo(gameEntity, params)));
+        String params = "8,1f5,,,5,,14,,,-1,1,1,1,1,1,1,1,1,10,456,e68,15f90,122d0022"; //e4a // 456 = 1110
+        //String params = "8,b5,,1,-1,,,,1,e4a,e68,,114f0022";
+        SocketWriter.write(socket, new SocketData("+ses", null, getGameInfo(socket, gameEntity, params)));
     }
 
     /**
@@ -282,11 +283,11 @@ public class GameService {
         if(gameEntityOpt.isPresent()) {
             GameEntity gameEntity = gameEntityOpt.get();
             String params = "8,b5,,1,-1,,,,1,e4a,e68,,114f0022";
-            SocketWriter.write(socket, new SocketData("gget", null, getGameInfo(gameEntity, params)));
+            SocketWriter.write(socket, new SocketData("gget", null, getGameInfo(socket, gameEntity, params)));
         }
     }
 
-    public Map<String, String> getGameInfo(GameEntity gameEntity, String params) {
+    public Map<String, String> getGameInfo(Socket socket, GameEntity gameEntity, String params) {
 
         Long gameId = gameEntity.getId();
         SocketWrapper hostSocketWrapperOfGame = SocketManager.getHostSocketWrapperOfGame(gameId);
@@ -354,11 +355,14 @@ public class GameService {
             if(personaConnectionEntityOpt.isPresent()) {
                 PersonaConnectionEntity personaConnectionEntity = personaConnectionEntityOpt.get();
                 String hostPrefix = gameReportEntity.isHost() ? "@" : "";
+
+                String ip = personaConnectionEntity.getIp().equals(socket.getInetAddress().getHostAddress()) ? personaConnectionEntity.getIp() : "192.168.1.90";
+
                 content.putAll(Stream.of(new String[][] {
                         { "OPID" + idx[0], String.valueOf(personaEntity.getId()) },
                         { "OPPO" + idx[0], hostPrefix + personaEntity.getPers() },
-                        { "ADDR" + idx[0], personaConnectionEntity.getIp() },
-                        { "LADDR" + idx[0], personaConnectionEntity.getIp() },
+                        { "ADDR" + idx[0], ip },
+                        { "LADDR" + idx[0], ip },
                         { "MADDR" + idx[0], "" },
                         { "OPPART" + idx[0], "0" },
                         { "OPPARAM" + idx[0], "chgBAMJQAAAVAAAAUkYAAAUAAAABAAAA" },

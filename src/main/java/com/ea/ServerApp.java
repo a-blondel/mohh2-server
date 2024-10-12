@@ -3,9 +3,11 @@ package com.ea;
 import com.ea.config.ServerConfig;
 import com.ea.config.SslSocketThread;
 import com.ea.config.TcpSocketThread;
+import com.ea.config.UdpSocketThread;
 import com.ea.enums.Certificates;
 import com.ea.services.GameService;
 import com.ea.services.SocketManager;
+import com.ea.services.UdpSocketManager;
 import com.ea.utils.Props;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,6 +20,7 @@ import org.springframework.core.env.Environment;
 import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLSocket;
 import java.io.IOException;
+import java.net.DatagramSocket;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.security.Security;
@@ -32,8 +35,6 @@ import java.util.function.Function;
 @Slf4j
 @SpringBootApplication(exclude = { SecurityAutoConfiguration.class })
 public class ServerApp implements CommandLineRunner {
-
-    private static final String WII = "wii";
 
     private ScheduledExecutorService closeExpiredLobbiesThread = Executors.newSingleThreadScheduledExecutor();
 
@@ -130,6 +131,16 @@ public class ServerApp implements CommandLineRunner {
                 startServerThread(tosSslServerSocket, (socket) -> new SslSocketThread((SSLSocket) socket));
                 log.info("TOS SSL server started.");
             }
+
+            DatagramSocket mohUdpServerSocketUHS = serverConfig.createUdpServerSocket(3658);
+            UdpSocketManager.addSocket("UHS", mohUdpServerSocketUHS);
+            new Thread(new UdpSocketThread(mohUdpServerSocketUHS)).start();
+            log.info("MoH UHS UDP server started.");
+
+            DatagramSocket mohUdpServerSocketClient = serverConfig.createUdpServerSocket(1110);
+            UdpSocketManager.addSocket("Client", mohUdpServerSocketClient);
+            new Thread(new UdpSocketThread(mohUdpServerSocketClient)).start();
+            log.info("MoH Client UDP server started.");
 
             log.info("Servers started. Waiting for client connections...");
         } catch (Exception e) {
