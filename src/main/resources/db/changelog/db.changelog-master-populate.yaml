@@ -11,4 +11,4 @@ databaseChangeLog:
       dbms: h2
       changes:
         - sqlFile:
-            path: db/samples/mohh-basic.sql
+            path: db/samples/basic.sql

@@ -114,26 +114,18 @@ public class PersonaService {
      * Registers a connection of the persona
      * @param socket
      * @param socketWrapper
-     * @param personaEntity
      */
     private void startPersonaConnection(Socket socket, SocketWrapper socketWrapper, PersonaEntity personaEntity) {
         // Close current connection if the user got a "soft" disconnection (TCP connection is still active)
-        if(null != socketWrapper.getPersonaConnectionEntity()) {
-            log.error("User wasn't properly disconnected");
-            endPersonaConnection(socketWrapper);
-        }
         Optional<PersonaConnectionEntity> personaConnectionEntityOpt = personaConnectionRepository.findCurrentPersonaConnection(personaEntity);
         if(personaConnectionEntityOpt.isPresent()) {
             PersonaConnectionEntity personaConnectionEntity = personaConnectionEntityOpt.get();
             personaConnectionEntity.setEndTime(Timestamp.from(Instant.now()));
             personaConnectionRepository.save(personaConnectionEntity);
         }
-        PersonaConnectionEntity personaConnectionEntity = new PersonaConnectionEntity();
-        personaConnectionEntity.setIp(SocketUtils.handleLocalhostIp(socket.getInetAddress().getHostAddress()));
+        PersonaConnectionEntity personaConnectionEntity = socketWrapper.getPersonaConnectionEntity();
         personaConnectionEntity.setPersona(personaEntity);
-        personaConnectionEntity.setStartTime(Timestamp.from(Instant.now()));
         personaConnectionRepository.save(personaConnectionEntity);
-        socketWrapper.setPersonaConnectionEntity(personaConnectionEntity);
     }
 
     /**

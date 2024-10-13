@@ -156,11 +156,12 @@ public class GameService {
      * @param socket
      * @param socketData
      */
-    public void gpsc(Socket socket, SocketData socketData) {
+    public void gpsc(Socket socket, SocketData socketData, SocketWrapper socketWrapper) {
         SocketWriter.write(socket, socketData);
         GameEntity gameEntity = socketMapper.toGameEntityForCreation(socketData.getInputMessage(), false);
+        gameEntity.setVers(socketWrapper.getPersonaConnectionEntity().getVers());
+        gameEntity.setSlus(socketWrapper.getPersonaConnectionEntity().getSlus());
         gameRepository.save(gameEntity);
-        SocketWrapper socketWrapper = SocketManager.getSocketWrapper(socket);
         startGameReport(socketWrapper, gameEntity, false);
         ses(socket, gameEntity);
     }
@@ -169,7 +170,6 @@ public class GameService {
         SocketWrapper hostSocketWrapper = SocketManager.getHostSocketWrapperOfGame(gameEntity.getId());
         if(hostSocketWrapper != null) {
             SocketWriter.write(hostSocketWrapper.getSocket(), new SocketData("+mgm", null, getGameInfo(gameEntity)));
-            SocketWriter.write(hostSocketWrapper.getSocket(), new SocketData("+ses", null, getGameInfo(gameEntity)));
         }
     }
 
@@ -186,8 +186,9 @@ public class GameService {
             GameEntity gameEntity = gameRepository.findById(1L).orElse(null);
 
             if (!props.isUhsEaServerMode()) {
-                //String room = getValueFromSocket(socketData.getInputMessage(), "ROOM"); // Should room be added to the game entity?
                 gameEntity = socketMapper.toGameEntityForCreation(socketData.getInputMessage(), true);
+                gameEntity.setVers(socketWrapper.getPersonaConnectionEntity().getVers());
+                gameEntity.setSlus(socketWrapper.getPersonaConnectionEntity().getSlus());
                 gameRepository.save(gameEntity);
             }
 
@@ -314,7 +315,7 @@ public class GameService {
                 // { "GAMEPORT", String.valueOf(props.getUdpPort())},
                 // { "VOIPPORT", "9667" },
                 // { "GAMEMODE", "0" }, // ???
-                // { "AUTH", "098f6bcd4621d373cade4e832627b4f6" },
+                { "AUTH", gameEntity.getSysflags().equals("262656") ? "098f6bcd4621d373cade4e832627b4f6" : "" }, // Required for ranked
 
                 // loop 0x80022058 only if COUNT>=0
 

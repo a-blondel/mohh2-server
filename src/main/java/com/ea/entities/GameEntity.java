@@ -19,6 +19,10 @@ public class GameEntity {
     @GeneratedValue(strategy= GenerationType.IDENTITY)
     private Long id;
 
+    private String vers;
+
+    private String slus;
+
     private boolean userHosted;
 
     private String name;

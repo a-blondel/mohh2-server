@@ -78,7 +78,7 @@ public class SocketProcessor {
                 gameService.gjoi(socket, socketData, socketWrapper);
                 break;
             case ("gpsc"):
-                gameService.gpsc(socket, socketData);
+                gameService.gpsc(socket, socketData, socketWrapper);
                 break;
             case ("gcre"):
                 gameService.gcre(socket, socketData, socketWrapper);
