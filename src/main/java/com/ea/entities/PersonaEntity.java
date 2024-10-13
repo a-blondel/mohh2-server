@@ -36,7 +36,7 @@ public class PersonaEntity {
     private Timestamp deletedOn;
 
     @OneToMany(mappedBy="persona", fetch = FetchType.EAGER)
-    private Set<LobbyReportEntity> lobbyReports;
+    private Set<GameReportEntity> gameReports;
 
     @OneToMany(mappedBy="persona", fetch = FetchType.EAGER)
     private Set<PersonaConnectionEntity> personaConnections;

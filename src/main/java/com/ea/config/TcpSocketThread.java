@@ -1,16 +1,22 @@
 package com.ea.config;
 
-import com.ea.dto.SessionData;
 import com.ea.dto.SocketData;
-import com.ea.services.LobbyService;
+import com.ea.dto.SocketWrapper;
+import com.ea.entities.GameEntity;
+import com.ea.entities.GameReportEntity;
+import com.ea.repositories.GameReportRepository;
+import com.ea.repositories.GameRepository;
+import com.ea.services.GameService;
 import com.ea.services.PersonaService;
+import com.ea.services.SocketManager;
 import com.ea.steps.SocketReader;
 import com.ea.steps.SocketWriter;
 import com.ea.utils.BeanUtil;
 import lombok.extern.slf4j.Slf4j;
 
-import java.io.*;
 import java.net.Socket;
+import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -23,17 +29,18 @@ public class TcpSocketThread implements Runnable {
 
     private static PersonaService personaService = BeanUtil.getBean(PersonaService.class);
 
-    private static LobbyService lobbyService = BeanUtil.getBean(LobbyService.class);
+    private static GameService gameService = BeanUtil.getBean(GameService.class);
+
+    private static GameRepository gameRepository = BeanUtil.getBean(GameRepository.class);
+
+    private static GameReportRepository gameReportRepository = BeanUtil.getBean(GameReportRepository.class);
 
     private final Socket clientSocket;
 
-    private final SessionData sessionData;
-
     private ScheduledExecutorService pingExecutor;
 
-    public TcpSocketThread(Socket clientSocket, SessionData sessionData) {
+    public TcpSocketThread(Socket clientSocket) {
         this.clientSocket = clientSocket;
-        this.sessionData = sessionData;
     }
 
     public void run() {
@@ -42,11 +49,27 @@ public class TcpSocketThread implements Runnable {
             pingExecutor = Executors.newSingleThreadScheduledExecutor();
             pingExecutor.scheduleAtFixedRate(() -> png(clientSocket), 30, 30, TimeUnit.SECONDS);
 
-            SocketReader.read(clientSocket, sessionData);
+            SocketReader.read(clientSocket);
         } finally {
             pingExecutor.shutdown();
-            lobbyService.endLobbyReport(sessionData); // If the player doesn't leave from the game
-            personaService.endPersonaConnection(sessionData);
+            SocketWrapper socketWrapper = SocketManager.getSocketWrapper(clientSocket);
+            gameService.endGameReport(socketWrapper); // If the player doesn't leave from the game
+            personaService.endPersonaConnection(socketWrapper);
+
+            if(socketWrapper != null) {
+                if(socketWrapper.isHost() && socketWrapper.getGameEntity() != null) {
+                    GameEntity gameEntity = socketWrapper.getGameEntity();
+                    gameEntity.setEndTime(Timestamp.from(Instant.now()));
+                    for(GameReportEntity gameReportEntity : gameEntity.getGameReports()) {
+                        if(gameReportEntity.getEndTime() == null) {
+                            gameReportEntity.setEndTime(Timestamp.from(Instant.now()));
+                            gameReportRepository.save(gameReportEntity);
+                        }
+                    }
+                    gameRepository.save(gameEntity);
+                }
+                SocketManager.removeSocket(socketWrapper.getIdentifier());
+            }
             log.info("TCP client session ended: {}:{}", clientSocket.getInetAddress().getHostAddress(), clientSocket.getPort());
         }
     }

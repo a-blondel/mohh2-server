@@ -1,6 +1,4 @@
-# Medal Of Honor Heroes 2 Server [Wii/PSP]
-
-Designed to replace EA's closed ones.  
+# Medal Of Honor Heroes 1 & 2 Master Server
 
 ## Discord
 
@@ -10,7 +8,7 @@ It is used to :
 - Talk about the game
 - Share technical knowledge
 - Centralize documentation
-- Regroup the community and organize events when we'll be ready (hopefully)
+- Regroup the community and organize events
 
 Fell free to join !
 
@@ -23,20 +21,10 @@ It contains :
 
 ## Development Status
 
-**Work In Progress** - The Wii version allows to access the main menu, leaderboards and lobbies while the PSP version disconnects before login screen.  
-You can follow the progress on the [project board](https://github.com/users/a-blondel/projects/2/views/1).  
+You can follow the progress on the [project board](https://github.com/users/a-blondel/projects/2/views/1)
 
-<img src="doc/img/player-details.png" alt="player-details" width="400"/> <img src="doc/img/leaderboards.png" alt="leaderboards" width="400"/><br/>
-*Player details / Leaderboards*
-
-<img src="doc/img/lobbies.png" alt="lobbies" width="400"/> <img src="doc/img/game-join.png" alt="game-join" width="400"/><br/>
-*Lobbies / Game joining*
-
-<img src="doc/img/game-disconnect.png" alt="game-disconnect" width="400"/><br/>
-*Disconnection*
-
-**Features**
-- [x] Access Nintendo WFC (Either with [nwc-server](https://github.com/a-blondel/nwc-server) or Wiimmfi)
+### Features
+- [x] Access Nintendo WFC (Either with [nwc-server](https://github.com/a-blondel/nwc-server) or Wiimmfi) for the Wii version of MoHH2
 - [ ] EA account management
   - [x] Create account
   - [x] Update account
@@ -55,9 +43,6 @@ You can follow the progress on the [project board](https://github.com/users/a-bl
   - [ ] Filter options
   - [x] Create game (almost complete : password protected lobbies isn't handled yet)
   - [x] Join game (almost complete : password protected lobbies isn't handled yet)
-- [ ] In game
-  - [ ] Team, uniform and weapon selection screen (disconnected just before)
-  - [ ] --anything else to handle that we are not aware of yet--
 - [x] Leaderboards
   - [x] My EA Leaderboard
   - [x] EA Top 100
@@ -76,6 +61,27 @@ You can follow the progress on the [project board](https://github.com/users/a-bl
 
 Note that error messages eg 'invalid password'/'unknown account' are more or less complete.
 
+MoHH screenshots :  
+
+<img src="doc/img/mohh-player-details.jpg" alt="player-details" width="400"/> <img src="doc/img/mohh-leaderboards.jpg" alt="leaderboards" width="400"/><br/>
+*Player details / Leaderboards*
+
+<img src="doc/img/mohh-lobbies.jpg" alt="lobbies" width="400"/> <img src="doc/img/mohh-ingame.jpg" alt="game-join" width="400"/><br/>
+*Lobbies / In Game*
+
+
+MoHH2 screenshots :  
+
+<img src="doc/img/mohh2-player-details.png" alt="player-details" width="400"/> <img src="doc/img/mohh2-leaderboards.png" alt="leaderboards" width="400"/><br/>
+*Player details / Leaderboards*
+
+<img src="doc/img/mohh2-lobbies.png" alt="lobbies" width="400"/> <img src="doc/img/mohh2-ingame.png" alt="game-join" width="400"/><br/>
+*Lobbies / In Game (serverless patch)*
+
+### Play online
+
+- MoHH multiplayer is functional - Games can be hosted using the UHS (User Hosted Server)
+- MoHH2 multiplayer isn't functional yet - Work is in progress. However, it's possible to play alone on MP maps thanks to a patch (see below).
 
 ## Requirements
 
@@ -92,6 +98,7 @@ In order to intercept requests from the game, you must either use a DNS server o
 
 Add these lines to your hosts file (`C:\Windows\System32\drivers\etc`) :
 ```
+127.0.0.1 pspmoh07.ea.com
 127.0.0.1 wiimoh08.ea.com
 127.0.0.1 pspmoh08.ea.com
 127.0.0.1 naswii.nintendowifi.net
@@ -127,6 +134,9 @@ server:
 	
 	root-hints: "named.cache"
 	
+	local-zone: "pspmoh07.ea.com" static
+	local-data: "pspmoh07.ea.com A 192.168.1.1" # CHANGE IT !
+	
 	local-zone: "wiimoh08.ea.com" static
 	local-data: "wiimoh08.ea.com A 192.168.1.1" # CHANGE IT !
 	
@@ -148,28 +158,28 @@ This project has been initiated with the `JDK 17`, download it if needed.
 
 If you have downloaded Intellij, Maven comes bundled with, otherwise download the latest version of Maven.
 
-#### Maven profile
-
-**Some properties like the SSL port are region-dependant, therefore they must be changed accordingly to the version of the game.**  
-A maven profile exists for each region:
-- `wii-pal` : RM2X69 and RM2P69
-- `wii-ntsc` : RM2E69
-
-Currently, all profiles are located in *application.yml* as there won't be many region-based properties.  
-**When you don't specify any maven profile, it fallbacks to `wii-pal`.**
-
 ### 5/ Define the host machine
 
 Configuration is defined in `application.yml`.
 
-Currently, multiplayer isn't supported (only single player online), so `udp.host` can remain `127.0.0.1`, players will "host themselves".
-
-As for `tcp.host`, it depends on your use case :
+For `tcp.host`, it depends on your use case :
 - If you are running the server (not in WSL) and the game on the same machine (using Dolphin), and you don't need to host for other machines, then no changes are needed.
 - If you are running the server (in WSL) and the game on the same machine (using Dolphin), and you don't need to host for other machines, then you must set the WSL's eth0 IP.
 - If you are running the server for other machines (i.e. Wii/PSP, or another computer using Dolphin), then you must set the machine IP (works for private and public networks).
 
 ## Run the server
+
+### Development profile
+
+By default, the server uses a Postgres database, but it is advised to use an in-memory H2 database for development, which is handy.
+
+To do so, enable the `dev` profile when starting the server (VM Option `-Dspring.profiles.active=dev`).
+
+The h2 console can be accessed in a browser when the server is running :
+```
+http://localhost:8080/h2/
+```
+(Information like database url, user and password can be found in `application.yml`)
 
 ### 1. Build the project
 
@@ -183,12 +193,6 @@ Create a new Application config in Intellij and set the following entry-point (m
 com.ea.ServerApp
 ```
 
-The default profile is `wii-pal`.  
-If you need to specify a profile, be sure to check `Add VM options` (or use Alt+V), then fill the field with :
-```
--Dspring.profiles.active=wii-ntsc
-```
-
 Define the environment variables matching your need, mostly for the database (see `Database` chapter), e.g. :
 ```
 DB_URL=jdbc:postgresql://localhost:5432/mohh2db;DB_USERNAME=user;DB_PASSWORD=password;LOGS=C:/moh/logs;TCP_HOST_IP=127.0.0.1
@@ -200,12 +204,7 @@ Replace with your own values.
 
 After a successful build, get into the target folder and execute one the following commands:
 ```
-java -DDB_URL=jdbc:postgresql://localhost:5432/mohh2db -DDB_USERNAME=user -DDB_PASSWORD=password -DLOGS=C:/moh/logs -DTCP_HOST_IP=127.0.0.1 -jar mohh2-server-1.0.0-SNAPSHOT.jar
-```
-
-If you need to specify a profile, add the following option :
-```
--Dspring.profiles.active=wii-ntsc
+java -DDB_URL=jdbc:postgresql://localhost:5432/mohh2db -DDB_USERNAME=user -DDB_PASSWORD=password -DLOGS=C:/moh/logs -DTCP_HOST_IP=127.0.0.1 -jar mohh2-server-0.1.1-SNAPSHOT.jar
 ```
 
 ### 2.c Start with Docker
@@ -220,9 +219,7 @@ Create the image
 docker build --tag mohh2-server:latest .
 ```
 
-- Wii PAL with postgres
-
-First, you need to start a postgres container after creating a network :
+You need to start a postgres container after creating a network :
 ```
 docker network create mohh2-network
 
@@ -237,23 +234,9 @@ docker run -d --restart=unless-stopped --network mohh2-network \
 
 Then, you can start the server using the network :
 ```
-docker run --name mohh2-wii-pal --rm -it \
+docker run --name mohh2-server --rm -it \
   -p 21171:21171 -p 21172:21172 -p 21173:21173 \
-  -e "SPRING_PROFILES_ACTIVE=wii-pal" -e "LOGS=./logs" -e "TCP_HOST_IP=127.0.0.1" \
-  -e "DB_URL=jdbc:postgresql://postgres:5432/mohh2db" \
-  -e "DB_USERNAME=user" -e "DB_PASSWORD=password" \
-  --network mohh2-network \
-  mohh2-server:latest
-```
-
-- Wii NTSC with postgres
-
-Follow the same steps as above to define the network and add postgres to it.  
-Then, you can start the server using the network :
-```
-docker run --name mohh2-wii-ntsc --rm -it \
-  -p 21121:21121 -p 21172:21172 -p 21173:21173 \
-  -e "SPRING_PROFILES_ACTIVE=wii-ntsc" -e "LOGS=./logs" -e "TCP_HOST_IP=127.0.0.1" \
+  -e "LOGS=./logs" -e "TCP_HOST_IP=127.0.0.1" \
   -e "DB_URL=jdbc:postgresql://postgres:5432/mohh2db" \
   -e "DB_USERNAME=user" -e "DB_PASSWORD=password" \
   --network mohh2-network \
@@ -310,8 +293,3 @@ postgres:latest
 
 Don't forget to set the environment variables (`DB_URL`, `DB_USER` and `DB_PASSWORD`) of the server !  
 See "Run the server" chapter for a full example.
-
-## Connect Mode
-
-To enable `connect mode`, set `udp.connect-mode.enabled` to `true` in `application.yml`.  
-Don't forget to replace `41` by `40` at `0x8001BEB4`.

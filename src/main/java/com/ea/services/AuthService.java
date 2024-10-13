@@ -1,7 +1,7 @@
 package com.ea.services;
 
-import com.ea.dto.SessionData;
 import com.ea.dto.SocketData;
+import com.ea.dto.SocketWrapper;
 import com.ea.steps.SocketWriter;
 import com.ea.utils.Props;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +22,9 @@ public class AuthService {
 
     @Autowired
     private PersonaService personaService;
+
+    @Autowired
+    private GameService gameService;
 
     public void dir(Socket socket, SocketData socketData) {
         Map<String, String> content = Stream.of(new String[][] {
@@ -65,7 +68,7 @@ public class AuthService {
         SocketWriter.write(socket, socketData);
     }
 
-    public void sele(Socket socket, SessionData sessionData, SocketData socketData) {
+    public void sele(Socket socket, SocketData socketData, SocketWrapper socketWrapper) {
         String stats = getValueFromSocket(socketData.getInputMessage(), "STATS");
         String inGame = getValueFromSocket(socketData.getInputMessage(), "INGAME");
 
@@ -76,6 +79,12 @@ public class AuthService {
                     { "MORE", "0" },
                     { "SLOTS", "4" },
                     { "STATS", "0" },
+//                    { "GAMES", "1" },
+//                    { "ROOMS", "1" },
+//                    { "USERS", "1" },
+//                    { "MESGS", "1" },
+//                    { "MYGAME", "1" },
+//                    { "ASYNC", "1" },
             }).collect(Collectors.toMap(data -> data[0], data -> data[1]));
         } else {
             String myGame = getValueFromSocket(socketData.getInputMessage(), "MYGAME");
@@ -108,11 +117,30 @@ public class AuthService {
         }
 
         socketData.setOutputData(content);
-        SocketWriter.write(socket, socketData);
+        SocketWriter.write(socket, socketData, " ");
 
         if(null != stats || null != inGame) {
-            personaService.who(socket, sessionData);
+            personaService.who(socket, socketWrapper);
         }
+
+        if(props.isUhsAutoStart() && socketWrapper != null) {
+            if (socketWrapper.isHost() && socketWrapper.getGameEntity() == null) {
+                joinRoom(socket, socketData, socketWrapper);
+            }
+        }
+
+    }
+
+    private void joinRoom(Socket socket, SocketData socketData, SocketWrapper socketWrapper) {
+        personaService.who(socket, socketWrapper); // Used to set the room info
+
+        try {
+            Thread.sleep(100);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+
+        gameService.rom(socket, socketData);
     }
 
 }
