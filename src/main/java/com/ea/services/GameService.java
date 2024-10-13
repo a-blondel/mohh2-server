@@ -99,10 +99,10 @@ public class GameService {
      * @param gameEntities
      */
     public void gam(Socket socket, List<GameEntity> gameEntities) {
-        List<Map<String, String>> lobbies = new ArrayList<>();
+        List<Map<String, String>> games = new ArrayList<>();
 
         for(GameEntity gameEntity : gameEntities) {
-            lobbies.add(Stream.of(new String[][] {
+            games.add(Stream.of(new String[][] {
                     { "IDENT", String.valueOf(gameEntity.getId()) },
                     { "NAME", gameEntity.getName() },
                     { "PARAMS", gameEntity.getParams() },
@@ -112,7 +112,7 @@ public class GameService {
             }).collect(Collectors.toMap(data -> data[0], data -> data[1])));
         }
 
-        for (Map<String, String> game : lobbies) {
+        for (Map<String, String> game : games) {
             SocketData socketData = new SocketData("+gam", null, game);
             SocketWriter.write(socket, socketData);
         }
@@ -160,6 +160,8 @@ public class GameService {
         SocketWriter.write(socket, socketData);
         GameEntity gameEntity = socketMapper.toGameEntityForCreation(socketData.getInputMessage(), false);
         gameRepository.save(gameEntity);
+        SocketWrapper socketWrapper = SocketManager.getSocketWrapper(socket);
+        startGameReport(socketWrapper, gameEntity, false);
         ses(socket, gameEntity);
     }
 
@@ -280,37 +282,28 @@ public class GameService {
     }
 
     public Map<String, String> getGameInfo(GameEntity gameEntity) {
-        String params = gameEntity.getParams();
-
-        // MOHH2
-//        int serverPortPos = StringUtils.ordinalIndexOf(params, ",", 20);
-//        StringBuilder sb = new StringBuilder(params);
-//        sb.insert(serverPortPos, Integer.toHexString(props.getUdpPort())); // Set game server port
-//        params = sb.toString();
-
-        // MOHH
-//        int serverPortPos = StringUtils.ordinalIndexOf(params, ",", 11);
-//        StringBuilder sb = new StringBuilder(params);
-//        sb.replace(serverPortPos - 1, serverPortPos, Integer.toHexString(props.getUdpPort())); // Set game server port
-//        params = sb.toString();
-//
-//        log.info("params: {}", params);
 
         Long gameId = gameEntity.getId();
         SocketWrapper hostSocketWrapperOfGame = SocketManager.getHostSocketWrapperOfGame(gameId);
 
+        // Workaround when there is no host (serverless patch)
+        boolean hasHost = hostSocketWrapperOfGame != null;
+        String host = hasHost ? "@" + hostSocketWrapperOfGame.getPersonaEntity().getPers() : "@brobot1";
+        int count = gameEntity.getGameReports().stream().filter(report -> null == report.getEndTime()).collect(Collectors.toList()).size();
+        count = hasHost ? count : ++count;
+
         Map<String, String> content = Stream.of(new String[][] {
                 { "IDENT", String.valueOf(gameId) },
                 { "NAME", gameEntity.getName() },
-                { "HOST", "@" + hostSocketWrapperOfGame.getPersonaEntity().getPers() },
+                { "HOST", host },
                 // { "GPSHOST", hostSocketWrapperOfGame.getPers() },
-                { "PARAMS", params },
+                { "PARAMS", gameEntity.getParams() },
                 // { "PARAMS", ",,,b80,d003f6e0656e47423" },
                 { "PLATPARAMS", "0" },  // ???
                 { "ROOM", "1" },
                 { "CUSTFLAGS", "413082880" },
                 { "SYSFLAGS", gameEntity.getSysflags() },
-                { "COUNT", String.valueOf(gameEntity.getGameReports().stream().filter(report -> null == report.getEndTime()).count()) },
+                { "COUNT", String.valueOf(count) },
                 // { "GPSREGION", "2" },
                 { "PRIV", "0" },
                 { "MINSIZE", String.valueOf(gameEntity.getMinsize()) },
@@ -335,6 +328,18 @@ public class GameService {
         }).collect(Collectors.toMap(data -> data[0], data -> data[1]));
 
         int[] idx = { 0 };
+
+        if(!hasHost) {
+            content.putAll(Stream.of(new String[][] {
+                    { "OPID" + idx[0], "0" },
+                    { "OPPO" + idx[0], "@brobot1" },
+                    { "ADDR" + idx[0], "127.0.0.1" },
+                    { "LADDR" + idx[0], "127.0.0.1" },
+                    { "MADDR" + idx[0], "" },
+            }).collect(Collectors.toMap(data -> data[0], data -> data[1])));
+            idx[0]++;
+        }
+
         gameEntity.getGameReports().stream()
                 .filter(report -> null == report.getEndTime())
                 .sorted(Comparator.comparing(GameReportEntity::getId))
