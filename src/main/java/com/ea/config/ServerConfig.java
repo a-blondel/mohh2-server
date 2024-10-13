@@ -1,6 +1,6 @@
 package com.ea.config;
 
-import com.ea.enums.CertificateKind;
+import com.ea.enums.Certificates;
 import com.ea.utils.Props;
 import com.ea.dirtysdk.ProtoSSL;
 import lombok.RequiredArgsConstructor;
@@ -15,7 +15,6 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import javax.net.ServerSocketFactory;
 import javax.net.ssl.*;
 import java.io.IOException;
-import java.net.DatagramSocket;
 import java.net.ServerSocket;
 import java.security.*;
 import java.security.cert.Certificate;
@@ -40,12 +39,12 @@ public class ServerConfig {
      * @return SSLServerSocket
      * @throws IOException
      */
-    public SSLServerSocket createSslServerSocket(int port, CertificateKind certificateKind) throws Exception {
-        Pair<KeyPair, Certificate> eaCert = protoSSL.getEaCert(certificateKind);
+    public SSLServerSocket createSslServerSocket(int port, Certificates certificates) throws Exception {
+        Pair<KeyPair, Certificate> eaCert = protoSSL.getEaCert(certificates);
 
         KeyStore keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
         keyStore.load(null, null);
-        keyStore.setKeyEntry(certificateKind.getName(), eaCert.getLeft().getPrivate(), "password".toCharArray(), new Certificate[]{eaCert.getRight()});
+        keyStore.setKeyEntry(certificates.getName(), eaCert.getLeft().getPrivate(), "password".toCharArray(), new Certificate[]{eaCert.getRight()});
 
         KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
         keyManagerFactory.init(keyStore, "password".toCharArray());
@@ -69,15 +68,6 @@ public class ServerConfig {
      */
     public ServerSocket createTcpServerSocket(int port) throws IOException {
         return ServerSocketFactory.getDefault().createServerSocket(port);
-    }
-
-    /**
-     * Initiate the UDP server socket
-     * @return ServerSocket
-     * @throws IOException
-     */
-    public DatagramSocket createUdpServerSocket() throws IOException {
-        return new DatagramSocket(props.getUdpPort());
     }
 
 }

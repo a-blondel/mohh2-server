@@ -27,6 +27,7 @@
         <boucy-castle.version>1.78.1</boucy-castle.version>
         <liquibase.version>4.28.0</liquibase.version>
         <postgresql.version>42.7.3</postgresql.version>
+        <com.h2database.version>2.2.224</com.h2database.version>
     </properties>
 
     <dependencies>
@@ -34,6 +35,12 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter</artifactId>
+            <version>${org.springframework.boot.version}</version>
+        </dependency>
+        <!-- TODO : http server is used for h2 console, but it could serve other purposes too, delete if unnecessary after development -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
             <version>${org.springframework.boot.version}</version>
         </dependency>
         <dependency>
@@ -56,6 +63,11 @@
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
             <version>${postgresql.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <version>${com.h2database.version}</version>
         </dependency>
         <!-- Bouncy Castle -->
         <dependency>

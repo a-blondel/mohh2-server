@@ -1,7 +1,7 @@
 package com.ea.steps;
 
-import com.ea.dto.SessionData;
 import com.ea.dto.SocketData;
+import com.ea.dto.SocketWrapper;
 import com.ea.services.*;
 import com.ea.utils.BeanUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -14,14 +14,15 @@ public class SocketProcessor {
     private static AccountService accountService = BeanUtil.getBean(AccountService.class);
     private static PersonaService personaService = BeanUtil.getBean(PersonaService.class);
     private static StatsService statsService = BeanUtil.getBean(StatsService.class);
-    private static LobbyService lobbyService = BeanUtil.getBean(LobbyService.class);
+    private static GameService gameService = BeanUtil.getBean(GameService.class);
 
     /**
      * Dispatch to appropriate service based on request type
      * @param socket the socket to handle
      * @param socketData the object to process
      */
-    public static void process(Socket socket, SessionData sessionData, SocketData socketData) {
+    public static void process(Socket socket, SocketData socketData) {
+        SocketWrapper socketWrapper = SocketManager.getSocketWrapper(socket);
         switch (socketData.getIdMessage()) {
             case ("@tic"), ("~png"):
                 break;
@@ -38,7 +39,7 @@ public class SocketProcessor {
                 authService.news(socket, socketData);
                 break;
             case ("sele"):
-                authService.sele(socket, sessionData, socketData);
+                authService.sele(socket, socketData, socketWrapper);
                 break;
             case ("acct"):
                 accountService.acct(socket, socketData);
@@ -47,40 +48,52 @@ public class SocketProcessor {
                 accountService.edit(socket, socketData);
                 break;
             case ("auth"):
-                accountService.auth(socket, sessionData, socketData);
+                accountService.auth(socket, socketData, socketWrapper);
                 break;
             case ("cper"):
-                personaService.cper(socket, sessionData, socketData);
+                personaService.cper(socket, socketData, socketWrapper);
                 break;
             case ("pers"):
-                personaService.pers(socket, sessionData, socketData);
+                personaService.pers(socket, socketData, socketWrapper);
                 break;
             case ("dper"):
                 personaService.dper(socket, socketData);
                 break;
             case ("llvl"):
-                personaService.llvl(socket, sessionData, socketData);
+                personaService.llvl(socket, socketData, socketWrapper);
                 break;
             case ("cate"):
                 statsService.cate(socket, socketData);
                 break;
             case ("snap"):
-                statsService.snap(socket, sessionData, socketData);
+                statsService.snap(socket, socketData, socketWrapper);
                 break;
             case ("gsea"):
-                lobbyService.gsea(socket, socketData);
+                gameService.gsea(socket, socketData);
                 break;
             case ("gget"):
-                lobbyService.gget(socket, sessionData, socketData);
+                gameService.gget(socket, socketData);
                 break;
             case ("gjoi"):
-                lobbyService.gjoi(socket, sessionData, socketData);
+                gameService.gjoi(socket, socketData, socketWrapper);
                 break;
             case ("gpsc"):
-                lobbyService.gpsc(socket, sessionData, socketData);
+                gameService.gpsc(socket, socketData);
+                break;
+            case ("gcre"):
+                gameService.gcre(socket, socketData, socketWrapper);
                 break;
             case ("glea"):
-                lobbyService.glea(socket, sessionData, socketData);
+                gameService.glea(socket, socketData, socketWrapper);
+                break;
+            case ("gpss"):
+                gameService.gpss(socket, socketData);
+                break;
+            case ("gsta"):
+                gameService.gsta(socket, socketData);
+                break;
+            case ("gdel"):
+                SocketWriter.write(socket, socketData);
                 break;
             default:
                 log.info("Unsupported operation: {}", socketData.getIdMessage());

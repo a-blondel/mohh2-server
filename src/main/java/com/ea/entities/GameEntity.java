@@ -12,12 +12,14 @@ import java.util.Set;
 @Setter
 @NoArgsConstructor
 @Entity
-@Table(name = "LOBBY")
-public class LobbyEntity {
+@Table(name = "GAME")
+public class GameEntity {
 
     @Id
     @GeneratedValue(strategy= GenerationType.IDENTITY)
     private Long id;
+
+    private boolean userHosted;
 
     private String name;
 
@@ -35,7 +37,7 @@ public class LobbyEntity {
 
     private Timestamp endTime;
 
-    @OneToMany(mappedBy="lobby", fetch = FetchType.EAGER)
-    private Set<LobbyReportEntity> lobbyReports;
+    @OneToMany(mappedBy="game", fetch = FetchType.EAGER)
+    private Set<GameReportEntity> gameReports;
 
 }

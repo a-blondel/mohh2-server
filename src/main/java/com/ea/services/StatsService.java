@@ -1,10 +1,10 @@
 package com.ea.services;
 
-import com.ea.dto.SessionData;
 import com.ea.dto.SocketData;
+import com.ea.dto.SocketWrapper;
 import com.ea.entities.PersonaStatsEntity;
-import com.ea.enums.MapEnum;
-import com.ea.enums.RankingCategory;
+import com.ea.enums.MoHH2Maps;
+import com.ea.enums.RankingCategories;
 import com.ea.repositories.PersonaStatsRepository;
 import com.ea.steps.SocketWriter;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,8 +46,10 @@ public class StatsService {
     /**
      * Request ranking snapshot
      * @param socket
+     * @param socketData
+     * @param socketWrapper
      */
-    public void snap(Socket socket, SessionData sessionData, SocketData socketData) {
+    public void snap(Socket socket, SocketData socketData, SocketWrapper socketWrapper) {
 
         String chan = getValueFromSocket(socketData.getInputMessage(), "CHAN");
         String seqn = getValueFromSocket(socketData.getInputMessage(), "SEQN");
@@ -56,7 +58,7 @@ public class StatsService {
         String categoryIndex = getValueFromSocket(socketData.getInputMessage(), "CI"); // <category-index>
 
         String columnNumber = "18";
-        if (RankingCategory.WEAPON_LEADERS.id.equals(categoryIndex)) {
+        if (RankingCategories.WEAPON_LEADERS.id.equals(categoryIndex)) {
             columnNumber = "30";
         }
 
@@ -64,13 +66,13 @@ public class StatsService {
         List<PersonaStatsEntity> personaStatsEntityList = new ArrayList<>();
         long offset = 0;
 
-        if(RankingCategory.MY_LEADERBOARD.id.equals(categoryIndex)) {
+        if(RankingCategories.MY_LEADERBOARD.id.equals(categoryIndex)) {
             personaStatsEntityList = personaStatsRepository.getLeaderboard(100, offset);
-        } else if (RankingCategory.TOP_100.id.equals(categoryIndex)) {
-            offset = personaStatsRepository.getRankByPersonaId(sessionData.getCurrentPersonna().getId());
+        } else if (RankingCategories.TOP_100.id.equals(categoryIndex)) {
+            offset = personaStatsRepository.getRankByPersonaId(socketWrapper.getPersonaEntity().getId());
             offset = Math.max(offset - 50, 0);
             personaStatsEntityList = personaStatsRepository.getLeaderboard(100, offset);
-        } else if (RankingCategory.WEAPON_LEADERS.id.equals(categoryIndex)) {
+        } else if (RankingCategories.WEAPON_LEADERS.id.equals(categoryIndex)) {
             personaStatsEntityList = personaStatsRepository.getWeaponLeaderboard(100, offset);
         }
 
@@ -85,7 +87,7 @@ public class StatsService {
                 { "PARAMS", "1,1,1,1,1,1,1,1,1,1,1,1" }, // <comma-separated list of integer parameters>
         }).collect(Collectors.toMap(data -> data[0], data -> data[1]));
 
-        if ("1".equals(cols) && Set.of(RankingCategory.MY_LEADERBOARD.id, RankingCategory.TOP_100.id)
+        if ("1".equals(cols) && Set.of(RankingCategories.MY_LEADERBOARD.id, RankingCategories.TOP_100.id)
                 .contains(categoryIndex)) {
             content.putAll(Stream.of(new String[][] {
                     { "CN0", "RNK" }, // <column-name>
@@ -134,7 +136,7 @@ public class StatsService {
                     { "CN17", "\"TDM RND\"" },
                     { "CD17", "\"Team Deathmatch Rounds Played\"" },
             }).collect(Collectors.toMap(data -> data[0], data -> data[1])));
-        } else if ("1".equals(cols) && RankingCategory.WEAPON_LEADERS.id.equals(categoryIndex)) {
+        } else if ("1".equals(cols) && RankingCategories.WEAPON_LEADERS.id.equals(categoryIndex)) {
             content.putAll(Stream.of(new String[][] {
                     { "CN0", "RNK" },
                     { "CD0", "\"Leaderboard Ranking\"" },
@@ -208,6 +210,9 @@ public class StatsService {
     /**
      * Send ranking snapshot
      * @param socket
+     * @param categoryIndex
+     * @param personaStatsEntityList
+     * @param offset
      */
     public void snp(Socket socket, String categoryIndex, List<PersonaStatsEntity> personaStatsEntityList, long offset) {
         List<Map<String, String>> rankingList = new ArrayList<>();
@@ -215,7 +220,7 @@ public class StatsService {
             String name = personaStatsEntity.getPersona().getPers();
             String rank = String.valueOf(++offset);
             String points = String.valueOf(personaStatsEntity.getTotalKills() - personaStatsEntity.getTotalDeaths());
-            if (Set.of(RankingCategory.MY_LEADERBOARD.id, RankingCategory.TOP_100.id).contains(categoryIndex)) {
+            if (Set.of(RankingCategories.MY_LEADERBOARD.id, RankingCategories.TOP_100.id).contains(categoryIndex)) {
                 long totalTime = personaStatsEntity.getTimeAllied() + personaStatsEntity.getTimeAxis();
                 String mostPlayedTeam = personaStatsEntity.getTimeAxis() > personaStatsEntity.getTimeAllied() ? "0" : "1";
                 rankingList.add(Stream.of(new String[][] {
@@ -245,7 +250,7 @@ public class StatsService {
                               )
                         },
                 }).collect(Collectors.toMap(data -> data[0], data -> data[1])));
-            } else if (RankingCategory.WEAPON_LEADERS.id.equals(categoryIndex)) {
+            } else if (RankingCategories.WEAPON_LEADERS.id.equals(categoryIndex)) {
                 rankingList.add(Stream.of(new String[][] {
                         { "N", name },
                         { "R", rank },
@@ -313,26 +318,26 @@ public class StatsService {
     }
 
     private String getMostPlayedMap(PersonaStatsEntity personaStatsEntity) {
-        String mostPlayedMap = MapEnum.PORT.id;
+        String mostPlayedMap = MoHH2Maps.PORT.id;
         long maxTimeInMap = personaStatsEntity.getTimePort();
         if(maxTimeInMap < personaStatsEntity.getTimeCity()) {
             maxTimeInMap = personaStatsEntity.getTimeCity();
-            mostPlayedMap = MapEnum.CITY.id;
+            mostPlayedMap = MoHH2Maps.CITY.id;
         }
         if(maxTimeInMap < personaStatsEntity.getTimeSewers()) {
             maxTimeInMap = personaStatsEntity.getTimeSewers();
-            mostPlayedMap = MapEnum.SEWERS.id;
+            mostPlayedMap = MoHH2Maps.SEWERS.id;
         }
         if(maxTimeInMap < personaStatsEntity.getTimeVillage()) {
             maxTimeInMap = personaStatsEntity.getTimeVillage();
-            mostPlayedMap = MapEnum.VILLAGE.id;
+            mostPlayedMap = MoHH2Maps.VILLAGE.id;
         }
         if(maxTimeInMap < personaStatsEntity.getTimeMonastery()) {
             maxTimeInMap = personaStatsEntity.getTimeMonastery();
-            mostPlayedMap = MapEnum.MONASTERY.id;
+            mostPlayedMap = MoHH2Maps.MONASTERY.id;
         }
         if(maxTimeInMap < personaStatsEntity.getTimeBase()) {
-            mostPlayedMap = MapEnum.BASE.id;
+            mostPlayedMap = MoHH2Maps.BASE.id;
         }
         return mostPlayedMap;
     }

@@ -1,12 +1,9 @@
 package com.ea.config;
 
 import com.ea.steps.SocketReader;
-import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.net.ssl.SSLSocket;
-import java.io.*;
-import java.net.SocketException;
 
 /**
  * Thread to handle a unique SSL socket
@@ -24,7 +21,7 @@ public class SslSocketThread implements Runnable {
         log.info("SSL client session started: {}:{}", clientSocket.getInetAddress().getHostAddress(), clientSocket.getPort());
         try {
             SocketReader socketReader = new SocketReader();
-            socketReader.read(clientSocket, null);
+            socketReader.read(clientSocket);
         } finally {
             log.info("SSL client session ended: {}:{}", clientSocket.getInetAddress().getHostAddress(), clientSocket.getPort());
         }

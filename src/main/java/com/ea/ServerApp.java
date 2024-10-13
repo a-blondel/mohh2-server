@@ -3,10 +3,9 @@ package com.ea;
 import com.ea.config.ServerConfig;
 import com.ea.config.SslSocketThread;
 import com.ea.config.TcpSocketThread;
-import com.ea.config.UdpSocketThread;
-import com.ea.dto.SessionData;
-import com.ea.enums.CertificateKind;
-import com.ea.services.LobbyService;
+import com.ea.enums.Certificates;
+import com.ea.services.GameService;
+import com.ea.services.SocketManager;
 import com.ea.utils.Props;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,14 +18,13 @@ import org.springframework.core.env.Environment;
 import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLSocket;
 import java.io.IOException;
-import java.net.DatagramSocket;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.security.Security;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.function.BiFunction;
+import java.util.function.Function;
 
 /**
  * Entry point
@@ -49,7 +47,7 @@ public class ServerApp implements CommandLineRunner {
     private ServerConfig serverConfig;
 
     @Autowired
-    private LobbyService lobbyService;
+    private GameService gameService;
 
     public static void main(String[] args) {
         SpringApplication.run(ServerApp.class, args);
@@ -71,7 +69,7 @@ public class ServerApp implements CommandLineRunner {
             if(props.isCloseExpiredLobbiesEnabled()) {
                 closeExpiredLobbiesThread.scheduleAtFixedRate(() -> {
                     try {
-                        lobbyService.closeExpiredLobbies();
+                        gameService.closeExpiredLobbies();
                     } catch (Exception e) {
                         log.error("Error cleaning up expired lobbies", e);
                     }
@@ -83,30 +81,53 @@ public class ServerApp implements CommandLineRunner {
 
             log.info("Starting servers...");
 
-            CertificateKind certificateKind = env.getActiveProfiles().length > 0
-                   && env.getActiveProfiles()[0].contains(WII) ? CertificateKind.MOH_WII : CertificateKind.MOH_PSP;
+            if(props.getHostedGames().contains("mohh_psp_pal")) {
+                SSLServerSocket mohh2PspPalSslServerSocket = serverConfig.createSslServerSocket(11181, Certificates.MOHH_PSP);
+                startServerThread(mohh2PspPalSslServerSocket, (socket) -> new SslSocketThread((SSLSocket) socket));
+                log.info("MOHH PSP PAL SSL server started.");
+            }
 
-            SSLServerSocket mohSslServerSocket = serverConfig.createSslServerSocket(props.getSslPort(), certificateKind);
-            startServerThread(mohSslServerSocket, (socket, sessionData) -> new SslSocketThread((SSLSocket) socket));
-            log.info("MoH SSL server started.");
+            if(props.getHostedGames().contains("mohh_psp_ntsc")) {
+                SSLServerSocket mohh2PspNtscSslServerSocket = serverConfig.createSslServerSocket(11191, Certificates.MOHH_PSP);
+                startServerThread(mohh2PspNtscSslServerSocket, (socket) -> new SslSocketThread((SSLSocket) socket));
+                log.info("MOHH PSP NTSC SSL server started.");
+            }
+
+            if(props.getHostedGames().contains("mohh2_psp_pal")) {
+                SSLServerSocket mohh2PspPalSslServerSocket = serverConfig.createSslServerSocket(21181, Certificates.MOHH2_PSP);
+                startServerThread(mohh2PspPalSslServerSocket, (socket) -> new SslSocketThread((SSLSocket) socket));
+                log.info("MOHH2 PSP PAL SSL server started.");
+            }
+
+            if(props.getHostedGames().contains("mohh2_psp_ntsc")) {
+                SSLServerSocket mohh2PspNtscSslServerSocket = serverConfig.createSslServerSocket(21191, Certificates.MOHH2_PSP);
+                startServerThread(mohh2PspNtscSslServerSocket, (socket) -> new SslSocketThread((SSLSocket) socket));
+                log.info("MOHH2 PSP NTSC SSL server started.");
+            }
+
+            if(props.getHostedGames().contains("mohh2_wii_pal")) {
+                SSLServerSocket mohh2WiiPalSslServerSocket = serverConfig.createSslServerSocket(21171, Certificates.MOHH2_WII);
+                startServerThread(mohh2WiiPalSslServerSocket, (socket) -> new SslSocketThread((SSLSocket) socket));
+                log.info("MOHH2 WII PAL SSL server started.");
+            }
+
+            if(props.getHostedGames().contains("mohh2_wii_ntsc")) {
+                SSLServerSocket mohh2WiiNtscSslServerSocket = serverConfig.createSslServerSocket(21121, Certificates.MOHH2_WII);
+                startServerThread(mohh2WiiNtscSslServerSocket, (socket) -> new SslSocketThread((SSLSocket) socket));
+                log.info("MOHH2 WII NTSC SSL server started.");
+            }
 
             ServerSocket mohTcpServerSocket = serverConfig.createTcpServerSocket(props.getTcpPort());
             startServerThread(mohTcpServerSocket, TcpSocketThread::new);
-            log.info("MoH TCP server started.");
-
-            if(props.isUdpEnabled() && !props.isConnectModeEnabled()) {
-                DatagramSocket mohUdpServerSocket = serverConfig.createUdpServerSocket();
-                new Thread(new UdpSocketThread(mohUdpServerSocket)).start();
-                log.info("MoH UDP server started.");
-            }
+            log.info("TCP server started.");
 
             if (props.isTosEnabled()) {
                 ServerSocket tosTcpServerSocket = serverConfig.createTcpServerSocket(80);
                 startServerThread(tosTcpServerSocket, TcpSocketThread::new);
                 log.info("TOS TCP server started.");
 
-                SSLServerSocket tosSslServerSocket = serverConfig.createSslServerSocket(443, CertificateKind.TOS);
-                startServerThread(tosSslServerSocket, (socket, sessionData) -> new SslSocketThread((SSLSocket) socket));
+                SSLServerSocket tosSslServerSocket = serverConfig.createSslServerSocket(443, Certificates.TOS);
+                startServerThread(tosSslServerSocket, (socket) -> new SslSocketThread((SSLSocket) socket));
                 log.info("TOS SSL server started.");
             }
 
@@ -116,12 +137,15 @@ public class ServerApp implements CommandLineRunner {
         }
     }
 
-    private void startServerThread(ServerSocket serverSocket, BiFunction<Socket, SessionData, Runnable> runnableFactory) {
+    private void startServerThread(ServerSocket serverSocket, Function<Socket, Runnable> runnableFactory) {
         new Thread(() -> {
             try {
                 while (true) {
                     Socket socket = serverSocket.accept();
-                    new Thread(runnableFactory.apply(socket, new SessionData())).start();
+                    if (!(socket instanceof SSLSocket)) {
+                        SocketManager.addSocket(socket.getRemoteSocketAddress().toString(), socket);
+                    }
+                    new Thread(runnableFactory.apply(socket)).start();
                 }
             } catch (IOException e) {
                 log.error("Error accepting connections", e);

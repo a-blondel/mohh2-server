@@ -10,9 +10,6 @@ import java.util.List;
 @Component
 public class Props {
 
-    @Value("${ssl.port}")
-    private int sslPort;
-
     @Value("${ssl.protocols}")
     private String sslProtocols;
 
@@ -31,26 +28,17 @@ public class Props {
     @Value("${tcp.host}")
     private String tcpHost;
 
+    @Value("${uhs.ea-server-mode}")
+    private boolean uhsEaServerMode;
+
+    @Value("${uhs.auto-start}")
+    private boolean uhsAutoStart;
+
     @Value("${tcp.debug.enabled}")
     private boolean tcpDebugEnabled;
 
     @Value("${tcp.debug.exclusions}")
     private List<String> tcpDebugExclusions;
-
-    @Value("${udp.port}")
-    private int udpPort;
-
-    @Value("${udp.host}")
-    private String udpHost;
-
-    @Value("${udp.connect-mode.enabled}")
-    private boolean connectModeEnabled;
-
-    @Value("${udp.enabled}")
-    private boolean udpEnabled;
-
-    @Value("${udp.debug.enabled}")
-    private boolean udpDebugEnabled;
 
     @Value("${tos.enabled}")
     private boolean tosEnabled;
@@ -58,7 +46,10 @@ public class Props {
     @Value("${ssc2.key}")
     private String ssc2Key;
 
-    @Value("${lobby.close-expired}")
+    @Value("${game.close-expired}")
     private boolean closeExpiredLobbiesEnabled;
+
+    @Value("#{'${hosted-games}'.split(',')}")
+    private List<String> hostedGames;
 
 }

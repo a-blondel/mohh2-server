@@ -19,6 +19,11 @@ public class SocketWriter {
 
     private static Props props = BeanUtil.getBean(Props.class);
 
+
+    public static void write(Socket socket, SocketData socketData) {
+        write(socket, socketData, "\n");
+    }
+
     /**
      * Builds the full output message based on the data id and content
      * Then sends it through the socket
@@ -26,7 +31,7 @@ public class SocketWriter {
      * @param socketData the object to use to write the message
      * @throws IOException
      */
-    public static void write(Socket socket, SocketData socketData) {
+    public static void write(Socket socket, SocketData socketData, String joiner) {
 
         try (ByteArrayOutputStream buffer = new ByteArrayOutputStream();
              DataOutputStream writer = new DataOutputStream(buffer)) {
@@ -41,7 +46,7 @@ public class SocketWriter {
                 byte[] contentBytes = (socketData.getOutputData().entrySet()
                         .stream()
                         .map(param -> param.getKey() + "=" + param.getValue())
-                        .collect(joining("\n")) + "\0").getBytes(StandardCharsets.UTF_8);
+                        .collect(joining(joiner)) + "\0").getBytes(StandardCharsets.UTF_8);
 
                 outputLength += contentBytes.length;
                 writer.writeInt(outputLength);

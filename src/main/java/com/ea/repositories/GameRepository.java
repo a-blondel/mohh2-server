@@ -1,6 +1,6 @@
 package com.ea.repositories;
 
-import com.ea.entities.LobbyEntity;
+import com.ea.entities.GameEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -9,10 +9,10 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface LobbyRepository extends JpaRepository<LobbyEntity, Long> {
+public interface GameRepository extends JpaRepository<GameEntity, Long> {
 
-    Optional<LobbyEntity> findById(Long id);
+    Optional<GameEntity> findById(Long id);
 
-    List<LobbyEntity> findByEndTime(Timestamp endTime);
+    List<GameEntity> findByEndTime(Timestamp endTime);
 
 }

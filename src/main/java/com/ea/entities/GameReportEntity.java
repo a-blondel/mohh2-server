@@ -11,20 +11,22 @@ import java.sql.Timestamp;
 @Setter
 @NoArgsConstructor
 @Entity
-@Table(name = "LOBBY_REPORT")
-public class LobbyReportEntity {
+@Table(name = "GAME_REPORT")
+public class GameReportEntity {
 
     @Id
     @GeneratedValue(strategy= GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name="LOBBY_ID", nullable=false)
-    private LobbyEntity lobby;
+    @JoinColumn(name="GAME_ID", nullable=false)
+    private GameEntity game;
 
     @ManyToOne
     @JoinColumn(name="PERSONA_ID", nullable=false)
     private PersonaEntity persona;
+
+    private boolean isHost;
 
     private int kills;
 
