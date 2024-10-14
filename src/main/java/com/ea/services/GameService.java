@@ -410,9 +410,15 @@ public class GameService {
      */
     public void endGameReport(SocketWrapper socketWrapper) {
         GameReportEntity gameReportEntity = socketWrapper.getGameReportEntity();
-        if (gameReportEntity != null) {
-            gameReportEntity.setEndTime(Timestamp.from(Instant.now()));
-            gameReportRepository.save(gameReportEntity);
+        if(gameReportEntity != null) {
+            Optional<GameReportEntity> gameReportEntityOptional = gameReportRepository.findById(gameReportEntity.getId());
+            if (gameReportEntityOptional.isPresent()) {
+                gameReportEntity = gameReportEntityOptional.get();
+                if (gameReportEntity.getEndTime() == null) {
+                    gameReportEntity.setEndTime(Timestamp.from(Instant.now()));
+                    gameReportRepository.save(gameReportEntity);
+                }
+            }
             socketWrapper.setGameEntity(null);
             socketWrapper.setGameReportEntity(null);
         }

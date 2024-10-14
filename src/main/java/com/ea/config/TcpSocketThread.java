@@ -51,23 +51,23 @@ public class TcpSocketThread implements Runnable {
 
             SocketReader.read(clientSocket);
         } finally {
-            pingExecutor.shutdown();
+            if (pingExecutor != null) {
+                pingExecutor.shutdown();
+            }
             SocketWrapper socketWrapper = SocketManager.getSocketWrapper(clientSocket);
-            gameService.endGameReport(socketWrapper); // If the player doesn't leave from the game
-            personaService.endPersonaConnection(socketWrapper);
-
             if(socketWrapper != null) {
-                if(socketWrapper.isHost() && socketWrapper.getGameEntity() != null) {
-                    GameEntity gameEntity = socketWrapper.getGameEntity();
-                    gameEntity.setEndTime(Timestamp.from(Instant.now()));
-                    for(GameReportEntity gameReportEntity : gameEntity.getGameReports()) {
-                        if(gameReportEntity.getEndTime() == null) {
-                            gameReportEntity.setEndTime(Timestamp.from(Instant.now()));
-                            gameReportRepository.save(gameReportEntity);
-                        }
+                GameEntity gameEntity = socketWrapper.getGameEntity();
+                if(socketWrapper.isHost() && gameEntity != null) {
+                    for(GameReportEntity gameReportEntity : gameReportRepository.findByGameIdAndEndTimeIsNull(gameEntity.getId())) {
+                        gameReportEntity.setEndTime(Timestamp.from(Instant.now()));
+                        gameReportRepository.save(gameReportEntity);
                     }
+                    gameEntity.setEndTime(Timestamp.from(Instant.now()));
                     gameRepository.save(gameEntity);
+                } else {
+                    gameService.endGameReport(socketWrapper); // If the player doesn't leave from the game
                 }
+                personaService.endPersonaConnection(socketWrapper);
                 SocketManager.removeSocket(socketWrapper.getIdentifier());
             }
             log.info("TCP client session ended: {}:{}", clientSocket.getInetAddress().getHostAddress(), clientSocket.getPort());
