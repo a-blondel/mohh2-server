@@ -159,13 +159,22 @@ public class GameService {
      * @param socketData
      */
     public void gpsc(Socket socket, SocketData socketData, SocketWrapper socketWrapper) {
-        SocketWriter.write(socket, socketData);
-        GameEntity gameEntity = socketMapper.toGameEntityForCreation(socketData.getInputMessage(), false);
-        gameEntity.setVers(socketWrapper.getPersonaConnectionEntity().getVers());
-        gameEntity.setSlus(socketWrapper.getPersonaConnectionEntity().getSlus());
-        gameRepository.save(gameEntity);
-        startGameReport(socketWrapper, gameEntity, false);
-        ses(socket, gameEntity, socketWrapper);
+        String vers = socketWrapper.getPersonaConnectionEntity().getVers();
+        String slus = socketWrapper.getPersonaConnectionEntity().getSlus();
+        GameEntity gameEntity = socketMapper.toGameEntityForCreation(socketData.getInputMessage(), vers, slus, false);
+
+        List<String> relatedVers = GameVersUtils.getRelatedVers(vers);
+        boolean duplicateName = gameRepository.existsByNameAndVersInAndEndTimeIsNull(gameEntity.getName(), relatedVers);
+
+        if(duplicateName) {
+            socketData.setIdMessage("gpscdupl");
+            SocketWriter.write(socket, socketData);
+        } else {
+            SocketWriter.write(socket, socketData);
+            gameRepository.save(gameEntity);
+            startGameReport(socketWrapper, gameEntity, false);
+            ses(socket, gameEntity, socketWrapper);
+        }
     }
 
     public void updatePlayerListOfHost(GameEntity gameEntity, SocketWrapper socketWrapper) {
@@ -182,31 +191,38 @@ public class GameService {
      * @param socketWrapper
      */
     public void gcre(Socket socket, SocketData socketData, SocketWrapper socketWrapper) {
-        SocketWriter.write(socket, socketData);
-
         if(props.isUhsAutoStart()) {
             GameEntity gameEntity = gameRepository.findById(1L).orElse(null);
 
+            boolean duplicatename = false;
             if (!props.isUhsEaServerMode()) {
-                gameEntity = socketMapper.toGameEntityForCreation(socketData.getInputMessage(), true);
-                gameEntity.setVers(socketWrapper.getPersonaConnectionEntity().getVers());
-                gameEntity.setSlus(socketWrapper.getPersonaConnectionEntity().getSlus());
-                gameRepository.save(gameEntity);
+                String vers = socketWrapper.getPersonaConnectionEntity().getVers();
+                String slus = socketWrapper.getPersonaConnectionEntity().getSlus();
+                gameEntity = socketMapper.toGameEntityForCreation(socketData.getInputMessage(), vers, slus, true);
+
+                List<String> relatedVers = GameVersUtils.getRelatedVers(vers);
+                duplicatename = gameRepository.existsByNameAndVersInAndEndTimeIsNull(gameEntity.getName(), relatedVers);
+
+                if(duplicatename) {
+                    socketData.setIdMessage("gcredupl");
+                    SocketWriter.write(socket, socketData);
+                } else {
+                    gameRepository.save(gameEntity);
+                    SocketWriter.write(socket, socketData);
+                }
             }
 
-            startGameReport(socketWrapper, gameEntity, true);
-
-            SocketManager.setGameEntity(socket.getRemoteSocketAddress().toString(), gameEntity);
-
-            personaService.who(socket, socketWrapper); // Used to set the game id
-
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException e) {
-                throw new RuntimeException(e);
+            if(!duplicatename) {
+                startGameReport(socketWrapper, gameEntity, true);
+                SocketManager.setGameEntity(socket.getRemoteSocketAddress().toString(), gameEntity);
+                personaService.who(socket, socketWrapper); // Used to set the game id
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+                SocketWriter.write(socket, new SocketData("+mgm", null, getGameInfo(gameEntity, socketWrapper)));
             }
-
-            SocketWriter.write(socket, new SocketData("+mgm", null, getGameInfo(gameEntity, socketWrapper)));
         }
     }
 
