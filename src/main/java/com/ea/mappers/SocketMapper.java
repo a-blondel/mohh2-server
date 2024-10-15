@@ -17,6 +17,8 @@ public abstract class SocketMapper {
 
     @BeanMapping(qualifiedByName = "GameEntityForCreation")
     @Mapping(target = "id", ignore = true)
+    @Mapping(target = "vers", source = "vers")
+    @Mapping(target = "slus", source = "slus")
     @Mapping(target = "userHosted", source = "userHosted")
     @Mapping(target = "name", expression = "java(SocketUtils.getValueFromSocket(socket, \"NAME\"))")
     @Mapping(target = "params", expression = "java(SocketUtils.getValueFromSocket(socket, \"PARAMS\"))")
@@ -27,7 +29,7 @@ public abstract class SocketMapper {
     @Mapping(target = "startTime", expression = "java(Timestamp.from(Instant.now()))")
     @Mapping(target = "endTime", ignore = true)
     @Mapping(target = "gameReports", ignore = true)
-    public abstract GameEntity toGameEntityForCreation(String socket, boolean userHosted);
+    public abstract GameEntity toGameEntityForCreation(String socket, String vers, String slus, boolean userHosted);
 
     @BeanMapping(qualifiedByName = "AccountEntityForCreation")
     @Mapping(target = "id", ignore = true)

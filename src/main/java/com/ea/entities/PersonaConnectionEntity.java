@@ -18,11 +18,15 @@ public class PersonaConnectionEntity {
     @GeneratedValue(strategy=GenerationType.IDENTITY)
     private Long id;
 
-    private String ip;
-
     @ManyToOne
     @JoinColumn(name="PERSONA_ID", nullable=false)
     private PersonaEntity persona;
+
+    private String ip;
+
+    private String vers;
+
+    private String slus;
 
     private Timestamp startTime;
 
