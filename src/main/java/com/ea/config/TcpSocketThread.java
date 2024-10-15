@@ -66,6 +66,9 @@ public class TcpSocketThread implements Runnable {
                     gameRepository.save(gameEntity);
                 } else {
                     gameService.endGameReport(socketWrapper); // If the player doesn't leave from the game
+                    if(gameEntity != null) {
+                        gameService.updatePlayerList(gameEntity, socketWrapper);
+                    }
                 }
                 personaService.endPersonaConnection(socketWrapper);
                 SocketManager.removeSocket(socketWrapper.getIdentifier());

@@ -136,7 +136,7 @@ public class GameService {
 
                 SocketWriter.write(socket, socketData);
 
-                updatePlayerListOfHost(gameEntity, socketWrapper);
+                updatePlayerList(gameEntity, socketWrapper);
 
                 try {
                     Thread.sleep(100);
@@ -177,7 +177,12 @@ public class GameService {
         }
     }
 
-    public void updatePlayerListOfHost(GameEntity gameEntity, SocketWrapper socketWrapper) {
+    /**
+     * Update the player list of a game (used when a player joins or leaves a game) and send it to the host
+     * @param gameEntity
+     * @param socketWrapper
+     */
+    public void updatePlayerList(GameEntity gameEntity, SocketWrapper socketWrapper) {
         SocketWrapper hostSocketWrapper = SocketManager.getHostSocketWrapperOfGame(gameEntity.getId());
         if(hostSocketWrapper != null) {
             SocketWriter.write(hostSocketWrapper.getSocket(), new SocketData("+mgm", null, getGameInfo(gameEntity, socketWrapper)));
@@ -233,8 +238,10 @@ public class GameService {
      * @param socketWrapper
      */
     public void glea(Socket socket, SocketData socketData, SocketWrapper socketWrapper) {
-        endGameReport(socketWrapper);
+        GameEntity gameEntity = socketWrapper.getGameEntity();
+        endGameReport(socketWrapper); // GameEntity is destroyed in this method
         SocketWriter.write(socket, socketData);
+        updatePlayerList(gameEntity, socketWrapper);
     }
 
     /**
@@ -301,14 +308,15 @@ public class GameService {
     }
 
     public Map<String, String> getGameInfo(GameEntity gameEntity, SocketWrapper socketWrapper) {
-
         Long gameId = gameEntity.getId();
         SocketWrapper hostSocketWrapperOfGame = SocketManager.getHostSocketWrapperOfGame(gameId);
+        // We can't trust the gameEntity.getGameReports() because it's not updated in real time
+        List<GameReportEntity> gameReports = gameReportRepository.findByGameIdAndEndTimeIsNull(gameId);
 
         // Workaround when there is no host (serverless patch)
         boolean hasHost = hostSocketWrapperOfGame != null;
         String host = hasHost ? "@" + hostSocketWrapperOfGame.getPersonaEntity().getPers() : "@brobot1";
-        int count = gameEntity.getGameReports().stream().filter(report -> null == report.getEndTime()).collect(Collectors.toList()).size();
+        int count = gameReports.stream().filter(report -> null == report.getEndTime()).collect(Collectors.toList()).size();
         count = hasHost ? count : ++count;
 
         Map<String, String> content = Stream.of(new String[][] {
@@ -359,7 +367,7 @@ public class GameService {
             idx[0]++;
         }
 
-        gameEntity.getGameReports().stream()
+        gameReports.stream()
                 .filter(report -> null == report.getEndTime())
                 .sorted(Comparator.comparing(GameReportEntity::getId))
                 .forEach(gameReportEntity -> {
@@ -404,6 +412,7 @@ public class GameService {
     private void startGameReport(SocketWrapper socketWrapper, GameEntity gameEntity, boolean isHost) {
         // Close any game report that wasn't property ended (e.g. use Dolphin save state to leave)
         endGameReport(socketWrapper);
+        updatePlayerList(gameEntity, socketWrapper);
 
         GameReportEntity gameReportEntity = new GameReportEntity();
         gameReportEntity.setGame(gameEntity);
