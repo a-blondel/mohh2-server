@@ -3,11 +3,14 @@ package com.ea.services;
 import com.ea.dto.SocketData;
 import com.ea.dto.SocketWrapper;
 import com.ea.entities.AccountEntity;
+import com.ea.entities.PersonaConnectionEntity;
 import com.ea.mappers.SocketMapper;
 import com.ea.repositories.AccountRepository;
 import com.ea.steps.SocketWriter;
 import com.ea.utils.AccountUtils;
 import com.ea.utils.PasswordUtils;
+import com.ea.utils.SocketUtils;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -21,6 +24,7 @@ import java.util.stream.Stream;
 
 import static com.ea.utils.SocketUtils.getValueFromSocket;
 
+@Slf4j
 @Component
 public class AccountService {
 
@@ -32,6 +36,9 @@ public class AccountService {
 
     @Autowired
     private AccountRepository accountRepository;
+
+    @Autowired
+    private PersonaService personaService;
 
     /**
      * Account creation
@@ -116,6 +123,8 @@ public class AccountService {
     public void auth(Socket socket, SocketData socketData, SocketWrapper socketWrapper) {
         String name = getValueFromSocket(socketData.getInputMessage(), "NAME");
         String pass = getValueFromSocket(socketData.getInputMessage(), "PASS");
+        String vers = getValueFromSocket(socketData.getInputMessage(), "VERS");
+        String slus = getValueFromSocket(socketData.getInputMessage(), "SLUS");
 
         if(name.contains("@")) {
             name = name.split("@")[0] + name.split("@")[1];
@@ -141,6 +150,19 @@ public class AccountService {
                         { "SPAM", accountEntity.getSpam() }
                 }).collect(Collectors.toMap(data -> data[0], data -> data[1]));
                 socketData.setOutputData(content);
+
+                if(null != socketWrapper.getPersonaConnectionEntity()) {
+                    log.error("User wasn't properly disconnected");
+                    personaService.endPersonaConnection(socketWrapper);
+                }
+
+                PersonaConnectionEntity personaConnectionEntity = new PersonaConnectionEntity();
+                personaConnectionEntity.setIp(SocketUtils.handleLocalhostIp(socket.getInetAddress().getHostAddress()));
+                personaConnectionEntity.setStartTime(Timestamp.from(Instant.now()));
+                personaConnectionEntity.setVers(vers);
+                personaConnectionEntity.setSlus(slus);
+                socketWrapper.setPersonaConnectionEntity(personaConnectionEntity);
+
             } else {
                 socketData.setIdMessage("authpass"); // Invalid password error (EC_INV_PASS)
             }

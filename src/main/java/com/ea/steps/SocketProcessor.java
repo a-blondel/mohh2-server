@@ -69,16 +69,16 @@ public class SocketProcessor {
                 statsService.snap(socket, socketData, socketWrapper);
                 break;
             case ("gsea"):
-                gameService.gsea(socket, socketData);
+                gameService.gsea(socket, socketData, socketWrapper);
                 break;
             case ("gget"):
-                gameService.gget(socket, socketData);
+                gameService.gget(socket, socketData, socketWrapper);
                 break;
             case ("gjoi"):
                 gameService.gjoi(socket, socketData, socketWrapper);
                 break;
             case ("gpsc"):
-                gameService.gpsc(socket, socketData);
+                gameService.gpsc(socket, socketData, socketWrapper);
                 break;
             case ("gcre"):
                 gameService.gcre(socket, socketData, socketWrapper);
@@ -87,12 +87,12 @@ public class SocketProcessor {
                 gameService.glea(socket, socketData, socketWrapper);
                 break;
             case ("gpss"):
-                gameService.gpss(socket, socketData);
+                gameService.gpss(socket, socketData, socketWrapper);
                 break;
             case ("gsta"):
                 gameService.gsta(socket, socketData);
                 break;
-            case ("gdel"):
+            case ("gdel"), ("rank"), ("gset"):
                 SocketWriter.write(socket, socketData);
                 break;
             default:
