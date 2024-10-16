@@ -5,7 +5,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.sql.Timestamp;
+import java.time.LocalDateTime;
 
 @Getter
 @Setter
@@ -28,8 +28,8 @@ public class PersonaConnectionEntity {
 
     private String slus;
 
-    private Timestamp startTime;
+    private LocalDateTime startTime;
 
-    private Timestamp endTime;
+    private LocalDateTime endTime;
 
 }

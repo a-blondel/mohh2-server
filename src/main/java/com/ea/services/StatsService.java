@@ -2,26 +2,39 @@ package com.ea.services;
 
 import com.ea.dto.SocketData;
 import com.ea.dto.SocketWrapper;
+import com.ea.entities.GameReportEntity;
 import com.ea.entities.PersonaStatsEntity;
 import com.ea.enums.MoHH2Maps;
 import com.ea.enums.RankingCategories;
+import com.ea.mappers.SocketMapper;
+import com.ea.repositories.GameReportRepository;
 import com.ea.repositories.PersonaStatsRepository;
 import com.ea.steps.SocketWriter;
+import com.ea.utils.GameVersUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.net.Socket;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static com.ea.utils.SocketUtils.getValueFromSocket;
+import static com.ea.utils.SocketUtils.*;
 
 @Component
 public class StatsService {
 
+
+    @Autowired
+    private SocketMapper socketMapper;
+
     @Autowired
     private PersonaStatsRepository personaStatsRepository;
+
+    @Autowired
+    private GameReportRepository gameReportRepository;
 
     /**
      * Retrieve ranking categories
@@ -30,13 +43,13 @@ public class StatsService {
      */
     public void cate(Socket socket, SocketData socketData) {
         Map<String, String> content = Stream.of(new String[][] {
-                { "CC", "3" }, // <total # of categories in this view>
-                { "IC", "3" }, // <total # of indices in this view>
-                { "VC", "3" }, // <total # of variations in this view>
-                { "U", "3" },
-                { "SYMS", "3" },
-                { "SS", "3" },
-                { "R", String.join(",", Collections.nCopies(33, "1")) }, // <comma-separated-list of category,index,view data>
+                { "CC", "6" }, // <total # of categories in this view>
+                { "IC", "6" }, // <total # of indices in this view>
+                { "VC", "6" }, // <total # of variations in this view>
+                { "U", "6" },
+                { "SYMS", "6" },
+                { "SS", "6" },
+                { "R", String.join(",", Collections.nCopies(66, "1")) }, // <comma-separated-list of category,index,view data>
         }).collect(Collectors.toMap(data -> data[0], data -> data[1]));
 
         socketData.setOutputData(content);
@@ -50,6 +63,13 @@ public class StatsService {
      * @param socketWrapper
      */
     public void snap(Socket socket, SocketData socketData, SocketWrapper socketWrapper) {
+
+        List<String> relatedVers = GameVersUtils.getRelatedVers(socketWrapper.getPersonaConnectionEntity().getVers());
+
+        List<String> relatedSlus = GameVersUtils.getRelatedSlus(
+                socketWrapper.getPersonaConnectionEntity().getVers(),
+                socketWrapper.getPersonaConnectionEntity().getSlus());
+
 
         String chan = getValueFromSocket(socketData.getInputMessage(), "CHAN");
         String seqn = getValueFromSocket(socketData.getInputMessage(), "SEQN");
@@ -297,6 +317,26 @@ public class StatsService {
             SocketData socketData = new SocketData("+snp", null, ranking);
             SocketWriter.write(socket, socketData);
         }
+    }
+
+    /**
+     * Send ranking results.
+     * @param socket
+     * @param socketData
+     */
+    public void rank(Socket socket, SocketData socketData) {
+        String playerName = getValueFromSocket(socketData.getInputMessage(), "REPT", TAB_CHAR);
+        String startTime = getValueFromSocket(socketData.getInputMessage(), "WHEN", TAB_CHAR);
+
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(DATETIME_FORMAT);
+        List<GameReportEntity> gameReportEntities = gameReportRepository.findByPersonaPersAndGameStartTimeAndPlayTime(
+                playerName, LocalDateTime.parse(startTime, formatter), 0);
+        if(gameReportEntities.size() == 1) {
+            GameReportEntity gameReportEntity = gameReportEntities.get(0);
+            socketMapper.toGameReportEntity(gameReportEntity, socketData.getInputMessage());
+            gameReportRepository.save(gameReportEntity);
+        }
+        SocketWriter.write(socket, socketData);
     }
 
     private String getPrecision(long hit, long miss) {
