@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static com.ea.utils.SocketUtils.SPACE_CHAR;
 import static com.ea.utils.SocketUtils.getValueFromSocket;
 
 @Component
@@ -117,7 +118,7 @@ public class AuthService {
         }
 
         socketData.setOutputData(content);
-        SocketWriter.write(socket, socketData, " ");
+        SocketWriter.write(socket, socketData, SPACE_CHAR);
 
         if(null != stats || null != inGame) {
             personaService.who(socket, socketWrapper);

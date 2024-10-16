@@ -12,6 +12,7 @@ import java.io.IOException;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 
+import static com.ea.utils.SocketUtils.NEWLINE_CHAR;
 import static java.util.stream.Collectors.joining;
 
 @Slf4j
@@ -21,7 +22,7 @@ public class SocketWriter {
 
 
     public static void write(Socket socket, SocketData socketData) {
-        write(socket, socketData, "\n");
+        write(socket, socketData, NEWLINE_CHAR);
     }
 
     /**

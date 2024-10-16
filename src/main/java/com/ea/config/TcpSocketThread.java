@@ -15,8 +15,7 @@ import com.ea.utils.BeanUtil;
 import lombok.extern.slf4j.Slf4j;
 
 import java.net.Socket;
-import java.sql.Timestamp;
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -59,10 +58,10 @@ public class TcpSocketThread implements Runnable {
                 GameEntity gameEntity = socketWrapper.getGameEntity();
                 if(socketWrapper.isHost() && gameEntity != null) {
                     for(GameReportEntity gameReportEntity : gameReportRepository.findByGameIdAndEndTimeIsNull(gameEntity.getId())) {
-                        gameReportEntity.setEndTime(Timestamp.from(Instant.now()));
+                        gameReportEntity.setEndTime(LocalDateTime.now());
                         gameReportRepository.save(gameReportEntity);
                     }
-                    gameEntity.setEndTime(Timestamp.from(Instant.now()));
+                    gameEntity.setEndTime(LocalDateTime.now());
                     gameRepository.save(gameEntity);
                 } else {
                     gameService.endGameReport(socketWrapper); // If the player doesn't leave from the game

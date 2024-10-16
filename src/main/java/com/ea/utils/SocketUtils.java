@@ -10,6 +10,12 @@ import java.util.zip.CRC32;
 @Slf4j
 public class SocketUtils {
 
+    public static final String DATETIME_FORMAT = "yyyy.M.d-H:mm:ss";
+    public static final String SPACE_CHAR = " ";
+    public static final String TAB_CHAR = "\u0009";
+    public static final String RETURN_CHAR = "\\R";
+    public static final String NEWLINE_CHAR = "\n";
+
     /**
      * Calculate length of the content to parse
      * @param buffer the request buffer (only efficient way to get the length)
@@ -35,8 +41,12 @@ public class SocketUtils {
      * @return
      */
     public static String getValueFromSocket(String data, String key) {
+        return getValueFromSocket(data, key, RETURN_CHAR);
+    }
+
+    public static String getValueFromSocket(String data, String key, String splitter) {
         String result = null;
-        String[] entries = data.split("\\R");
+        String[] entries = data.split(splitter);
         for (String entry : entries) {
             String[] parts = entry.trim().split("=");
             if(key.equals(parts[0])) {

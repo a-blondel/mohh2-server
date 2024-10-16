@@ -5,7 +5,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.Set;
 
 @Getter
@@ -37,9 +37,9 @@ public class GameEntity {
 
     private int maxsize;
 
-    private Timestamp startTime;
+    private LocalDateTime startTime;
 
-    private Timestamp endTime;
+    private LocalDateTime endTime;
 
     @OneToMany(mappedBy="game", fetch = FetchType.EAGER)
     private Set<GameReportEntity> gameReports;

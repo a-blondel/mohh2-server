@@ -11,14 +11,12 @@ import com.ea.repositories.PersonaRepository;
 import com.ea.repositories.PersonaStatsRepository;
 import com.ea.steps.SocketWriter;
 import com.ea.utils.AccountUtils;
-import com.ea.utils.SocketUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.net.Socket;
-import java.sql.Timestamp;
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -63,7 +61,7 @@ public class PersonaService {
             PersonaEntity personaEntity = new PersonaEntity();
             personaEntity.setAccount(socketWrapper.getAccountEntity());
             personaEntity.setPers(pers);
-            personaEntity.setCreatedOn(Timestamp.from(Instant.now()));
+            personaEntity.setCreatedOn(LocalDateTime.now());
 
             PersonaStatsEntity personaStatsEntity = new PersonaStatsEntity();
             personaStatsEntity.setPersona(personaEntity);
@@ -123,7 +121,7 @@ public class PersonaService {
                         socketWrapper.getPersonaConnectionEntity().getSlus());
         if(personaConnectionEntityOpt.isPresent()) {
             PersonaConnectionEntity personaConnectionEntity = personaConnectionEntityOpt.get();
-            personaConnectionEntity.setEndTime(Timestamp.from(Instant.now()));
+            personaConnectionEntity.setEndTime(LocalDateTime.now());
             personaConnectionRepository.save(personaConnectionEntity);
         }
         PersonaConnectionEntity personaConnectionEntity = socketWrapper.getPersonaConnectionEntity();
@@ -137,7 +135,7 @@ public class PersonaService {
     public void endPersonaConnection(SocketWrapper socketWrapper) {
         PersonaConnectionEntity personaConnectionEntity = socketWrapper.getPersonaConnectionEntity();
         if(null != personaConnectionEntity) {
-            personaConnectionEntity.setEndTime(Timestamp.from(Instant.now()));
+            personaConnectionEntity.setEndTime(LocalDateTime.now());
             personaConnectionRepository.save(personaConnectionEntity);
         }
     }
@@ -152,7 +150,7 @@ public class PersonaService {
         Optional<PersonaEntity> personaEntityOpt = personaRepository.findByPers(pers);
         if (personaEntityOpt.isPresent()) {
             PersonaEntity personaEntity = personaEntityOpt.get();
-            personaEntity.setDeletedOn(Timestamp.from(Instant.now()));
+            personaEntity.setDeletedOn(LocalDateTime.now());
             personaRepository.save(personaEntity);
         }
         SocketWriter.write(socket, socketData);
