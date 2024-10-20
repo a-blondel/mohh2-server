@@ -16,6 +16,7 @@ import org.springframework.stereotype.Component;
 
 import java.net.Socket;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -157,7 +158,7 @@ public class AccountService {
 
                 PersonaConnectionEntity personaConnectionEntity = new PersonaConnectionEntity();
                 personaConnectionEntity.setIp(SocketUtils.handleLocalhostIp(socket.getInetAddress().getHostAddress()));
-                personaConnectionEntity.setStartTime(LocalDateTime.now());
+                personaConnectionEntity.setStartTime(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
                 personaConnectionEntity.setVers(vers);
                 personaConnectionEntity.setSlus(slus);
                 socketWrapper.setPersonaConnectionEntity(personaConnectionEntity);
