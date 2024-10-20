@@ -19,9 +19,11 @@ import java.net.Socket;
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static com.ea.utils.GameVersUtils.VERS_MOHH_PSP_HOST;
 import static com.ea.utils.SocketUtils.getValueFromSocket;
 
 @Slf4j
@@ -65,7 +67,10 @@ public class PersonaService {
 
             PersonaStatsEntity personaStatsEntity = new PersonaStatsEntity();
             personaStatsEntity.setPersona(personaEntity);
-            personaEntity.setPersonaStats(personaStatsEntity);
+            personaStatsEntity.setVers(socketWrapper.getPersonaConnectionEntity().getVers());
+            personaStatsEntity.setSlus(socketWrapper.getPersonaConnectionEntity().getSlus());
+            Set<PersonaStatsEntity> personaStatsEntities = Set.of(personaStatsEntity);
+            personaEntity.setPersonaStats(personaStatsEntities);
 
             personaRepository.save(personaEntity);
         }
@@ -104,16 +109,26 @@ public class PersonaService {
             socketData.setOutputData(content);
             SocketWriter.write(socket, socketData);
 
-            startPersonaConnection(socket, socketWrapper, personaEntity);
+            startPersonaConnection(socketWrapper, personaEntity);
+
+            // Check if the persona has stats for this game title ("VERS"), and create them if not
+            String vers = socketWrapper.getPersonaConnectionEntity().getVers();
+            if (!vers.equals(VERS_MOHH_PSP_HOST) && personaStatsRepository.findByPersonaIdAndVers(personaEntity.getId(), vers) == null) {
+                PersonaStatsEntity personaStatsEntity = new PersonaStatsEntity();
+                personaStatsEntity.setPersona(personaEntity);
+                personaStatsEntity.setVers(vers);
+                personaStatsEntity.setSlus(socketWrapper.getPersonaConnectionEntity().getSlus());
+                personaStatsRepository.save(personaStatsEntity);
+            }
         }
     }
 
     /**
      * Registers a connection of the persona
-     * @param socket
      * @param socketWrapper
+     * @param personaEntity
      */
-    private void startPersonaConnection(Socket socket, SocketWrapper socketWrapper, PersonaEntity personaEntity) {
+    private void startPersonaConnection(SocketWrapper socketWrapper, PersonaEntity personaEntity) {
         // Close current connection if the user got a "soft" disconnection (TCP connection is still active)
         Optional<PersonaConnectionEntity> personaConnectionEntityOpt =
                 personaConnectionRepository.findByPersonaAndVersAndSlusAndEndTimeIsNull(personaEntity,
@@ -177,51 +192,55 @@ public class PersonaService {
     public void who(Socket socket, SocketWrapper socketWrapper) {
         PersonaEntity personaEntity = socketWrapper.getPersonaEntity();
         AccountEntity accountEntity = socketWrapper.getAccountEntity();
+        String vers = socketWrapper.getPersonaConnectionEntity().getVers();
 
-        Optional<PersonaStatsEntity> personaStatsEntityOpt = personaStatsRepository.findByPersonaId(personaEntity.getId());
-        if (personaStatsEntityOpt.isPresent()) {
-            PersonaStatsEntity personaStatsEntity = personaStatsEntityOpt.get();
+        PersonaStatsEntity personaStatsEntity = personaStatsRepository.findByPersonaIdAndVers(personaEntity.getId(), vers);
+        boolean hasStats = null != personaStatsEntity;
 
-            Long gameId = null != socketWrapper.getGameEntity() && null != socketWrapper.getGameEntity().getId() ?
-                    socketWrapper.getGameEntity().getId() : 0L;
-            String hostPrefix = socketWrapper.isHost() ? "@" : "";
+        Long gameId = null != socketWrapper.getGameEntity() && null != socketWrapper.getGameEntity().getId() ?
+                socketWrapper.getGameEntity().getId() : 0L;
+        String hostPrefix = socketWrapper.isHost() ? "@" : "";
 
-            Map<String, String> content = Stream.of(new String[][] {
-                    { "I", String.valueOf(accountEntity.getId()) },
-                    { "M", hostPrefix + accountEntity.getName() },
-                    { "N", hostPrefix + personaEntity.getPers() },
-                    { "F", "U" },
-                    { "P", "40" },
-                    // Stats : kills (in hex) at 8th position, deaths (in hex) at 9th
-                    { "S", ",,,,,,," + Long.toHexString(personaStatsEntity.getTotalKills()) + "," + Long.toHexString(personaStatsEntity.getTotalDeaths()) },
-                    { "X", "0" },
-                    { "G", String.valueOf(gameId) },
-                    { "AT", "" },
-                    { "CL", "511" },
-                    { "LV", "1049601" },
-                    { "MD", "0" },
-                    { "R", String.valueOf(personaStatsRepository.getRankByPersonaId(personaStatsEntity.getPersona().getId())) }, // Rank (in decimal)
-                    { "US", "0" },
-                    { "HW", "0" },
-                    { "RP", String.valueOf(personaEntity.getRp()) }, // Reputation (0 to 5 stars)
-                    { "LO", accountEntity.getLoc() }, // Locale (used to display country flag)
-                    { "CI", "0" },
-                    { "CT", "0" },
-                    // 0x800225E0
-                    { "A", socket.getInetAddress().getHostAddress() },
-                    { "LA", socket.getInetAddress().getHostAddress() },
-                    // 0x80021384
-                    { "C", "4000,,7,1,1,,1,1,5553" },
-                    { "RI", "1" },
-                    { "RT", "1" },
-                    { "RG", "0" },
-                    { "RGC", "0" },
-                    // 0x80021468 if RI != ?? then read RM and RF
-                    { "RM", "room" },
-                    { "RF", "C" },
-            }).collect(Collectors.toMap(data -> data[0], data -> data[1]));
-            SocketWriter.write(socket, new SocketData("+who", null, content));
-        }
+        Map<String, String> content = Stream.of(new String[][] {
+                { "I", String.valueOf(accountEntity.getId()) },
+                { "M", hostPrefix + accountEntity.getName() },
+                { "N", hostPrefix + personaEntity.getPers() },
+                { "F", "U" },
+                { "P", "40" },
+                // Stats : kills (in hex) at 8th position, deaths (in hex) at 9th
+                { "S", ",,,,,,," +
+                        (hasStats ? Long.toHexString(personaStatsEntity.getKill()) : "0") +
+                        "," +
+                        (hasStats ? Long.toHexString(personaStatsEntity.getDeath()) : "0") },
+                { "X", "0" },
+                { "G", String.valueOf(gameId) },
+                { "AT", "" },
+                { "CL", "511" },
+                { "LV", "1049601" },
+                { "MD", "0" },
+                // Rank (in decimal)
+                { "R", hasStats ? String.valueOf(personaStatsRepository.getRankByPersonaIdAndVers(personaStatsEntity.getPersona().getId(), vers)) : "" },
+                { "US", "0" },
+                { "HW", "0" },
+                { "RP", String.valueOf(personaEntity.getRp()) }, // Reputation (0 to 5 stars)
+                { "LO", accountEntity.getLoc() }, // Locale (used to display country flag)
+                { "CI", "0" },
+                { "CT", "0" },
+                // 0x800225E0
+                { "A", socket.getInetAddress().getHostAddress() },
+                { "LA", socket.getInetAddress().getHostAddress() },
+                // 0x80021384
+                { "C", "4000,,7,1,1,,1,1,5553" },
+                { "RI", "1" },
+                { "RT", "1" },
+                { "RG", "0" },
+                { "RGC", "0" },
+                // 0x80021468 if RI != ?? then read RM and RF
+                { "RM", "room" },
+                { "RF", "C" },
+        }).collect(Collectors.toMap(data -> data[0], data -> data[1]));
+        SocketWriter.write(socket, new SocketData("+who", null, content));
     }
+
 
 }

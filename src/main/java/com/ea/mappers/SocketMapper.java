@@ -5,6 +5,7 @@ import com.ea.entities.GameEntity;
 import com.ea.entities.GameReportEntity;
 import com.ea.utils.SocketUtils;
 import com.ea.utils.PasswordUtils;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -12,8 +13,10 @@ import java.lang.reflect.Field;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 
+import static com.ea.utils.SocketUtils.RETURN_CHAR;
 import static com.ea.utils.SocketUtils.TAB_CHAR;
 
+@Slf4j
 @Component
 public class SocketMapper {
 
@@ -25,14 +28,14 @@ public class SocketMapper {
         gameEntity.setVers(vers);
         gameEntity.setSlus(slus);
         gameEntity.setUserHosted(userHosted);
-        setFieldsFromSocket(gameEntity, socket, "\\R");
+        setFieldsFromSocket(gameEntity, socket, RETURN_CHAR);
         gameEntity.setStartTime(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
         return gameEntity;
     }
 
     public AccountEntity toAccountEntity(String socket) {
         AccountEntity accountEntity = new AccountEntity();
-        setFieldsFromSocket(accountEntity, socket, "\\R");
+        setFieldsFromSocket(accountEntity, socket, RETURN_CHAR);
         accountEntity.setPass(passwordUtils.bCryptEncode(passwordUtils.ssc2Decode(accountEntity.getPass())));
         accountEntity.setCreatedOn(LocalDateTime.now());
         return accountEntity;
@@ -40,6 +43,7 @@ public class SocketMapper {
 
     public GameReportEntity toGameReportEntity(GameReportEntity gameReportEntity, String socket) {
         setFieldsFromSocket(gameReportEntity, socket, TAB_CHAR);
+        aggregateGameReportFields(gameReportEntity);
         return gameReportEntity;
     }
 
@@ -58,9 +62,38 @@ public class SocketMapper {
                         field.set(entity, value);
                     }
                 } catch (IllegalAccessException e) {
-                    e.printStackTrace();
+                    log.error("Error while setting fields from socket", e);
                 }
             }
         }
+    }
+
+    private void aggregateGameReportFields(GameReportEntity gameReportEntity) {
+        int totalHit = 0;
+        int totalShot = 0;
+        int totalHead = 0;
+
+        Field[] fields = gameReportEntity.getClass().getDeclaredFields();
+        for (Field field : fields) {
+            field.setAccessible(true);
+            try {
+                if (field.getType().equals(int.class) || field.getType().equals(Integer.class)) {
+                    int value = (int) field.get(gameReportEntity);
+                    if (field.getName().endsWith("Hit")) {
+                        totalHit += value;
+                    } else if (field.getName().endsWith("Shot")) {
+                        totalShot += value;
+                    } else if (field.getName().endsWith("Head")) {
+                        totalHead += value;
+                    }
+                }
+            } catch (IllegalAccessException e) {
+                log.error("Error while aggregating game report fields", e);
+            }
+        }
+
+        gameReportEntity.setShot(totalShot);
+        gameReportEntity.setHit(totalHit);
+        gameReportEntity.setHead(totalHead);
     }
 }

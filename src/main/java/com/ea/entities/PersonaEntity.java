@@ -23,10 +23,6 @@ public class PersonaEntity {
     @JoinColumn(name="ACCOUNT_ID", nullable=false)
     private AccountEntity account;
 
-    @OneToOne(mappedBy = "persona", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
-    @PrimaryKeyJoinColumn
-    private PersonaStatsEntity personaStats;
-
     private String pers;
 
     private int rp;
@@ -34,6 +30,11 @@ public class PersonaEntity {
     private LocalDateTime createdOn;
 
     private LocalDateTime deletedOn;
+
+    private boolean host;
+
+    @OneToMany(mappedBy = "persona", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private Set<PersonaStatsEntity> personaStats;
 
     @OneToMany(mappedBy="persona", fetch = FetchType.EAGER)
     private Set<GameReportEntity> gameReports;
