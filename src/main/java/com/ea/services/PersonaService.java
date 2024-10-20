@@ -17,6 +17,7 @@ import org.springframework.stereotype.Component;
 
 import java.net.Socket;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -136,7 +137,7 @@ public class PersonaService {
                         socketWrapper.getPersonaConnectionEntity().getSlus());
         if(personaConnectionEntityOpt.isPresent()) {
             PersonaConnectionEntity personaConnectionEntity = personaConnectionEntityOpt.get();
-            personaConnectionEntity.setEndTime(LocalDateTime.now());
+            personaConnectionEntity.setEndTime(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
             personaConnectionRepository.save(personaConnectionEntity);
         }
         PersonaConnectionEntity personaConnectionEntity = socketWrapper.getPersonaConnectionEntity();
@@ -150,7 +151,7 @@ public class PersonaService {
     public void endPersonaConnection(SocketWrapper socketWrapper) {
         PersonaConnectionEntity personaConnectionEntity = socketWrapper.getPersonaConnectionEntity();
         if(null != personaConnectionEntity) {
-            personaConnectionEntity.setEndTime(LocalDateTime.now());
+            personaConnectionEntity.setEndTime(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
             personaConnectionRepository.save(personaConnectionEntity);
         }
     }

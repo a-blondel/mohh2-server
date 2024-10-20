@@ -77,6 +77,60 @@ public class GameService {
         SocketWriter.write(socket, socketData);
     }
 
+    public void gset(Socket socket, SocketData socketData) {
+        String name = getValueFromSocket(socketData.getInputMessage(), "NAME");
+        String params = getValueFromSocket(socketData.getInputMessage(), "PARAMS");
+        String sysflags = getValueFromSocket(socketData.getInputMessage(), "SYSFLAGS");
+        GameEntity gameEntity = gameRepository.findByNameAndEndTimeIsNull(name);
+
+        SocketWriter.write(socket, socketData);
+
+        new Thread(() -> {
+            try {
+                // That's better if we wait that each game report has been updated, but it's not mandatory
+                Thread.sleep(10000);
+                if(gameEntity != null) {
+                    List<GameReportEntity> gameReports = gameReportRepository.findByGameIdAndEndTimeIsNull(gameEntity.getId()); // maybe findByGameStartTimeAndPlayTime ?
+                    for(GameReportEntity gameReportEntity : gameReports) {
+                        gameReportEntity.setEndTime(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
+                        gameReportRepository.save(gameReportEntity);
+                    }
+                    gameEntity.setEndTime(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
+                    gameRepository.save(gameEntity);
+
+                    GameEntity newGameEntity = new GameEntity();
+                    newGameEntity.setVers(gameEntity.getVers());
+                    newGameEntity.setSlus(gameEntity.getSlus());
+                    newGameEntity.setUserHosted(gameEntity.isUserHosted());
+                    newGameEntity.setName(name);
+                    newGameEntity.setParams(params);
+                    newGameEntity.setSysflags(sysflags);
+                    newGameEntity.setStartTime(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
+                    newGameEntity.setPass(gameEntity.getPass());
+                    newGameEntity.setMinsize(gameEntity.getMinsize());
+                    newGameEntity.setMaxsize(gameEntity.getMaxsize());
+                    gameRepository.save(newGameEntity);
+
+                    for (GameReportEntity gameReportEntity : gameReports) {
+                        GameReportEntity newGameReportEntity = new GameReportEntity();
+                        newGameReportEntity.setGame(newGameEntity);
+                        newGameReportEntity.setPersona(gameReportEntity.getPersona());
+                        newGameReportEntity.setHost(gameReportEntity.isHost());
+                        newGameReportEntity.setStartTime(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
+                        gameReportRepository.save(newGameReportEntity);
+                    }
+
+                    SocketWrapper hostSocketWrapper = SocketManager.getHostSocketWrapperOfGame(gameEntity.getId());
+                    String hostIdentifier = hostSocketWrapper.getSocket().getRemoteSocketAddress().toString();
+                    SocketManager.setGameEntity(hostIdentifier, newGameEntity);
+                    updatePlayerList(newGameEntity, SocketManager.getHostSocketWrapperOfGame(newGameEntity.getId()));
+                }
+            } catch (InterruptedException e) {
+                log.error("Error while waiting to close the game", e);
+            }
+        }).start();
+    }
+
     /**
      * Game count
      * @param socket
@@ -438,7 +492,7 @@ public class GameService {
             if (gameReportEntityOptional.isPresent()) {
                 gameReportEntity = gameReportEntityOptional.get();
                 if (gameReportEntity.getEndTime() == null) {
-                    gameReportEntity.setEndTime(LocalDateTime.now());
+                    gameReportEntity.setEndTime(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
                     gameReportRepository.save(gameReportEntity);
                 }
             }
@@ -458,7 +512,7 @@ public class GameService {
             if(gameReports.stream().noneMatch(report -> null == report.getEndTime())) {
                 if(gameReports.stream().allMatch(report -> report.getEndTime().plusSeconds(120).isBefore(LocalDateTime.now()))) {
                     log.info("Closing expired game: {} - {}", gameEntity.getId(), gameEntity.getName());
-                    gameEntity.setEndTime(LocalDateTime.now());
+                    gameEntity.setEndTime(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
                     gameRepository.save(gameEntity);
                 }
             }

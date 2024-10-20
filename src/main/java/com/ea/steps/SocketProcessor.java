@@ -95,7 +95,10 @@ public class SocketProcessor {
             case ("gsta"):
                 gameService.gsta(socket, socketData);
                 break;
-            case ("gdel"), ("gset"):
+            case ("gset"):
+                gameService.gset(socket, socketData);
+                break;
+            case ("gdel"):
                 SocketWriter.write(socket, socketData);
                 break;
             default:
