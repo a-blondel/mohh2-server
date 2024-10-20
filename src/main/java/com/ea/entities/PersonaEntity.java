@@ -5,7 +5,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.Set;
 
 @Getter
@@ -23,17 +23,18 @@ public class PersonaEntity {
     @JoinColumn(name="ACCOUNT_ID", nullable=false)
     private AccountEntity account;
 
-    @OneToOne(mappedBy = "persona", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
-    @PrimaryKeyJoinColumn
-    private PersonaStatsEntity personaStats;
-
     private String pers;
 
     private int rp;
 
-    private Timestamp createdOn;
+    private LocalDateTime createdOn;
 
-    private Timestamp deletedOn;
+    private LocalDateTime deletedOn;
+
+    private boolean host;
+
+    @OneToMany(mappedBy = "persona", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private Set<PersonaStatsEntity> personaStats;
 
     @OneToMany(mappedBy="persona", fetch = FetchType.EAGER)
     private Set<GameReportEntity> gameReports;

@@ -15,8 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.net.Socket;
-import java.sql.Timestamp;
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -60,7 +59,7 @@ public class AccountService {
                 socketData.setOutputData(content);
             }
         } else {
-            AccountEntity accountEntity = socketMapper.toAccountEntityForCreation(socketData.getInputMessage());
+            AccountEntity accountEntity = socketMapper.toAccountEntity(socketData.getInputMessage());
             accountRepository.save(accountEntity);
         }
         SocketWriter.write(socket, socketData);
@@ -103,7 +102,7 @@ public class AccountService {
 
             if (!error && (update || !spam.equals(accountEntity.getSpam()))) {
                 accountEntity.setSpam(spam);
-                accountEntity.setUpdatedOn(Timestamp.from(Instant.now()));
+                accountEntity.setUpdatedOn(LocalDateTime.now());
                 accountRepository.save(accountEntity);
             }
 
@@ -158,7 +157,7 @@ public class AccountService {
 
                 PersonaConnectionEntity personaConnectionEntity = new PersonaConnectionEntity();
                 personaConnectionEntity.setIp(SocketUtils.handleLocalhostIp(socket.getInetAddress().getHostAddress()));
-                personaConnectionEntity.setStartTime(Timestamp.from(Instant.now()));
+                personaConnectionEntity.setStartTime(LocalDateTime.now());
                 personaConnectionEntity.setVers(vers);
                 personaConnectionEntity.setSlus(slus);
                 socketWrapper.setPersonaConnectionEntity(personaConnectionEntity);

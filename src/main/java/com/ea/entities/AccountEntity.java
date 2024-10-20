@@ -5,7 +5,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.Set;
 
 @Getter
@@ -51,9 +51,9 @@ public class AccountEntity {
 
     private String builddate;
 
-    private Timestamp createdOn;
+    private LocalDateTime createdOn;
 
-    private Timestamp updatedOn;
+    private LocalDateTime updatedOn;
 
     @OneToMany(mappedBy="account", fetch = FetchType.EAGER)
     @OrderBy("id DESC")
