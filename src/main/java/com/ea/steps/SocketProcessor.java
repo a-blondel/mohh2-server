@@ -68,6 +68,9 @@ public class SocketProcessor {
             case ("snap"):
                 statsService.snap(socket, socketData, socketWrapper);
                 break;
+            case ("rank"):
+                statsService.rank(socket, socketData);
+                break;
             case ("gsea"):
                 gameService.gsea(socket, socketData, socketWrapper);
                 break;
@@ -92,7 +95,7 @@ public class SocketProcessor {
             case ("gsta"):
                 gameService.gsta(socket, socketData);
                 break;
-            case ("gdel"), ("rank"), ("gset"):
+            case ("gdel"), ("gset"):
                 SocketWriter.write(socket, socketData);
                 break;
             default:

@@ -2,26 +2,46 @@ package com.ea.services;
 
 import com.ea.dto.SocketData;
 import com.ea.dto.SocketWrapper;
+import com.ea.entities.GameReportEntity;
 import com.ea.entities.PersonaStatsEntity;
-import com.ea.enums.MoHH2Maps;
-import com.ea.enums.RankingCategories;
+import com.ea.enums.MapMoHH;
+import com.ea.enums.MapMoHH2;
+import com.ea.mappers.SocketMapper;
+import com.ea.repositories.GameReportRepository;
 import com.ea.repositories.PersonaStatsRepository;
 import com.ea.steps.SocketWriter;
+import com.ea.utils.GameVersUtils;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.net.Socket;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static com.ea.utils.SocketUtils.getValueFromSocket;
+import static com.ea.enums.RankingCategory.*;
+import static com.ea.utils.GameVersUtils.VERS_MOHH_PSP;
+import static com.ea.utils.SocketUtils.*;
 
+@Slf4j
 @Component
 public class StatsService {
 
+
+    @Autowired
+    private SocketMapper socketMapper;
+
     @Autowired
     private PersonaStatsRepository personaStatsRepository;
+
+    @Autowired
+    private GameReportRepository gameReportRepository;
 
     /**
      * Retrieve ranking categories
@@ -30,13 +50,13 @@ public class StatsService {
      */
     public void cate(Socket socket, SocketData socketData) {
         Map<String, String> content = Stream.of(new String[][] {
-                { "CC", "3" }, // <total # of categories in this view>
-                { "IC", "3" }, // <total # of indices in this view>
-                { "VC", "3" }, // <total # of variations in this view>
-                { "U", "3" },
-                { "SYMS", "3" },
-                { "SS", "3" },
-                { "R", String.join(",", Collections.nCopies(33, "1")) }, // <comma-separated-list of category,index,view data>
+                { "CC", "6" }, // <total # of categories in this view>
+                { "IC", "6" }, // <total # of indices in this view>
+                { "VC", "6" }, // <total # of variations in this view>
+                { "U", "6" },
+                { "SYMS", "6" },
+                { "SS", "6" },
+                { "R", String.join(",", Collections.nCopies(66, "1")) }, // <comma-separated-list of category,index,view data>
         }).collect(Collectors.toMap(data -> data[0], data -> data[1]));
 
         socketData.setOutputData(content);
@@ -50,30 +70,33 @@ public class StatsService {
      * @param socketWrapper
      */
     public void snap(Socket socket, SocketData socketData, SocketWrapper socketWrapper) {
-
         String chan = getValueFromSocket(socketData.getInputMessage(), "CHAN");
         String seqn = getValueFromSocket(socketData.getInputMessage(), "SEQN");
         String cols = getValueFromSocket(socketData.getInputMessage(), "COLS"); // send column information or not
         String start = getValueFromSocket(socketData.getInputMessage(), "START"); // <start ranking> (index)
         String categoryIndex = getValueFromSocket(socketData.getInputMessage(), "CI"); // <category-index>
 
-        String columnNumber = "18";
-        if (RankingCategories.WEAPON_LEADERS.id.equals(categoryIndex)) {
-            columnNumber = "30";
+        List<String> relatedVers = GameVersUtils.getRelatedVers(socketWrapper.getPersonaConnectionEntity().getVers());
+        boolean isMohh = relatedVers.equals(VERS_MOHH_PSP);
+        String rankingCategory = getRankingCategory(isMohh, categoryIndex).mohh2Id;
+
+        String columnNumber = isMohh ? "21" : "18";
+        if (WEAPON_LEADERS.mohh2Id.equals(rankingCategory)) {
+            columnNumber = "32";
         }
 
         // Must be fetched here to know the actual size
         List<PersonaStatsEntity> personaStatsEntityList = new ArrayList<>();
         long offset = 0;
-
-        if(RankingCategories.MY_LEADERBOARD.id.equals(categoryIndex)) {
-            personaStatsEntityList = personaStatsRepository.getLeaderboard(100, offset);
-        } else if (RankingCategories.TOP_100.id.equals(categoryIndex)) {
-            offset = personaStatsRepository.getRankByPersonaId(socketWrapper.getPersonaEntity().getId());
+        String vers = socketWrapper.getPersonaConnectionEntity().getVers();
+        if (MY_LEADERBOARD.mohh2Id.equals(rankingCategory)) {
+            personaStatsEntityList = personaStatsRepository.getLeaderboardByVers(vers, 100, offset);
+        } else if (TOP_100.mohh2Id.equals(rankingCategory)) {
+            offset = personaStatsRepository.getRankByPersonaIdAndVers(socketWrapper.getPersonaEntity().getId(), vers);
             offset = Math.max(offset - 50, 0);
-            personaStatsEntityList = personaStatsRepository.getLeaderboard(100, offset);
-        } else if (RankingCategories.WEAPON_LEADERS.id.equals(categoryIndex)) {
-            personaStatsEntityList = personaStatsRepository.getWeaponLeaderboard(100, offset);
+            personaStatsEntityList = personaStatsRepository.getLeaderboardByVers(vers, 100, offset);
+        } else if (WEAPON_LEADERS.mohh2Id.equals(rankingCategory)) {
+            personaStatsEntityList = personaStatsRepository.getWeaponLeaderboardByVers(vers, 100, offset);
         }
 
         Map<String, String> content = Stream.of(new String[][] {
@@ -87,8 +110,7 @@ public class StatsService {
                 { "PARAMS", "1,1,1,1,1,1,1,1,1,1,1,1" }, // <comma-separated list of integer parameters>
         }).collect(Collectors.toMap(data -> data[0], data -> data[1]));
 
-        if ("1".equals(cols) && Set.of(RankingCategories.MY_LEADERBOARD.id, RankingCategories.TOP_100.id)
-                .contains(categoryIndex)) {
+        if ("1".equals(cols) && Set.of(MY_LEADERBOARD.mohh2Id, TOP_100.mohh2Id).contains(rankingCategory)) {
             content.putAll(Stream.of(new String[][] {
                     { "CN0", "RNK" }, // <column-name>
                     { "CD0", "\"Leaderboard Ranking\"" }, // <column-name> (selected)
@@ -104,27 +126,22 @@ public class StatsService {
                     { "CD3", "\"Total Kills\"" },
                     { "CN4", "Deaths" },
                     { "CD4", "\"Total Deaths\"" },
-                    { "CN5", "Accuracy" }, // '%' is appended by the game
-                    { "CD5", "\"Accuracy %\"" },
-                    { "CN6", "Time" }, // Must be in seconds, 'H' is appended by the game, capped at 999H on game side
-                    { "CD6", "\"Total Time Played Online\"" },
+                    { "CN5", isMohh ? "Time" : "Accuracy" },
+                    { "CD5", isMohh ? "\"Total Time Played Online\"" : "\"Accuracy %\"" },
+                    { "CN6", isMohh ? "Accuracy" : "Time" },
+                    { "CD6", isMohh ?  "\"Accuracy %\"" : "\"Total Time Played Online\"" },
                     { "CN7", "KPM" },
                     { "CD7", "\"Kills Per Minute\"" },
                     { "CN8", "DPM" },
                     { "CD8", "\"Deaths Per Minute\"" },
-                    { "CN9", "Headshots" },
-                    { "CD9", "\"Total Headshots\"" },
-                    /**
-                     * Looks like the map is duplicated each time a game mode is playable on it
-                     * As far as I know, it doesn't matter in that context
-                     * Values : 0 = Port, 2 = City, 4 = Sewers, 7 = Village, 10 = Monastery, 12 = Base
-                    */
-                    { "CN10", "\"Fav. Map\"" },
-                    { "CD10", "\"Most Played Map\"" },
-                    { "CN11", "\"Fav. Mode\"" }, // 0 = DM, 1 = TDM, 2 = INF
-                    { "CD11", "\"Most Played Mode\"" },
-                    { "CN12", "\"Fav. Team\"" }, // 0 = Axis, 1 = Allied
-                    { "CD12", "\"Most Played Team\"" },
+                    { "CN9", isMohh ? "\"Fav. Map\"" : "Headshots" },
+                    { "CD9", isMohh ? "\"Most Played Map\"" : "\"Total Headshots\"" },
+                    { "CN10", isMohh ? "\"Fav. Mode\"" : "\"Fav. Map\"" },
+                    { "CD10", isMohh ? "\"Most Played Mode\"" : "\"Most Played Map\"" },
+                    { "CN11", isMohh ? "\"Fav. Team\"" : "\"Fav. Mode\"" },
+                    { "CD11", isMohh ? "\"Most Played Team\"" : "\"Most Played Mode\"" },
+                    { "CN12", isMohh ? "Headshots" : "\"Fav. Team\"" },
+                    { "CD12", isMohh ? "\"Total Headshots\"" : "\"Most Played Team\"" },
                     { "CN13", "Wins" },
                     { "CD13", "\"Total Wins\"" },
                     { "CN14", "Losses" },
@@ -133,10 +150,25 @@ public class StatsService {
                     { "CD15", "\"Deathmatch Rounds Played\"" },
                     { "CN16", "\"INF RND\"" },
                     { "CD16", "\"Infiltration Rounds Played\"" },
-                    { "CN17", "\"TDM RND\"" },
-                    { "CD17", "\"Team Deathmatch Rounds Played\"" },
             }).collect(Collectors.toMap(data -> data[0], data -> data[1])));
-        } else if ("1".equals(cols) && RankingCategories.WEAPON_LEADERS.id.equals(categoryIndex)) {
+            if (isMohh) {
+                content.putAll(Stream.of(new String[][] {
+                        { "CN17", "\"DOM RND\"" },
+                        { "CD17", "\"Domination Rounds Played\"" },
+                        { "CN18", "\"DEM RND\"" },
+                        { "CD18", "\"Demolition Rounds Played\"" },
+                        { "CN19", "\"HTL RND\"" },
+                        { "CD19", "\"Hold the Line Rounds Played\"" },
+                        { "CN20", "\"BL RND\"" },
+                        { "CD20", "\"Battle Lines Rounds Played\"" },
+                }).collect(Collectors.toMap(data -> data[0], data -> data[1])));
+            } else {
+                content.putAll(Stream.of(new String[][] {
+                        { "CN17", "\"TDM RND\"" },
+                        { "CD17", "\"Team Deathmatch Rounds Played\"" },
+                }).collect(Collectors.toMap(data -> data[0], data -> data[1])));
+            }
+        } else if ("1".equals(cols) && WEAPON_LEADERS.mohh2Id.equals(rankingCategory)) {
             content.putAll(Stream.of(new String[][] {
                     { "CN0", "RNK" },
                     { "CD0", "\"Leaderboard Ranking\"" },
@@ -194,63 +226,84 @@ public class StatsService {
                     { "CD26", "\"Gewehr Kills\"" },
                     { "CN27", "\"GEWR Acc\"" },
                     { "CD27", "\"Gewehr Accuracy\"" },
-                    { "CN28", "\"GRND Kill\"" },
-                    { "CD28", "\"Grenade Kills\"" },
-                    { "CN29", "\"Melee Kill\"" },
-                    { "CD29", "\"Melee Kills\"" },
+                    { "CN28", "\"PANZ Kill\"" },
+                    { "CD28", "\"Panzerschreck Kills\"" },
+                    { "CN29", "\"PANZ Acc\"" },
+                    { "CD29", "\"Panzerschreck Accuracy\"" },
+                    { "CN30", "\"GRND Kill\"" },
+                    { "CD30", "\"Grenade Kills\"" },
+                    { "CN31", "\"Melee Kill\"" },
+                    { "CD31", "\"Melee Kills\"" },
             }).collect(Collectors.toMap(data -> data[0], data -> data[1])));
         }
 
         socketData.setOutputData(content);
         SocketWriter.write(socket, socketData);
 
-        snp(socket, categoryIndex, personaStatsEntityList, offset);
+        snp(socket, isMohh, rankingCategory, personaStatsEntityList, offset);
     }
 
     /**
      * Send ranking snapshot
+     *
+     * Favorite team : 0 = Axis, 1 = Allied
+     *
      * @param socket
-     * @param categoryIndex
+     * @param rankingCategory
      * @param personaStatsEntityList
      * @param offset
      */
-    public void snp(Socket socket, String categoryIndex, List<PersonaStatsEntity> personaStatsEntityList, long offset) {
+    public void snp(Socket socket, boolean isMohh, String rankingCategory, List<PersonaStatsEntity> personaStatsEntityList, long offset) {
         List<Map<String, String>> rankingList = new ArrayList<>();
         for(PersonaStatsEntity personaStatsEntity : personaStatsEntityList) {
             String name = personaStatsEntity.getPersona().getPers();
             String rank = String.valueOf(++offset);
-            String points = String.valueOf(personaStatsEntity.getTotalKills() - personaStatsEntity.getTotalDeaths());
-            if (Set.of(RankingCategories.MY_LEADERBOARD.id, RankingCategories.TOP_100.id).contains(categoryIndex)) {
-                long totalTime = personaStatsEntity.getTimeAllied() + personaStatsEntity.getTimeAxis();
-                String mostPlayedTeam = personaStatsEntity.getTimeAxis() > personaStatsEntity.getTimeAllied() ? "0" : "1";
+            String points = String.valueOf(personaStatsEntity.getKill() - personaStatsEntity.getDeath());
+            if (Set.of(MY_LEADERBOARD.mohh2Id, TOP_100.mohh2Id).contains(rankingCategory)) {
+                String mostPlayedTeam = personaStatsEntity.getAxis() > personaStatsEntity.getAllies() ? "0" : "1";
+                String playTime = String.valueOf(personaStatsEntity.getPlayTime());
+                String column6 = isMohh ? playTime : getPrecision(personaStatsEntity.getHit(), personaStatsEntity.getShot()); // mohh playtime, mohh2 accuracy
+                String column7 = isMohh ? getPrecision(personaStatsEntity.getHit(), personaStatsEntity.getShot()) : playTime; // mohh accuracy, mohh2 playtime
+                String column10 = isMohh ? getMostPlayedMap(personaStatsEntity, isMohh) : String.valueOf(personaStatsEntity.getHead()); // mohh map, mohh2 headshots
+                String column11 = isMohh ? getMostPlayedMode(personaStatsEntity) : getMostPlayedMap(personaStatsEntity, isMohh); // mohh mode, mohh2 map
+                String column12 = isMohh ? mostPlayedTeam : getMostPlayedMode(personaStatsEntity); // mohh team, mohh2 mode
+                String column13 = isMohh ? String.valueOf(personaStatsEntity.getHead()) : mostPlayedTeam; // mohh headshots, mohh2 team
+                String stats = String.join(",", // <stats>
+                        String.valueOf(offset),
+                        personaStatsEntity.getPersona().getPers(),
+                        String.valueOf(personaStatsEntity.getKill() - personaStatsEntity.getDeath()),
+                        String.valueOf(personaStatsEntity.getKill()),
+                        String.valueOf(personaStatsEntity.getDeath()),
+                        column6,
+                        column7,
+                        playTime.equals("0") ? "0" : String.valueOf(new Formatter(Locale.US).format("%.3f", personaStatsEntity.getKill() / (personaStatsEntity.getPlayTime() / 60f))),
+                        playTime.equals("0") ? "0" : String.valueOf(new Formatter(Locale.US).format("%.3f", personaStatsEntity.getDeath() / (personaStatsEntity.getPlayTime() / 60f))),
+                        column10,
+                        column11,
+                        column12,
+                        column13,
+                        String.valueOf(personaStatsEntity.getWin()),
+                        String.valueOf(personaStatsEntity.getLoss()),
+                        String.valueOf(personaStatsEntity.getDmRnd()),
+                        String.valueOf(personaStatsEntity.getCtfAllies() + personaStatsEntity.getCtfAxis()) // CTF = Infiltration
+                );
+
+                if (isMohh) {
+                    stats += "," + (personaStatsEntity.getCapAllies() + personaStatsEntity.getCapAxis()); // CAP = Domination
+                    stats += "," + (personaStatsEntity.getDemAllies() + personaStatsEntity.getDemAxis());
+                    stats += "," + (personaStatsEntity.getKohAllies() + personaStatsEntity.getKohAxis()); // KOH = Hold the Line
+                    stats += "," + (personaStatsEntity.getBlAllies() + personaStatsEntity.getBlAxis());
+                } else {
+                    stats += "," + (personaStatsEntity.getTdmAllies() + personaStatsEntity.getTdmAxis());
+                }
                 rankingList.add(Stream.of(new String[][] {
                         { "N", name }, // <persona name>
                         { "R", rank }, // <rank>
                         { "P", points }, // <points>
                         { "O", "0" }, // <online> ?
-                        { "S", String.join(",", // <stats>
-                                String.valueOf(offset),
-                                personaStatsEntity.getPersona().getPers(),
-                                String.valueOf(personaStatsEntity.getTotalKills() - personaStatsEntity.getTotalDeaths()),
-                                String.valueOf(personaStatsEntity.getTotalKills()),
-                                String.valueOf(personaStatsEntity.getTotalDeaths()),
-                                getPrecision(personaStatsEntity.getTotalHit(), personaStatsEntity.getTotalMiss()),
-                                String.valueOf(totalTime),
-                                totalTime == 0 ? "0" : String.valueOf(new Formatter(Locale.US).format("%.3f", personaStatsEntity.getTotalKills() / (totalTime / 60f))),
-                                totalTime == 0 ? "0" : String.valueOf(new Formatter(Locale.US).format("%.3f", personaStatsEntity.getTotalDeaths() / (totalTime / 60f))),
-                                String.valueOf(personaStatsEntity.getTotalHeadshots()),
-                                getMostPlayedMap(personaStatsEntity),
-                                getMostPlayedMode(personaStatsEntity),
-                                mostPlayedTeam,
-                                String.valueOf(personaStatsEntity.getDmWins() + personaStatsEntity.getInfWins() + personaStatsEntity.getTdmWins()),
-                                String.valueOf(personaStatsEntity.getDmLosses() + personaStatsEntity.getInfLosses() + personaStatsEntity.getTdmLosses()),
-                                String.valueOf(personaStatsEntity.getDmWins() + personaStatsEntity.getDmLosses()),
-                                String.valueOf(personaStatsEntity.getInfWins() + personaStatsEntity.getInfLosses()),
-                                String.valueOf(personaStatsEntity.getTdmWins() + personaStatsEntity.getTdmLosses())
-                              )
-                        },
+                        { "S", stats }, // <stats>
                 }).collect(Collectors.toMap(data -> data[0], data -> data[1])));
-            } else if (RankingCategories.WEAPON_LEADERS.id.equals(categoryIndex)) {
+            } else if (WEAPON_LEADERS.mohh2Id.equals(rankingCategory)) {
                 rankingList.add(Stream.of(new String[][] {
                         { "N", name },
                         { "R", rank },
@@ -259,34 +312,36 @@ public class StatsService {
                         { "S", String.join(",",
                                 String.valueOf(offset),
                                 personaStatsEntity.getPersona().getPers(),
-                                String.valueOf(personaStatsEntity.getTotalKills()),
-                                getPrecision(personaStatsEntity.getTotalHit(), personaStatsEntity.getTotalMiss()),
-                                String.valueOf(personaStatsEntity.getColtKills()),
-                                getPrecision(personaStatsEntity.getColtHit(), personaStatsEntity.getColtMiss()),
-                                String.valueOf(personaStatsEntity.getThompsonKills()),
-                                getPrecision(personaStatsEntity.getThompsonHit(), personaStatsEntity.getThompsonMiss()),
-                                String.valueOf(personaStatsEntity.getBarKills()),
-                                getPrecision(personaStatsEntity.getBarHit(), personaStatsEntity.getBarMiss()),
-                                String.valueOf(personaStatsEntity.getGarandKills()),
-                                getPrecision(personaStatsEntity.getGarandHit(), personaStatsEntity.getGarandMiss()),
-                                String.valueOf(personaStatsEntity.getSpringfieldKills()),
-                                getPrecision(personaStatsEntity.getSpringfieldHit(), personaStatsEntity.getSpringfieldMiss()),
-                                String.valueOf(personaStatsEntity.getShotgunKills()),
-                                getPrecision(personaStatsEntity.getShotgunHit(), personaStatsEntity.getShotgunMiss()),
-                                String.valueOf(personaStatsEntity.getBazookaKills()),
-                                getPrecision(personaStatsEntity.getBazookaHit(), personaStatsEntity.getBazookaMiss()),
-                                String.valueOf(personaStatsEntity.getLugerKills()),
-                                getPrecision(personaStatsEntity.getLugerHit(), personaStatsEntity.getLugerMiss()),
-                                String.valueOf(personaStatsEntity.getMp40Kills()),
-                                getPrecision(personaStatsEntity.getMp40Hit(), personaStatsEntity.getMp40Miss()),
-                                String.valueOf(personaStatsEntity.getStg44Kills()),
-                                getPrecision(personaStatsEntity.getStg44Hit(), personaStatsEntity.getStg44Miss()),
-                                String.valueOf(personaStatsEntity.getKarabinerKills()),
-                                getPrecision(personaStatsEntity.getKarabinerHit(), personaStatsEntity.getKarabinerMiss()),
-                                String.valueOf(personaStatsEntity.getGewehrKills()),
-                                getPrecision(personaStatsEntity.getGewehrHit(), personaStatsEntity.getGewehrMiss()),
-                                String.valueOf(personaStatsEntity.getGrenadeKills()),
-                                String.valueOf(personaStatsEntity.getMeleeKills())
+                                String.valueOf(personaStatsEntity.getKill()),
+                                getPrecision(personaStatsEntity.getHit(), personaStatsEntity.getShot()),
+                                String.valueOf(personaStatsEntity.getColtKill()),
+                                getPrecision(personaStatsEntity.getColtHit(), personaStatsEntity.getColtShot()),
+                                String.valueOf(personaStatsEntity.getTomKill()),
+                                getPrecision(personaStatsEntity.getTomHit(), personaStatsEntity.getTomShot()),
+                                String.valueOf(personaStatsEntity.getBarKill()),
+                                getPrecision(personaStatsEntity.getBarHit(), personaStatsEntity.getBarShot()),
+                                String.valueOf(personaStatsEntity.getGarKill()),
+                                getPrecision(personaStatsEntity.getGarHit(), personaStatsEntity.getGarShot()),
+                                String.valueOf(personaStatsEntity.getEnfieldKill()),
+                                getPrecision(personaStatsEntity.getEnfieldHit(), personaStatsEntity.getEnfieldShot()),
+                                String.valueOf(personaStatsEntity.getShottyKill()),
+                                getPrecision(personaStatsEntity.getShottyHit(), personaStatsEntity.getShottyShot()),
+                                String.valueOf(personaStatsEntity.getBazKill()),
+                                getPrecision(personaStatsEntity.getBazHit(), personaStatsEntity.getBazShot()),
+                                String.valueOf(personaStatsEntity.getLugerKill()),
+                                getPrecision(personaStatsEntity.getLugerHit(), personaStatsEntity.getLugerShot()),
+                                String.valueOf(personaStatsEntity.getMp40Kill()),
+                                getPrecision(personaStatsEntity.getMp40Hit(), personaStatsEntity.getMp40Shot()),
+                                String.valueOf(personaStatsEntity.getMp44Kill()),
+                                getPrecision(personaStatsEntity.getMp44Hit(), personaStatsEntity.getMp44Shot()),
+                                String.valueOf(personaStatsEntity.getKarKill()),
+                                getPrecision(personaStatsEntity.getKarHit(), personaStatsEntity.getKarShot()),
+                                String.valueOf(personaStatsEntity.getGewrKill()),
+                                getPrecision(personaStatsEntity.getGewrHit(), personaStatsEntity.getGewrShot()),
+                                String.valueOf(personaStatsEntity.getPanzKill()),
+                                getPrecision(personaStatsEntity.getPanzHit(), personaStatsEntity.getPanzShot()),
+                                String.valueOf(personaStatsEntity.getGrenadeKill()),
+                                String.valueOf(personaStatsEntity.getMeleeKill())
                               )
                         },
                 }).collect(Collectors.toMap(data -> data[0], data -> data[1])));
@@ -299,7 +354,68 @@ public class StatsService {
         }
     }
 
-    private String getPrecision(long hit, long miss) {
+    /**
+     * Send ranking results.
+     * @param socket
+     * @param socketData
+     */
+    public void rank(Socket socket, SocketData socketData) {
+        String playerName = getValueFromSocket(socketData.getInputMessage(), "REPT", TAB_CHAR);
+        String startTime = getValueFromSocket(socketData.getInputMessage(), "WHEN", TAB_CHAR);
+
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(DATETIME_FORMAT);
+        List<GameReportEntity> gameReportEntities = gameReportRepository.findByPersonaPersAndGameStartTimeAndPlayTime(
+                playerName, LocalDateTime.parse(startTime, formatter), 0);
+        if(gameReportEntities.size() == 1) {
+            GameReportEntity gameReportEntity = gameReportEntities.get(0);
+            socketMapper.toGameReportEntity(gameReportEntity, socketData.getInputMessage());
+            gameReportRepository.save(gameReportEntity);
+
+            // Update PersonaStats with the new game report (ranked only)
+            if(gameReportEntity.getRnk() == 1) {
+                PersonaStatsEntity personaStatsEntity = personaStatsRepository.findByPersonaIdAndVersIn(
+                        gameReportEntity.getPersona().getId(), GameVersUtils.getRelatedVers(gameReportEntity.getGame().getVers()));
+                if(personaStatsEntity != null) {
+                    updatePersonaStats(personaStatsEntity, gameReportEntity);
+                    personaStatsRepository.save(personaStatsEntity);
+                }
+            }
+        }
+        SocketWriter.write(socket, socketData);
+    }
+
+    private void updatePersonaStats(PersonaStatsEntity personaStatsEntity, GameReportEntity gameReportEntity) {
+        Field[] personaFields = PersonaStatsEntity.class.getDeclaredFields();
+        Set<String> gameReportFieldNames = Arrays.stream(GameReportEntity.class.getDeclaredFields())
+                                                 .map(Field::getName)
+                                                 .collect(Collectors.toSet());
+
+        for (Field field : personaFields) {
+            if (gameReportFieldNames.contains(field.getName()) && !"id".equalsIgnoreCase(field.getName())) {
+                field.setAccessible(true);
+                try {
+                    Field gameReportField = GameReportEntity.class.getDeclaredField(field.getName());
+                    gameReportField.setAccessible(true);
+                    if (field.getType().equals(int.class) || field.getType().equals(Integer.class)) {
+                        field.set(personaStatsEntity, (int) field.get(personaStatsEntity) + (int) gameReportField.get(gameReportEntity));
+                    } else if (field.getType().equals(long.class) || field.getType().equals(Long.class)) {
+                        field.set(personaStatsEntity, (long) field.get(personaStatsEntity) + (long) gameReportField.get(gameReportEntity));
+                    }
+                    } catch (IllegalAccessException | NoSuchFieldException e) {
+                    log.error("Error updating field: " + field.getName(), e);
+                }
+            }
+        }
+    }
+
+    /**
+     * Get precision
+     * @param hit
+     * @param shot
+     * @return precision in percentage
+     */
+    private String getPrecision(long hit, long shot) {
+        long miss = shot - hit;
         String precision = "100";
         if(0 != hit + miss) {
             precision = String.valueOf(new Formatter(Locale.US).format("%.2f", hit / ((float) hit + miss) * 100));
@@ -307,39 +423,84 @@ public class StatsService {
         return precision;
     }
 
-    private String getMostPlayedMode(PersonaStatsEntity personaStatsEntity) {
-        String mostPlayedMode;
-        if(personaStatsEntity.getTimeDm() > personaStatsEntity.getTimeTdm()) {
-            mostPlayedMode = personaStatsEntity.getTimeDm() > personaStatsEntity.getTimeInf() ? "0" : "2";
-        } else {
-            mostPlayedMode = personaStatsEntity.getTimeTdm() > personaStatsEntity.getTimeInf() ? "1" : "2";
+    /**
+     * Get most played map
+     *
+     * @param personaStatsEntity
+     * @return most played map
+     */
+    private String getMostPlayedMap(PersonaStatsEntity personaStatsEntity, boolean isMohh) {
+        Map<String, Integer> mapPlayCounts = new HashMap<>();
+        for (int i = 1; i <= 28; i++) {
+            try {
+                Method method = PersonaStatsEntity.class.getMethod("getMap" + i);
+                int playCount = (int) method.invoke(personaStatsEntity);
+
+                // Find the corresponding enum by matching the id attribute
+                String mapKey;
+                if(isMohh) {
+                    mapKey = "181";
+                    for (MapMoHH map : MapMoHH.values()) {
+                        if (map.id.equals("MAP" + i)) {
+                            mapKey = map.key;
+                            break;
+                        }
+                    }
+                    mapPlayCounts.put(mapKey, mapPlayCounts.getOrDefault(mapKey, 0) + playCount);
+                } else {
+                    mapKey = "101";
+                    for (MapMoHH2 map : MapMoHH2.values()) {
+                        if (map.id.equals("MAP" + i)) {
+                            mapKey = map.key;
+                            break;
+                        }
+                    }
+                    mapPlayCounts.put(mapKey, mapPlayCounts.getOrDefault(mapKey, 0) + playCount);
+                }
+                mapPlayCounts.put(mapKey, mapPlayCounts.getOrDefault(mapKey, 0) + playCount);
+            } catch (NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
+                log.error("Error while getting map play count", e);
+            }
         }
-        return mostPlayedMode;
+
+        // Determine the most played map
+        String mostPlayedMapKey = Collections.max(mapPlayCounts.entrySet(), Map.Entry.comparingByValue()).getKey();
+
+        // Map the most played map key to its corresponding ID
+        if (isMohh) {
+            return MapMoHH.getMapStatId(mostPlayedMapKey);
+        } else {
+            return MapMoHH2.getMapStatId(mostPlayedMapKey);
+        }
     }
 
-    private String getMostPlayedMap(PersonaStatsEntity personaStatsEntity) {
-        String mostPlayedMap = MoHH2Maps.PORT.id;
-        long maxTimeInMap = personaStatsEntity.getTimePort();
-        if(maxTimeInMap < personaStatsEntity.getTimeCity()) {
-            maxTimeInMap = personaStatsEntity.getTimeCity();
-            mostPlayedMap = MoHH2Maps.CITY.id;
-        }
-        if(maxTimeInMap < personaStatsEntity.getTimeSewers()) {
-            maxTimeInMap = personaStatsEntity.getTimeSewers();
-            mostPlayedMap = MoHH2Maps.SEWERS.id;
-        }
-        if(maxTimeInMap < personaStatsEntity.getTimeVillage()) {
-            maxTimeInMap = personaStatsEntity.getTimeVillage();
-            mostPlayedMap = MoHH2Maps.VILLAGE.id;
-        }
-        if(maxTimeInMap < personaStatsEntity.getTimeMonastery()) {
-            maxTimeInMap = personaStatsEntity.getTimeMonastery();
-            mostPlayedMap = MoHH2Maps.MONASTERY.id;
-        }
-        if(maxTimeInMap < personaStatsEntity.getTimeBase()) {
-            mostPlayedMap = MoHH2Maps.BASE.id;
-        }
-        return mostPlayedMap;
+    /**
+     * Get most played mode
+     *
+     * Values : 0 = DM, 1 = TDM, 2 = INF, 3 = DEM, 4 = DOM, 5 = HTL, 6 = BL
+     * Note that on MoHH value 1 = "FS_M_TDM", surely TDM was planned but cut off
+     *
+     * @param personaStatsEntity
+     * @return most played mode
+     */
+    private String getMostPlayedMode(PersonaStatsEntity personaStatsEntity) {
+        int totalTdm = personaStatsEntity.getTdmAllies() + personaStatsEntity.getTdmAxis();
+        int totalInf = personaStatsEntity.getCtfAllies() + personaStatsEntity.getCtfAxis();
+        int totalDem = personaStatsEntity.getDemAllies() + personaStatsEntity.getDemAxis();
+        int totalDom = personaStatsEntity.getCapAllies() + personaStatsEntity.getCapAxis();
+        int totalHtl = personaStatsEntity.getKohAllies() + personaStatsEntity.getKohAxis();
+        int totalBl = personaStatsEntity.getBlAllies() + personaStatsEntity.getBlAxis();
+
+        Map<String, Integer> modeCounts = new HashMap<>();
+        modeCounts.put("0", personaStatsEntity.getDmRnd());
+        modeCounts.put("1", totalTdm);
+        modeCounts.put("2", totalInf);
+        modeCounts.put("3", totalDem);
+        modeCounts.put("4", totalDom);
+        modeCounts.put("5", totalHtl);
+        modeCounts.put("6", totalBl);
+
+        return Collections.max(modeCounts.entrySet(), Map.Entry.comparingByValue()).getKey();
     }
 
 }

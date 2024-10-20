@@ -18,13 +18,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.net.Socket;
-import java.sql.Timestamp;
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static com.ea.utils.SocketUtils.DATETIME_FORMAT;
 import static com.ea.utils.SocketUtils.getValueFromSocket;
 
 @Component
@@ -133,17 +134,13 @@ public class GameService {
             GameEntity gameEntity = gameEntityOpt.get();
             if(gameEntity.getEndTime() == null) {
                 startGameReport(socketWrapper, gameEntity, false);
-
                 SocketWriter.write(socket, socketData);
-
                 updatePlayerList(gameEntity, socketWrapper);
-
                 try {
                     Thread.sleep(100);
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }
-
                 ses(socket, gameEntity, socketWrapper);
             } else {
                 SocketWriter.write(socket, new SocketData("gjoiugam", null, null)); // Game closed
@@ -161,7 +158,7 @@ public class GameService {
     public void gpsc(Socket socket, SocketData socketData, SocketWrapper socketWrapper) {
         String vers = socketWrapper.getPersonaConnectionEntity().getVers();
         String slus = socketWrapper.getPersonaConnectionEntity().getSlus();
-        GameEntity gameEntity = socketMapper.toGameEntityForCreation(socketData.getInputMessage(), vers, slus, false);
+        GameEntity gameEntity = socketMapper.toGameEntity(socketData.getInputMessage(), vers, slus, false);
 
         List<String> relatedVers = GameVersUtils.getRelatedVers(vers);
         boolean duplicateName = gameRepository.existsByNameAndVersInAndEndTimeIsNull(gameEntity.getName(), relatedVers);
@@ -185,7 +182,9 @@ public class GameService {
     public void updatePlayerList(GameEntity gameEntity, SocketWrapper socketWrapper) {
         SocketWrapper hostSocketWrapper = SocketManager.getHostSocketWrapperOfGame(gameEntity.getId());
         if(hostSocketWrapper != null) {
-            SocketWriter.write(hostSocketWrapper.getSocket(), new SocketData("+mgm", null, getGameInfo(gameEntity, socketWrapper)));
+            Map<String, String> content = getGameInfo(gameEntity, socketWrapper);
+            SocketWriter.write(hostSocketWrapper.getSocket(), new SocketData("+mgm", null, content));
+            SocketWriter.write(hostSocketWrapper.getSocket(), new SocketData("+ses", null, content));
         }
     }
 
@@ -203,7 +202,7 @@ public class GameService {
             if (!props.isUhsEaServerMode()) {
                 String vers = socketWrapper.getPersonaConnectionEntity().getVers();
                 String slus = socketWrapper.getPersonaConnectionEntity().getSlus();
-                gameEntity = socketMapper.toGameEntityForCreation(socketData.getInputMessage(), vers, slus, true);
+                gameEntity = socketMapper.toGameEntity(socketData.getInputMessage(), vers, slus, true);
 
                 List<String> relatedVers = GameVersUtils.getRelatedVers(vers);
                 duplicatename = gameRepository.existsByNameAndVersInAndEndTimeIsNull(gameEntity.getName(), relatedVers);
@@ -337,7 +336,7 @@ public class GameService {
                 { "MAXSIZE", String.valueOf(gameEntity.getMaxsize()) },
                 { "NUMPART", "1" },
                 { "SEED", "3" }, // random seed
-                { "WHEN", DateTimeFormatter.ofPattern("yyyy.M.d-H:mm:ss").format(gameEntity.getStartTime().toLocalDateTime()) },
+                { "WHEN", DateTimeFormatter.ofPattern(DATETIME_FORMAT).format(gameEntity.getStartTime()) },
                 // { "GAMEPORT", String.valueOf(props.getUdpPort())},
                 // { "VOIPPORT", "9667" },
                 // { "GAMEMODE", "0" }, // ???
@@ -412,13 +411,12 @@ public class GameService {
     private void startGameReport(SocketWrapper socketWrapper, GameEntity gameEntity, boolean isHost) {
         // Close any game report that wasn't property ended (e.g. use Dolphin save state to leave)
         endGameReport(socketWrapper);
-        updatePlayerList(gameEntity, socketWrapper);
 
         GameReportEntity gameReportEntity = new GameReportEntity();
         gameReportEntity.setGame(gameEntity);
         gameReportEntity.setPersona(socketWrapper.getPersonaEntity());
         gameReportEntity.setHost(isHost);
-        gameReportEntity.setStartTime(Timestamp.from(Instant.now()));
+        gameReportEntity.setStartTime(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
         gameReportRepository.save(gameReportEntity);
 
         if(gameEntity.getGameReports() == null) {
@@ -440,7 +438,7 @@ public class GameService {
             if (gameReportEntityOptional.isPresent()) {
                 gameReportEntity = gameReportEntityOptional.get();
                 if (gameReportEntity.getEndTime() == null) {
-                    gameReportEntity.setEndTime(Timestamp.from(Instant.now()));
+                    gameReportEntity.setEndTime(LocalDateTime.now());
                     gameReportRepository.save(gameReportEntity);
                 }
             }
@@ -458,9 +456,9 @@ public class GameService {
         gameEntities.forEach(gameEntity -> {
             Set<GameReportEntity> gameReports = gameEntity.getGameReports();
             if(gameReports.stream().noneMatch(report -> null == report.getEndTime())) {
-                if(gameReports.stream().allMatch(report -> report.getEndTime().toInstant().plusSeconds(120).isBefore(Instant.now()))) {
+                if(gameReports.stream().allMatch(report -> report.getEndTime().plusSeconds(120).isBefore(LocalDateTime.now()))) {
                     log.info("Closing expired game: {} - {}", gameEntity.getId(), gameEntity.getName());
-                    gameEntity.setEndTime(Timestamp.from(Instant.now()));
+                    gameEntity.setEndTime(LocalDateTime.now());
                     gameRepository.save(gameEntity);
                 }
             }
