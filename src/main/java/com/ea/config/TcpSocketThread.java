@@ -55,8 +55,8 @@ public class TcpSocketThread implements Runnable {
                 pingExecutor.shutdown();
             }
             SocketWrapper socketWrapper = SocketManager.getSocketWrapper(clientSocket);
-            if(socketWrapper != null) {
-                GameEntity gameEntity = socketWrapper.getGameEntity();
+            if(socketWrapper != null && socketWrapper.getPersonaEntity() != null) {
+                GameEntity gameEntity = gameRepository.findCurrentGameOfPersona(socketWrapper.getPersonaEntity().getId()).orElse(null);
                 if(socketWrapper.isHost() && gameEntity != null) {
                     for(GameReportEntity gameReportEntity : gameReportRepository.findByGameIdAndEndTimeIsNull(gameEntity.getId())) {
                         gameReportEntity.setEndTime(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
@@ -67,7 +67,7 @@ public class TcpSocketThread implements Runnable {
                 } else {
                     gameService.endGameReport(socketWrapper); // If the player doesn't leave from the game
                     if(gameEntity != null) {
-                        gameService.updatePlayerList(gameEntity, socketWrapper);
+                        gameService.updateHostInfo(gameEntity);
                     }
                 }
                 personaService.endPersonaConnection(socketWrapper);

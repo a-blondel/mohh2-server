@@ -75,7 +75,7 @@ public class SocketProcessor {
                 gameService.gsea(socket, socketData, socketWrapper);
                 break;
             case ("gget"):
-                gameService.gget(socket, socketData, socketWrapper);
+                gameService.gget(socket, socketData);
                 break;
             case ("gjoi"):
                 gameService.gjoi(socket, socketData, socketWrapper);
@@ -90,7 +90,7 @@ public class SocketProcessor {
                 gameService.glea(socket, socketData, socketWrapper);
                 break;
             case ("gpss"):
-                gameService.gpss(socket, socketData, socketWrapper);
+                gameService.gpss(socket, socketData);
                 break;
             case ("gsta"):
                 gameService.gsta(socket, socketData);

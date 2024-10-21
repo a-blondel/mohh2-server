@@ -1,7 +1,9 @@
 package com.ea.services;
 
 import com.ea.dto.SocketWrapper;
-import com.ea.entities.GameEntity;
+import com.ea.repositories.GameReportRepository;
+import com.ea.utils.BeanUtil;
+
 import java.io.IOException;
 import java.net.Socket;
 import java.util.List;
@@ -9,6 +11,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 public class SocketManager {
+
+    private static GameReportRepository gameReportRepository = BeanUtil.getBean(GameReportRepository.class);
     private static final ConcurrentHashMap<String, SocketWrapper> sockets = new ConcurrentHashMap<>();
 
     public static void addSocket(String identifier, Socket socket) {
@@ -29,13 +33,6 @@ public class SocketManager {
         }
     }
 
-    public static void setGameEntity(String identifier, GameEntity gameEntity) {
-        SocketWrapper wrapper = sockets.get(identifier);
-        if (wrapper != null) {
-            wrapper.setGameEntity(gameEntity);
-        }
-    }
-
     public static SocketWrapper getSocketWrapper(Socket socket) {
         return getSocketWrapper(socket.getRemoteSocketAddress().toString());
     }
@@ -45,9 +42,8 @@ public class SocketManager {
     }
 
     public static SocketWrapper getHostSocketWrapperOfGame(Long gameId) {
-        return sockets.values().stream()
-                .filter(wrapper -> wrapper.getGameEntity() != null && wrapper.getGameEntity().getId() == gameId && wrapper.isHost())
-                .findFirst()
+        return gameReportRepository.findHostAddressByGameId(gameId)
+                .map(SocketManager::getSocketWrapper)
                 .orElse(null);
     }
 

@@ -157,7 +157,7 @@ public class AccountService {
                 }
 
                 PersonaConnectionEntity personaConnectionEntity = new PersonaConnectionEntity();
-                personaConnectionEntity.setIp(SocketUtils.handleLocalhostIp(socket.getInetAddress().getHostAddress()));
+                personaConnectionEntity.setAddress(SocketUtils.handleLocalhostIp(socket.getRemoteSocketAddress().toString()));
                 personaConnectionEntity.setStartTime(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
                 personaConnectionEntity.setVers(vers);
                 personaConnectionEntity.setSlus(slus);

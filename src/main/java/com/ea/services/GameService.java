@@ -119,11 +119,7 @@ public class GameService {
                         newGameReportEntity.setStartTime(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
                         gameReportRepository.save(newGameReportEntity);
                     }
-
-                    SocketWrapper hostSocketWrapper = SocketManager.getHostSocketWrapperOfGame(gameEntity.getId());
-                    String hostIdentifier = hostSocketWrapper.getSocket().getRemoteSocketAddress().toString();
-                    SocketManager.setGameEntity(hostIdentifier, newGameEntity);
-                    updatePlayerList(newGameEntity, SocketManager.getHostSocketWrapperOfGame(newGameEntity.getId()));
+                    updateHostInfo(newGameEntity);
                 }
             } catch (InterruptedException e) {
                 log.error("Error while waiting to close the game", e);
@@ -189,13 +185,13 @@ public class GameService {
             if(gameEntity.getEndTime() == null) {
                 startGameReport(socketWrapper, gameEntity, false);
                 SocketWriter.write(socket, socketData);
-                updatePlayerList(gameEntity, socketWrapper);
+                updateHostInfo(gameEntity);
                 try {
                     Thread.sleep(100);
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }
-                ses(socket, gameEntity, socketWrapper);
+                ses(socket, gameEntity);
             } else {
                 SocketWriter.write(socket, new SocketData("gjoiugam", null, null)); // Game closed
             }
@@ -224,19 +220,18 @@ public class GameService {
             SocketWriter.write(socket, socketData);
             gameRepository.save(gameEntity);
             startGameReport(socketWrapper, gameEntity, false);
-            ses(socket, gameEntity, socketWrapper);
+            ses(socket, gameEntity);
         }
     }
 
     /**
-     * Update the player list of a game (used when a player joins or leaves a game) and send it to the host
+     * Send game updates to the host (player list, params)
      * @param gameEntity
-     * @param socketWrapper
      */
-    public void updatePlayerList(GameEntity gameEntity, SocketWrapper socketWrapper) {
+    public void updateHostInfo(GameEntity gameEntity) {
         SocketWrapper hostSocketWrapper = SocketManager.getHostSocketWrapperOfGame(gameEntity.getId());
         if(hostSocketWrapper != null) {
-            Map<String, String> content = getGameInfo(gameEntity, socketWrapper);
+            Map<String, String> content = getGameInfo(gameEntity);
             SocketWriter.write(hostSocketWrapper.getSocket(), new SocketData("+mgm", null, content));
             SocketWriter.write(hostSocketWrapper.getSocket(), new SocketData("+ses", null, content));
         }
@@ -272,14 +267,13 @@ public class GameService {
 
             if(!duplicatename) {
                 startGameReport(socketWrapper, gameEntity, true);
-                SocketManager.setGameEntity(socket.getRemoteSocketAddress().toString(), gameEntity);
                 personaService.who(socket, socketWrapper); // Used to set the game id
                 try {
                     Thread.sleep(100);
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }
-                SocketWriter.write(socket, new SocketData("+mgm", null, getGameInfo(gameEntity, socketWrapper)));
+                SocketWriter.write(socket, new SocketData("+mgm", null, getGameInfo(gameEntity)));
             }
         }
     }
@@ -291,10 +285,8 @@ public class GameService {
      * @param socketWrapper
      */
     public void glea(Socket socket, SocketData socketData, SocketWrapper socketWrapper) {
-        GameEntity gameEntity = socketWrapper.getGameEntity();
-        endGameReport(socketWrapper); // GameEntity is destroyed in this method
+        endGameReport(socketWrapper);
         SocketWriter.write(socket, socketData);
-        updatePlayerList(gameEntity, socketWrapper);
     }
 
     /**
@@ -306,7 +298,7 @@ public class GameService {
      * @param socket
      * @param socketData
      */
-    public void gpss(Socket socket, SocketData socketData, SocketWrapper socketWrapper) {
+    public void gpss(Socket socket, SocketData socketData) {
         SocketWriter.write(socket, socketData);
 
         String status = getValueFromSocket(socketData.getInputMessage(), "STATUS");
@@ -315,7 +307,7 @@ public class GameService {
         if(props.isUhsAutoStart() && props.isUhsEaServerMode() && ("A").equals(status)) {
             //gps(socket, socketData); // Not needed yet
             GameEntity gameEntity = gameRepository.findById(1L).orElse(null);
-            SocketWriter.write(socket, new SocketData("$cre", null, getGameInfo(gameEntity, socketWrapper)));
+            SocketWriter.write(socket, new SocketData("$cre", null, getGameInfo(gameEntity)));
         } else if(props.isUhsAutoStart() && ("G").equals(status)) {
             // We can't send +ses here as we need at least the host + 1 player (COUNT=2) to start a game
         }
@@ -342,8 +334,8 @@ public class GameService {
      * @param socket
      * @param gameEntity
      */
-    public void ses(Socket socket, GameEntity gameEntity, SocketWrapper socketWrapper) {
-        SocketWriter.write(socket, new SocketData("+ses", null, getGameInfo(gameEntity, socketWrapper)));
+    public void ses(Socket socket, GameEntity gameEntity) {
+        SocketWriter.write(socket, new SocketData("+ses", null, getGameInfo(gameEntity)));
     }
 
     /**
@@ -351,25 +343,25 @@ public class GameService {
      * @param socket
      * @param socketData
      */
-    public void gget(Socket socket, SocketData socketData, SocketWrapper socketWrapper) {
+    public void gget(Socket socket, SocketData socketData) {
         String ident = getValueFromSocket(socketData.getInputMessage(), "IDENT");
         Optional<GameEntity> gameEntityOpt = gameRepository.findById(Long.valueOf(ident));
         if(gameEntityOpt.isPresent()) {
             GameEntity gameEntity = gameEntityOpt.get();
-            SocketWriter.write(socket, new SocketData("gget", null, getGameInfo(gameEntity, socketWrapper)));
+            SocketWriter.write(socket, new SocketData("gget", null, getGameInfo(gameEntity)));
         }
     }
 
-    public Map<String, String> getGameInfo(GameEntity gameEntity, SocketWrapper socketWrapper) {
+    public Map<String, String> getGameInfo(GameEntity gameEntity) {
         Long gameId = gameEntity.getId();
         SocketWrapper hostSocketWrapperOfGame = SocketManager.getHostSocketWrapperOfGame(gameId);
-        // We can't trust the gameEntity.getGameReports() because it's not updated in real time
+
         List<GameReportEntity> gameReports = gameReportRepository.findByGameIdAndEndTimeIsNull(gameId);
 
         // Workaround when there is no host (serverless patch)
         boolean hasHost = hostSocketWrapperOfGame != null;
         String host = hasHost ? "@" + hostSocketWrapperOfGame.getPersonaEntity().getPers() : "@brobot1";
-        int count = gameReports.stream().filter(report -> null == report.getEndTime()).collect(Collectors.toList()).size();
+        int count = gameReports.size();
         count = hasHost ? count : ++count;
 
         Map<String, String> content = Stream.of(new String[][] {
@@ -421,25 +413,23 @@ public class GameService {
         }
 
         gameReports.stream()
-                .filter(report -> null == report.getEndTime())
                 .sorted(Comparator.comparing(GameReportEntity::getId))
                 .forEach(gameReportEntity -> {
             PersonaEntity personaEntity = gameReportEntity.getPersona();
 
-            List<String> relatedSlus = GameVersUtils.getRelatedSlus(
-                    socketWrapper.getPersonaConnectionEntity().getVers(),
-                    socketWrapper.getPersonaConnectionEntity().getSlus());
+            List<String> relatedVers = GameVersUtils.getRelatedVers(gameEntity.getVers());
 
             Optional<PersonaConnectionEntity> personaConnectionEntityOpt =
-                    personaConnectionRepository.findByPersonaAndSlusInAndEndTimeIsNull(personaEntity, relatedSlus);
+                    personaConnectionRepository.findByPersonaAndVersInAndEndTimeIsNull(personaEntity, relatedVers);
             if(personaConnectionEntityOpt.isPresent()) {
                 PersonaConnectionEntity personaConnectionEntity = personaConnectionEntityOpt.get();
+                String ipAddr = personaConnectionEntity.getAddress().replace("/", "").split(":")[0];
                 String hostPrefix = gameReportEntity.isHost() ? "@" : "";
                 content.putAll(Stream.of(new String[][] {
                         { "OPID" + idx[0], String.valueOf(personaEntity.getId()) },
                         { "OPPO" + idx[0], hostPrefix + personaEntity.getPers() },
-                        { "ADDR" + idx[0], personaConnectionEntity.getIp() },
-                        { "LADDR" + idx[0], personaConnectionEntity.getIp() },
+                        { "ADDR" + idx[0], ipAddr },
+                        { "LADDR" + idx[0], ipAddr },
                         { "MADDR" + idx[0], "" },
                         { "OPPART" + idx[0], "0" },
                         { "OPPARAM" + idx[0], "chgBAMJQAAAVAAAAUkYAAAUAAAABAAAA" },
@@ -472,32 +462,18 @@ public class GameService {
         gameReportEntity.setHost(isHost);
         gameReportEntity.setStartTime(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
         gameReportRepository.save(gameReportEntity);
-
-        if(gameEntity.getGameReports() == null) {
-            gameEntity.setGameReports(new HashSet<>());
-        }
-
-        gameEntity.getGameReports().add(gameReportEntity);
-        socketWrapper.setGameEntity(gameEntity);
-        socketWrapper.setGameReportEntity(gameReportEntity);
     }
 
     /**
      * Ends the game report because the player has left the game
      */
     public void endGameReport(SocketWrapper socketWrapper) {
-        GameReportEntity gameReportEntity = socketWrapper.getGameReportEntity();
-        if(gameReportEntity != null) {
-            Optional<GameReportEntity> gameReportEntityOptional = gameReportRepository.findById(gameReportEntity.getId());
-            if (gameReportEntityOptional.isPresent()) {
-                gameReportEntity = gameReportEntityOptional.get();
-                if (gameReportEntity.getEndTime() == null) {
-                    gameReportEntity.setEndTime(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
-                    gameReportRepository.save(gameReportEntity);
-                }
-            }
-            socketWrapper.setGameEntity(null);
-            socketWrapper.setGameReportEntity(null);
+        Optional<GameReportEntity> gameReportEntityOpt = gameReportRepository.findByPersonaIdAndEndTimeIsNull(socketWrapper.getPersonaEntity().getId());
+        if(gameReportEntityOpt.isPresent()) {
+            GameReportEntity gameReportEntity = gameReportEntityOpt.get();
+            gameReportEntity.setEndTime(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
+            gameReportRepository.save(gameReportEntity);
+            updateHostInfo(gameReportEntity.getGame());
         }
     }
 
