@@ -118,15 +118,14 @@ public class SocketUtils {
      * @return machine IP instead of 127.0.0.1, or socketIp if != 127.0.0.1
      */
     public static String handleLocalhostIp(String socketIp) {
-        String ip = socketIp;
-        if (socketIp.equals("127.0.0.1")) {
+        if (socketIp.contains("127.0.0.1")) {
             try {
-                ip = InetAddress.getLocalHost().getHostAddress();
+                return socketIp.replace("127.0.0.1", InetAddress.getLocalHost().getHostAddress());
             } catch (UnknownHostException e) {
                 log.error(e.getMessage());
             }
         }
-        return ip;
+        return socketIp;
     }
 
 }

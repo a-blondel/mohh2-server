@@ -2,6 +2,7 @@ package com.ea.services;
 
 import com.ea.dto.SocketData;
 import com.ea.dto.SocketWrapper;
+import com.ea.repositories.GameReportRepository;
 import com.ea.steps.SocketWriter;
 import com.ea.utils.Props;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +27,9 @@ public class AuthService {
 
     @Autowired
     private GameService gameService;
+
+    @Autowired
+    private GameReportRepository gameReportRepository;
 
     public void dir(Socket socket, SocketData socketData) {
         Map<String, String> content = Stream.of(new String[][] {
@@ -125,7 +129,8 @@ public class AuthService {
         }
 
         if(props.isUhsAutoStart() && socketWrapper != null) {
-            if (socketWrapper.isHost() && socketWrapper.getGameEntity() == null) {
+            boolean isInGame = null != socketWrapper.getPersonaEntity() && gameReportRepository.findByPersonaIdAndEndTimeIsNull(socketWrapper.getPersonaEntity().getId()).isPresent();
+            if (socketWrapper.isHost() && !isInGame) {
                 joinRoom(socket, socketData, socketWrapper);
             }
         }

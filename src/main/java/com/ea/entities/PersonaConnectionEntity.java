@@ -22,7 +22,7 @@ public class PersonaConnectionEntity {
     @JoinColumn(name="PERSONA_ID", nullable=false)
     private PersonaEntity persona;
 
-    private String ip;
+    private String address;
 
     private String vers;
 
