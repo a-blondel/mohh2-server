@@ -16,6 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.net.Socket;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -54,19 +55,19 @@ public class TcpSocketThread implements Runnable {
                 pingExecutor.shutdown();
             }
             SocketWrapper socketWrapper = SocketManager.getSocketWrapper(clientSocket);
-            if(socketWrapper != null) {
-                GameEntity gameEntity = socketWrapper.getGameEntity();
+            if(socketWrapper != null && socketWrapper.getPersonaEntity() != null) {
+                GameEntity gameEntity = gameRepository.findCurrentGameOfPersona(socketWrapper.getPersonaEntity().getId()).orElse(null);
                 if(socketWrapper.isHost() && gameEntity != null) {
                     for(GameReportEntity gameReportEntity : gameReportRepository.findByGameIdAndEndTimeIsNull(gameEntity.getId())) {
-                        gameReportEntity.setEndTime(LocalDateTime.now());
+                        gameReportEntity.setEndTime(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
                         gameReportRepository.save(gameReportEntity);
                     }
-                    gameEntity.setEndTime(LocalDateTime.now());
+                    gameEntity.setEndTime(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
                     gameRepository.save(gameEntity);
                 } else {
                     gameService.endGameReport(socketWrapper); // If the player doesn't leave from the game
                     if(gameEntity != null) {
-                        gameService.updatePlayerList(gameEntity, socketWrapper);
+                        gameService.updateHostInfo(gameEntity);
                     }
                 }
                 personaService.endPersonaConnection(socketWrapper);

@@ -6,6 +6,7 @@ import com.ea.entities.AccountEntity;
 import com.ea.entities.PersonaConnectionEntity;
 import com.ea.entities.PersonaEntity;
 import com.ea.entities.PersonaStatsEntity;
+import com.ea.repositories.GameRepository;
 import com.ea.repositories.PersonaConnectionRepository;
 import com.ea.repositories.PersonaRepository;
 import com.ea.repositories.PersonaStatsRepository;
@@ -17,6 +18,7 @@ import org.springframework.stereotype.Component;
 
 import java.net.Socket;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -38,6 +40,9 @@ public class PersonaService {
 
     @Autowired
     private PersonaStatsRepository personaStatsRepository;
+
+    @Autowired
+    private GameRepository gameRepository;
 
     /**
      * Persona creation
@@ -136,7 +141,7 @@ public class PersonaService {
                         socketWrapper.getPersonaConnectionEntity().getSlus());
         if(personaConnectionEntityOpt.isPresent()) {
             PersonaConnectionEntity personaConnectionEntity = personaConnectionEntityOpt.get();
-            personaConnectionEntity.setEndTime(LocalDateTime.now());
+            personaConnectionEntity.setEndTime(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
             personaConnectionRepository.save(personaConnectionEntity);
         }
         PersonaConnectionEntity personaConnectionEntity = socketWrapper.getPersonaConnectionEntity();
@@ -150,7 +155,7 @@ public class PersonaService {
     public void endPersonaConnection(SocketWrapper socketWrapper) {
         PersonaConnectionEntity personaConnectionEntity = socketWrapper.getPersonaConnectionEntity();
         if(null != personaConnectionEntity) {
-            personaConnectionEntity.setEndTime(LocalDateTime.now());
+            personaConnectionEntity.setEndTime(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
             personaConnectionRepository.save(personaConnectionEntity);
         }
     }
@@ -197,8 +202,8 @@ public class PersonaService {
         PersonaStatsEntity personaStatsEntity = personaStatsRepository.findByPersonaIdAndVers(personaEntity.getId(), vers);
         boolean hasStats = null != personaStatsEntity;
 
-        Long gameId = null != socketWrapper.getGameEntity() && null != socketWrapper.getGameEntity().getId() ?
-                socketWrapper.getGameEntity().getId() : 0L;
+        Long gameId = gameRepository.findCurrentGameOfPersona(personaEntity.getId()).map(gameEntity -> gameEntity.getId()).orElse(0L);
+
         String hostPrefix = socketWrapper.isHost() ? "@" : "";
 
         Map<String, String> content = Stream.of(new String[][] {

@@ -7,8 +7,8 @@ public class GameVersUtils {
     public static final String VERS_MOHH_PSP_HOST = "PSP/MOHGPS071";
 
     public static final List<String> VERS_MOHH_PSP = List.of("PSP/MOH07", VERS_MOHH_PSP_HOST);
-    public static final List<String> SLUS_MOHH_PSP_PAL = List.of("ULES00557", "ULES00558", "ULES00559", "ULES00560", "ULES00561", "ULES00562", "MOHA10000");
-    public static final List<String> SLUS_MOHH_PSP_NTSC = List.of("ULUS10141", "MOHA10000");
+    public static final List<String> SLUS_MOHH_PSP_PAL = List.of("ULES00557", "ULES00558", "ULES00559", "ULES00560", "ULES00561", "ULES00562");
+    public static final List<String> SLUS_MOHH_PSP_NTSC = List.of("ULUS10141");
 
     public static final List<String> VERS_MOHH2_PSP = List.of("PSP/MOH08");
     public static final List<String> SLUS_MOHH2_PSP_PAL = List.of("ULES00955", "ULES00956", "ULES00988");
