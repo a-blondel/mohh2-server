@@ -128,7 +128,7 @@ public class AuthService {
             personaService.who(socket, socketWrapper);
         }
 
-        if(props.isUhsAutoStart() && socketWrapper != null) {
+        if(socketWrapper != null) {
             boolean isInGame = null != socketWrapper.getPersonaEntity() && gameReportRepository.findByPersonaIdAndEndTimeIsNull(socketWrapper.getPersonaEntity().getId()).isPresent();
             if (socketWrapper.isHost() && !isInGame) {
                 joinRoom(socket, socketData, socketWrapper);

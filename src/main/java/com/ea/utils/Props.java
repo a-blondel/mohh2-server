@@ -31,9 +31,6 @@ public class Props {
     @Value("${uhs.ea-server-mode}")
     private boolean uhsEaServerMode;
 
-    @Value("${uhs.auto-start}")
-    private boolean uhsAutoStart;
-
     @Value("${tcp.debug.enabled}")
     private boolean tcpDebugEnabled;
 

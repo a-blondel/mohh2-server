@@ -244,37 +244,35 @@ public class GameService {
      * @param socketWrapper
      */
     public void gcre(Socket socket, SocketData socketData, SocketWrapper socketWrapper) {
-        if(props.isUhsAutoStart()) {
-            GameEntity gameEntity = gameRepository.findById(1L).orElse(null);
+        GameEntity gameEntity = gameRepository.findById(1L).orElse(null);
 
-            boolean duplicatename = false;
-            if (!props.isUhsEaServerMode()) {
-                String vers = socketWrapper.getPersonaConnectionEntity().getVers();
-                String slus = socketWrapper.getPersonaConnectionEntity().getSlus();
-                gameEntity = socketMapper.toGameEntity(socketData.getInputMessage(), vers, slus, true);
+        boolean duplicatename = false;
+        if (!props.isUhsEaServerMode()) {
+            String vers = socketWrapper.getPersonaConnectionEntity().getVers();
+            String slus = socketWrapper.getPersonaConnectionEntity().getSlus();
+            gameEntity = socketMapper.toGameEntity(socketData.getInputMessage(), vers, slus, true);
 
-                List<String> relatedVers = GameVersUtils.getRelatedVers(vers);
-                duplicatename = gameRepository.existsByNameAndVersInAndEndTimeIsNull(gameEntity.getName(), relatedVers);
+            List<String> relatedVers = GameVersUtils.getRelatedVers(vers);
+            duplicatename = gameRepository.existsByNameAndVersInAndEndTimeIsNull(gameEntity.getName(), relatedVers);
 
-                if(duplicatename) {
-                    socketData.setIdMessage("gcredupl");
-                    SocketWriter.write(socket, socketData);
-                } else {
-                    gameRepository.save(gameEntity);
-                    SocketWriter.write(socket, socketData);
-                }
+            if(duplicatename) {
+                socketData.setIdMessage("gcredupl");
+                SocketWriter.write(socket, socketData);
+            } else {
+                gameRepository.save(gameEntity);
+                SocketWriter.write(socket, socketData);
             }
+        }
 
-            if(!duplicatename) {
-                startGameReport(socketWrapper, gameEntity, true);
-                personaService.who(socket, socketWrapper); // Used to set the game id
-                try {
-                    Thread.sleep(100);
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
-                }
-                SocketWriter.write(socket, new SocketData("+mgm", null, getGameInfo(gameEntity)));
+        if(!duplicatename) {
+            startGameReport(socketWrapper, gameEntity, true);
+            personaService.who(socket, socketWrapper); // Used to set the game id
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
             }
+            SocketWriter.write(socket, new SocketData("+mgm", null, getGameInfo(gameEntity)));
         }
     }
 
@@ -304,11 +302,11 @@ public class GameService {
         String status = getValueFromSocket(socketData.getInputMessage(), "STATUS");
 
         // Add a flag in database to indicate that the game is hosted
-        if(props.isUhsAutoStart() && props.isUhsEaServerMode() && ("A").equals(status)) {
+        if(props.isUhsEaServerMode() && ("A").equals(status)) {
             //gps(socket, socketData); // Not needed yet
             GameEntity gameEntity = gameRepository.findById(1L).orElse(null);
             SocketWriter.write(socket, new SocketData("$cre", null, getGameInfo(gameEntity)));
-        } else if(props.isUhsAutoStart() && ("G").equals(status)) {
+        } else if(("G").equals(status)) {
             // We can't send +ses here as we need at least the host + 1 player (COUNT=2) to start a game
         }
 
