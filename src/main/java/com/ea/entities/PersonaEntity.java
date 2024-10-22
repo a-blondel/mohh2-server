@@ -31,8 +31,6 @@ public class PersonaEntity {
 
     private LocalDateTime deletedOn;
 
-    private boolean host;
-
     @OneToMany(mappedBy = "persona", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<PersonaStatsEntity> personaStats;
 
