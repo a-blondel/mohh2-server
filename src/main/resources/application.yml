@@ -18,8 +18,6 @@ ssc2:
   key: 51ba8aee64ddfacae5baefa6bf61e009
 game:
   close-expired: ${GAME_CLOSE_EXPIRED:true}
-uhs:
-  ea-server-mode: false
 
 spring:
   datasource:

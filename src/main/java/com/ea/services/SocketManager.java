@@ -4,7 +4,6 @@ import com.ea.dto.SocketWrapper;
 import com.ea.repositories.GameReportRepository;
 import com.ea.utils.BeanUtil;
 
-import java.io.IOException;
 import java.net.Socket;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -26,13 +25,6 @@ public class SocketManager {
         sockets.remove(identifier);
     }
 
-    public static void setHost(String identifier, boolean isHost) {
-        SocketWrapper wrapper = sockets.get(identifier);
-        if (wrapper != null) {
-            wrapper.setHost(isHost);
-        }
-    }
-
     public static SocketWrapper getSocketWrapper(Socket socket) {
         return getSocketWrapper(socket.getRemoteSocketAddress().toString());
     }
@@ -47,24 +39,17 @@ public class SocketManager {
                 .orElse(null);
     }
 
+    public static SocketWrapper getAvailableGps() {
+        return sockets.values().stream()
+                .filter(wrapper -> wrapper.isGps() && !wrapper.isHosting())
+                .findFirst()
+                .orElse(null);
+    }
+
     public static List<Socket> getHostSockets() {
         return sockets.values().stream()
                 .filter(wrapper -> wrapper.isHost())
                 .map(SocketWrapper::getSocket)
                 .collect(Collectors.toList());
-    }
-
-    public void broadcastMessage(String message) {
-        sockets.values().forEach(wrapper -> {
-            try {
-                writeMessageToSocket(wrapper.getSocket(), message);
-            } catch (IOException e) {
-                // Handle exception, possibly remove the socket from the collection
-            }
-        });
-    }
-
-    private void writeMessageToSocket(Socket socket, String message) throws IOException {
-        // If necessary, implement the logic to write a message to a socket
     }
 }
