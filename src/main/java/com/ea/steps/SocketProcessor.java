@@ -99,7 +99,7 @@ public class SocketProcessor {
                 gameService.gset(socket, socketData, socketWrapper);
                 break;
             case ("gdel"):
-                SocketWriter.write(socket, socketData);
+                gameService.gdel(socket, socketData, socketWrapper);
                 break;
             default:
                 log.info("Unsupported operation: {}", socketData.getIdMessage());

@@ -25,6 +25,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static com.ea.utils.GameVersUtils.VERS_MOHH_PSP;
 import static com.ea.utils.SocketUtils.DATETIME_FORMAT;
 import static com.ea.utils.SocketUtils.getValueFromSocket;
 
@@ -134,6 +135,7 @@ public class GameService {
      * Game count
      * @param socket
      * @param socketData
+     * @param socketWrapper
      */
     public void gsea(Socket socket, SocketData socketData, SocketWrapper socketWrapper) {
         List<String> relatedVers = GameVersUtils.getRelatedVers(socketWrapper.getPersonaConnectionEntity().getVers());
@@ -212,26 +214,35 @@ public class GameService {
         String vers = socketWrapper.getPersonaConnectionEntity().getVers();
         String slus = socketWrapper.getPersonaConnectionEntity().getSlus();
         List<String> relatedVers = GameVersUtils.getRelatedVers(vers);
+        boolean isMohh = relatedVers.equals(VERS_MOHH_PSP);
         GameEntity gameEntityToCreate = socketMapper.toGameEntity(socketData.getInputMessage(), vers, slus);
 
         boolean duplicateName = gameRepository.existsByNameAndVersInAndEndTimeIsNull(gameEntityToCreate.getName(), relatedVers);
         if(duplicateName) {
             socketData.setIdMessage("gpscdupl");
             SocketWriter.write(socket, socketData);
-        } else {
-            SocketWriter.write(socket, socketData);
+        } else if(isMohh) {
             SocketWrapper gpsSocketWrapper = SocketManager.getAvailableGps();
             if(gpsSocketWrapper == null) {
                 socketData.setIdMessage("gpscnfnd");
                 SocketWriter.write(socket, socketData);
             } else {
-                SocketWriter.write(gpsSocketWrapper.getSocket(), new SocketData("$cre", null, getGameInfo(gameEntityToCreate)));
+                SocketWriter.write(socket, socketData);
+                Map<String, String> content = Stream.of(new String[][] {
+                        { "NAME", gameEntityToCreate.getName() },
+                        { "PARAMS", gameEntityToCreate.getParams() },
+                        { "SYSFLAGS", gameEntityToCreate.getSysflags() },
+                        { "MINSIZE", String.valueOf(gameEntityToCreate.getMinsize()) },
+                        { "MAXSIZE", String.valueOf(gameEntityToCreate.getMaxsize()) },
+                        { "PASS", null != gameEntityToCreate.getPass() ? gameEntityToCreate.getPass() : "" },
+                }).collect(Collectors.toMap(data -> data[0], data -> data[1]));
+                SocketWriter.write(gpsSocketWrapper.getSocket(), new SocketData("$cre", null, content));
 
                 new Thread(() -> {
                     int retries = 0;
-                    while(retries < 3) {
+                    while(retries < 5) {
                         try {
-                            Thread.sleep(2000);
+                            Thread.sleep(500);
                         } catch (InterruptedException e) {
                             throw new RuntimeException(e);
                         }
@@ -240,12 +251,18 @@ public class GameService {
                             GameEntity gameEntity = gameEntityOpt.get();
                             startGameReport(socketWrapper, gameEntity, false);
                             ses(socket, gameEntity);
+                            updateHostInfo(gameEntity);
                             break;
                         }
                         retries++;
                     }
                 }).start();
             }
+        } else {
+            SocketWriter.write(socket, socketData);
+            gameRepository.save(gameEntityToCreate);
+            startGameReport(socketWrapper, gameEntityToCreate, false);
+            ses(socket, gameEntityToCreate);
         }
     }
 
@@ -343,6 +360,31 @@ public class GameService {
             socketData.setOutputData(content);
             socketData.setIdMessage("$gps");
             SocketWriter.write(socket, socketData);
+    }
+
+    /**
+     * Delete a game
+     * @param socket
+     * @param socketData
+     * @param socketWrapper
+     */
+    public void gdel(Socket socket, SocketData socketData, SocketWrapper socketWrapper) {
+        Optional<GameEntity> gameEntity = gameRepository.findCurrentGameOfPersona(socketWrapper.getPersonaEntity().getId());
+        if(gameEntity.isPresent()) {
+            GameEntity game = gameEntity.get();
+            LocalDateTime now = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
+            game.setEndTime(now);
+            gameRepository.save(game);
+            game.getGameReports().stream().filter(report -> null == report.getEndTime()).forEach(report -> {
+                report.setEndTime(now);
+                gameReportRepository.save(report);
+            });
+        }
+        SocketWriter.write(socket, socketData);
+
+        // This prevents the server from killing itself, but we can't set a new game after that (it keeps the old game parameters)
+        //SocketWriter.write(socket, new SocketData("$cre", null, null));
+        //personaService.who(socket, socketWrapper);
     }
 
     /**
@@ -494,14 +536,14 @@ public class GameService {
     }
 
     /**
-     * Close expired lobbies
+     * Close expired lobbies (only for mohh2 as games aren't hosted)
      * If no one is in the game after 2 minutes, close it
      */
     public void closeExpiredLobbies() {
         List<GameEntity> gameEntities = gameRepository.findByEndTimeIsNull();
         gameEntities.forEach(gameEntity -> {
             Set<GameReportEntity> gameReports = gameEntity.getGameReports();
-            if(gameReports.stream().noneMatch(report -> null == report.getEndTime())) {
+            if(gameReports.stream().noneMatch(report -> report.isHost() && null == report.getEndTime())) {
                 if(gameReports.stream().allMatch(report -> report.getEndTime().plusSeconds(120).isBefore(LocalDateTime.now()))) {
                     log.info("Closing expired game: {} - {}", gameEntity.getId(), gameEntity.getName());
                     gameEntity.setEndTime(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
