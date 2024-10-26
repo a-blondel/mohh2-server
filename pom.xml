@@ -5,8 +5,8 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.ea</groupId>
-    <artifactId>mohh2-server</artifactId>
-    <version>0.1.1-SNAPSHOT</version>
+    <artifactId>mohh-master-server</artifactId>
+    <version>1.0.0</version>
 
     <parent>
         <groupId>org.springframework.boot</groupId>

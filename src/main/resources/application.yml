@@ -51,7 +51,7 @@ spring:
       settings:
         web-allow-others: true
   datasource:
-    url: jdbc:h2:mem:mohh2db;DB_CLOSE_DELAY=-1
+    url: jdbc:h2:mem:mohh_db;DB_CLOSE_DELAY=-1
     username: sa
     password: sa
     driver-class-name: org.h2.Driver
