@@ -1,8 +1,12 @@
-# Medal Of Honor Heroes 1 & 2 Master Server
+# Master Server for Medal Of Honor Heroes 1 & 2
+
+This project aims to provide a master server for Medal of Honor Heroes 1 (PSP) and 2 (PSP/Wii).  
+It uses the `User Hosted Server` formerly distributed by EA to host games for MoHH1.  
+For MoHH2, a serverless patch has been made to allow playing alone on multiplayer maps. Playing with others isn't possible yet.
 
 ## Discord
 
-Link : https://discord.gg/fwrQHHxrQQ  
+[![Discord Banner](https://discordapp.com/api/guilds/1092099223375323236/widget.png?style=banner3)](https://discord.gg/fwrQHHxrQQ)
 
 It is used to :
 - Talk about the game
@@ -16,7 +20,7 @@ Fell free to join !
 
 Everything to know is in the [Wiki](https://github.com/a-blondel/mohh2-server/wiki)  
 It contains :
-- Generic info about the game (weapons, maps,...)
+- Generic info about the games (weapons, maps,...)
 - Technical knowledge (packet capture, ...)
 
 ## Development Status
@@ -87,20 +91,21 @@ MoHH2 screenshots :
 
 ### 1/ Riivolution patches (Wii only)
 
-To make the game to use this server you need to activate Riivolution patches when starting the game.  
-Patches can be found here : https://github.com/a-blondel/mohh2-wii-patch
+To make the game to use this server you need to activate a Riivolution patch (or a Gecko Code) when booting the game.  
+They can be found here : https://github.com/a-blondel/mohh2-wii-patch
 
 ### 2/ Hosts file or DNS
 
 In order to intercept requests from the game, you must either use a DNS server or edit your hosts file.
 
-- Hosts file (for Dolphin)
+- Hosts file (for PPSSPP/Dolphin)
 
 Add these lines to your hosts file (`C:\Windows\System32\drivers\etc`) :
 ```
 127.0.0.1 pspmoh07.ea.com
 127.0.0.1 wiimoh08.ea.com
 127.0.0.1 pspmoh08.ea.com
+127.0.0.1 tos.ea.com
 127.0.0.1 naswii.nintendowifi.net
 ```
 
@@ -143,6 +148,9 @@ server:
 	local-zone: "pspmoh08.ea.com" static
     local-data: "pspmoh08.ea.com A 192.168.1.1" # CHANGE IT !
     
+    local-zone: "tos.ea.com" static
+    local-data: "tos.ea.com A 192.168.1.1" # CHANGE IT !
+    
     local-zone: "naswii.nintendowifi.net" static
     local-data: "naswii.nintendowifi.net A 192.168.1.1" # CHANGE IT !
 ```
@@ -163,9 +171,9 @@ If you have downloaded Intellij, Maven comes bundled with, otherwise download th
 Configuration is defined in `application.yml`.
 
 For `tcp.host`, it depends on your use case :
-- If you are running the server (not in WSL) and the game on the same machine (using Dolphin), and you don't need to host for other machines, then no changes are needed.
-- If you are running the server (in WSL) and the game on the same machine (using Dolphin), and you don't need to host for other machines, then you must set the WSL's eth0 IP.
-- If you are running the server for other machines (i.e. Wii/PSP, or another computer using Dolphin), then you must set the machine IP (works for private and public networks).
+- If you are running the server (not in WSL) and the game on the same machine (using PPSSPP/Dolphin), and you don't need to host for other machines, then no changes are needed.
+- If you are running the server (in WSL) and the game on the same machine (using PPSSPP/Dolphin), and you don't need to host for other machines, then you must set the WSL's eth0 IP.
+- If you are running the server for other machines (i.e. Wii/PSP, or another computer using PPSSPP/Dolphin), then you must set the machine IP (works for private and public networks).
 
 ## Run the server
 
@@ -204,7 +212,7 @@ Replace with your own values.
 
 After a successful build, get into the target folder and execute one the following commands:
 ```
-java -DDB_URL=jdbc:postgresql://localhost:5432/mohh2db -DDB_USERNAME=user -DDB_PASSWORD=password -DLOGS=C:/moh/logs -DTCP_HOST_IP=127.0.0.1 -jar mohh2-server-0.1.1-SNAPSHOT.jar
+java -DDB_URL=jdbc:postgresql://localhost:5432/mohh2db -DDB_USERNAME=user -DDB_PASSWORD=password -DLOGS=C:/moh/logs -DTCP_HOST_IP=127.0.0.1 -jar mohh2-server-*.jar
 ```
 
 ### 2.c Start with Docker
