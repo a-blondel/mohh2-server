@@ -23,8 +23,6 @@ public class GameEntity {
 
     private String slus;
 
-    private boolean userHosted;
-
     private String name;
 
     private String params;

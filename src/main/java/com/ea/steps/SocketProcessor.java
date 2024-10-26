@@ -96,10 +96,10 @@ public class SocketProcessor {
                 gameService.gsta(socket, socketData);
                 break;
             case ("gset"):
-                gameService.gset(socket, socketData);
+                gameService.gset(socket, socketData, socketWrapper);
                 break;
             case ("gdel"):
-                SocketWriter.write(socket, socketData);
+                gameService.gdel(socket, socketData, socketWrapper);
                 break;
             default:
                 log.info("Unsupported operation: {}", socketData.getIdMessage());

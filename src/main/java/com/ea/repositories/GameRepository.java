@@ -18,9 +18,9 @@ public interface GameRepository extends JpaRepository<GameEntity, Long> {
 
     List<GameEntity> findByEndTimeIsNull();
 
-    GameEntity findByNameAndEndTimeIsNull(String name);
-
     List<GameEntity> findByVersInAndEndTimeIsNull(List<String> vers);
+
+    Optional<GameEntity> findByNameAndVersInAndEndTimeIsNull(String name, List<String> vers);
 
     boolean existsByNameAndVersInAndEndTimeIsNull(String name, List<String> vers);
 

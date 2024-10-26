@@ -23,11 +23,10 @@ public class SocketMapper {
     @Autowired
     private PasswordUtils passwordUtils;
 
-    public GameEntity toGameEntity(String socket, String vers, String slus, boolean userHosted) {
+    public GameEntity toGameEntity(String socket, String vers, String slus) {
         GameEntity gameEntity = new GameEntity();
         gameEntity.setVers(vers);
         gameEntity.setSlus(slus);
-        gameEntity.setUserHosted(userHosted);
         setFieldsFromSocket(gameEntity, socket, RETURN_CHAR);
         gameEntity.setStartTime(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
         return gameEntity;
