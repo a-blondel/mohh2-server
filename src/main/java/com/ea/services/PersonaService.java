@@ -91,9 +91,8 @@ public class PersonaService {
      */
     public void pers(Socket socket, SocketData socketData, SocketWrapper socketWrapper) {
         String pers = getValueFromSocket(socketData.getInputMessage(), "PERS");
-        SocketManager.setHost(socket.getRemoteSocketAddress().toString(), pers.contains("@"));
-
         if(pers.contains("@")) { // Remove @ from persona name (UHS naming convention)
+            socketWrapper.setHost(true);
             pers = pers.split("@")[0] + pers.split("@")[1];
         }
 
