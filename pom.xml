@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>com.ea</groupId>
-    <artifactId>mohh2-server</artifactId>
+    <artifactId>mohh-master-server</artifactId>
     <version>0.1.1-SNAPSHOT</version>
 
     <parent>

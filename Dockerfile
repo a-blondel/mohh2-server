@@ -10,9 +10,9 @@ RUN mvn clean package -DskipTests
 # Run image
 FROM ibm-semeru-runtimes:open-17-jre
 # Copy jar
-COPY --from=build /usr/local/app/target/mohh2-server-*.jar /mohh2-server.jar
+COPY --from=build /usr/local/app/target/mohh-master-server-*.jar /mohh-master-server.jar
 
 EXPOSE 8080
 
 # Start command
-ENTRYPOINT ["java", "-jar", "/mohh2-server.jar"]
+ENTRYPOINT ["java", "-jar", "/mohh-master-server.jar"]

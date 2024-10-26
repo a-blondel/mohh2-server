@@ -18,7 +18,7 @@ Fell free to join !
 
 ## Wiki
 
-Everything to know is in the [Wiki](https://github.com/a-blondel/mohh2-server/wiki)  
+Everything to know is in the [Wiki](https://github.com/a-blondel/mohh-master-server/wiki)  
 It contains :
 - Generic info about the games (weapons, maps,...)
 - Technical knowledge (packet capture, ...)
@@ -203,7 +203,7 @@ com.ea.ServerApp
 
 Define the environment variables matching your need, mostly for the database (see `Database` chapter), e.g. :
 ```
-DB_URL=jdbc:postgresql://localhost:5432/mohh2db;DB_USERNAME=user;DB_PASSWORD=password;LOGS=C:/moh/logs;TCP_HOST_IP=127.0.0.1
+DB_URL=jdbc:postgresql://localhost:5432/mohh_db;DB_USERNAME=user;DB_PASSWORD=password;LOGS=C:/moh/logs;TCP_HOST_IP=127.0.0.1
 ```
 
 Replace with your own values.
@@ -212,7 +212,7 @@ Replace with your own values.
 
 After a successful build, get into the target folder and execute one the following commands:
 ```
-java -DDB_URL=jdbc:postgresql://localhost:5432/mohh2db -DDB_USERNAME=user -DDB_PASSWORD=password -DLOGS=C:/moh/logs -DTCP_HOST_IP=127.0.0.1 -jar mohh2-server-*.jar
+java -DDB_URL=jdbc:postgresql://localhost:5432/mohh_db -DDB_USERNAME=user -DDB_PASSWORD=password -DLOGS=C:/moh/logs -DTCP_HOST_IP=127.0.0.1 -jar mohh-master-server-*.jar
 ```
 
 ### 2.c Start with Docker
@@ -224,17 +224,17 @@ cd /mnt/c/path/to/the/project
 
 Create the image
 ```
-docker build --tag mohh2-server:latest .
+docker build --tag mohh-master-server:latest .
 ```
 
 You need to start a postgres container after creating a network :
 ```
-docker network create mohh2-network
+docker network create mohh-network
 
-docker run -d --restart=unless-stopped --network mohh2-network \
+docker run -d --restart=unless-stopped --network mohh-network \
   -e POSTGRES_USER=user \
   -e POSTGRES_PASSWORD=password \
-  -e POSTGRES_DB=mohh2db \
+  -e POSTGRES_DB=mohh_db \
   -p 5432:5432 \
   --name postgres \
   postgres:latest
@@ -242,13 +242,13 @@ docker run -d --restart=unless-stopped --network mohh2-network \
 
 Then, you can start the server using the network :
 ```
-docker run --name mohh2-server --rm -it \
+docker run --name mohh-master-server --rm -it \
   -p 21171:21171 -p 21172:21172 -p 21173:21173 \
   -e "LOGS=./logs" -e "TCP_HOST_IP=127.0.0.1" \
-  -e "DB_URL=jdbc:postgresql://postgres:5432/mohh2db" \
+  -e "DB_URL=jdbc:postgresql://postgres:5432/mohh_db" \
   -e "DB_USERNAME=user" -e "DB_PASSWORD=password" \
-  --network mohh2-network \
-  mohh2-server:latest
+  --network mohh-network \
+  mohh-master-server:latest
 ```
 
 If started in background, here is how to open a bash in the container :
@@ -277,7 +277,7 @@ docker pull postgres:latest
 docker run -d --rm \
   -e POSTGRES_USER=user \
   -e POSTGRES_PASSWORD=password \
-  -e POSTGRES_DB=mohh2db \
+  -e POSTGRES_DB=mohh_db \
   -p 5432:5432 \
   --name postgres \
   postgres:latest
@@ -292,7 +292,7 @@ mkdir ~/postgres_data
 docker run -d --restart=unless-stopped \
 -e POSTGRES_USER=user \
 -e POSTGRES_PASSWORD=password \
--e POSTGRES_DB=mohh2db \
+-e POSTGRES_DB=mohh_db \
 -p 5432:5432 \
 -v ~/postgres_data:/var/lib/postgresql/data \
 --name postgres \
