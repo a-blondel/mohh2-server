@@ -104,6 +104,7 @@ public class GameService {
                     gameRepository.save(gameEntity);
 
                     GameEntity newGameEntity = new GameEntity();
+                    newGameEntity.setOriginalId(Optional.ofNullable(gameEntity.getOriginalId()).orElse(gameEntity.getId()));
                     newGameEntity.setVers(gameEntity.getVers());
                     newGameEntity.setSlus(gameEntity.getSlus());
                     newGameEntity.setName(name);
@@ -423,7 +424,7 @@ public class GameService {
         count = hasHost ? count : ++count;
 
         Map<String, String> content = Stream.of(new String[][] {
-                { "IDENT", String.valueOf(gameId) },
+                { "IDENT", String.valueOf(Optional.ofNullable(gameEntity.getOriginalId()).orElse(gameEntity.getId())) },
                 { "NAME", gameEntity.getName() },
                 { "HOST", host },
                 // { "GPSHOST", hostSocketWrapperOfGame.getPers() },

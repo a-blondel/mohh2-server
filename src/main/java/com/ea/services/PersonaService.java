@@ -217,7 +217,9 @@ public class PersonaService {
         PersonaStatsEntity personaStatsEntity = personaStatsRepository.findByPersonaIdAndVers(personaEntity.getId(), vers);
         boolean hasStats = null != personaStatsEntity;
 
-        Long gameId = gameRepository.findCurrentGameOfPersona(socketWrapper.getPersonaConnectionEntity().getId()).map(gameEntity -> gameEntity.getId()).orElse(0L);
+        Long gameId = gameRepository.findCurrentGameOfPersona(socketWrapper.getPersonaConnectionEntity().getId())
+                .map(gameEntity -> Optional.ofNullable(gameEntity.getOriginalId()).orElse(gameEntity.getId()))
+                .orElse(0L);
 
         String hostPrefix = socketWrapper.isHost() ? "@" : "";
 
