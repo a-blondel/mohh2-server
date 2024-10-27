@@ -13,8 +13,8 @@ public interface GameRepository extends JpaRepository<GameEntity, Long> {
 
     Optional<GameEntity> findById(Long id);
 
-    @Query("FROM GameEntity g JOIN g.gameReports gr WHERE g.vers IN :vers AND gr.persona.id = :personaId AND gr.isHost = :isHost AND gr.endTime IS NULL")
-    Optional<GameEntity> findCurrentGameOfPersona(List<String> vers, Long personaId, boolean isHost);
+    @Query("SELECT g FROM GameEntity g JOIN g.gameReports gr JOIN gr.personaConnection pc WHERE pc.id = :personaConnectionId AND gr.endTime IS NULL")
+    Optional<GameEntity> findCurrentGameOfPersona(long personaConnectionId);
 
     List<GameEntity> findByEndTimeIsNull();
 

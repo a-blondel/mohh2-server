@@ -35,9 +35,6 @@ public class PersonaEntity {
     private Set<PersonaStatsEntity> personaStats;
 
     @OneToMany(mappedBy="persona", fetch = FetchType.EAGER)
-    private Set<GameReportEntity> gameReports;
-
-    @OneToMany(mappedBy="persona", fetch = FetchType.EAGER)
     private Set<PersonaConnectionEntity> personaConnections;
 
 }

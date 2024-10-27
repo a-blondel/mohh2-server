@@ -98,9 +98,9 @@ public class PersonaService {
             pers = pers.split("@")[0] + pers.split("@")[1];
         }
 
-        // Check if the persona is already connected
+        // Check if the persona is already connected (allowed for host only)
         Optional<PersonaConnectionEntity> personaConnectionEntityOpt =
-                personaConnectionRepository.findByVersAndSlusAndPersonaPersAndEndTimeIsNull(
+                personaConnectionRepository.findByVersAndSlusAndPersonaPersAndIsHostFalseAndEndTimeIsNull(
                         socketWrapper.getPersonaConnectionEntity().getVers(),
                         socketWrapper.getPersonaConnectionEntity().getSlus(),
                         pers);
@@ -149,7 +149,7 @@ public class PersonaService {
         // Close current connection if the user got a "soft" disconnection (TCP connection is still active)
         PersonaEntity personaEntity = socketWrapper.getPersonaEntity();
         Optional<PersonaConnectionEntity> personaConnectionEntityOpt =
-                personaConnectionRepository.findByVersAndSlusAndPersonaPersAndEndTimeIsNull(
+                personaConnectionRepository.findByVersAndSlusAndPersonaPersAndIsHostFalseAndEndTimeIsNull(
                         socketWrapper.getPersonaConnectionEntity().getVers(),
                         socketWrapper.getPersonaConnectionEntity().getSlus(),
                         personaEntity.getPers());
@@ -213,13 +213,11 @@ public class PersonaService {
         PersonaEntity personaEntity = socketWrapper.getPersonaEntity();
         AccountEntity accountEntity = socketWrapper.getAccountEntity();
         String vers = socketWrapper.getPersonaConnectionEntity().getVers();
-        List<String> relatedVers = GameVersUtils.getRelatedVers(vers);
 
         PersonaStatsEntity personaStatsEntity = personaStatsRepository.findByPersonaIdAndVers(personaEntity.getId(), vers);
         boolean hasStats = null != personaStatsEntity;
 
-        Long gameId = gameRepository.findCurrentGameOfPersona(
-                relatedVers, personaEntity.getId(), socketWrapper.isHost()).map(gameEntity -> gameEntity.getId()).orElse(0L);
+        Long gameId = gameRepository.findCurrentGameOfPersona(socketWrapper.getPersonaConnectionEntity().getId()).map(gameEntity -> gameEntity.getId()).orElse(0L);
 
         String hostPrefix = socketWrapper.isHost() ? "@" : "";
 

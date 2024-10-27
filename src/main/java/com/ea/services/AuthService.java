@@ -131,13 +131,7 @@ public class AuthService {
         }
 
         if(socketWrapper != null && socketWrapper.isHost()) {
-            List<String> relatedVers = GameVersUtils.getRelatedVers(socketWrapper.getPersonaConnectionEntity().getVers());
-            boolean isInGame = null != socketWrapper.getPersonaEntity()
-                    && gameReportRepository.findByGameVersInAndPersonaIdAndIsHostAndEndTimeIsNull(relatedVers,
-                            socketWrapper.getPersonaEntity().getId(), socketWrapper.isHost()).isPresent();
-            if (!isInGame) {
-                joinRoom(socket, socketData, socketWrapper);
-            }
+            joinRoom(socket, socketData, socketWrapper);
         }
 
     }

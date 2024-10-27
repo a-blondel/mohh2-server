@@ -118,7 +118,7 @@ public class GameService {
                     for (GameReportEntity gameReportEntity : gameReports) {
                         GameReportEntity newGameReportEntity = new GameReportEntity();
                         newGameReportEntity.setGame(newGameEntity);
-                        newGameReportEntity.setPersona(gameReportEntity.getPersona());
+                        newGameReportEntity.setPersonaConnection(gameReportEntity.getPersonaConnection());
                         newGameReportEntity.setHost(gameReportEntity.isHost());
                         newGameReportEntity.setStartTime(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
                         gameReportRepository.save(newGameReportEntity);
@@ -369,8 +369,7 @@ public class GameService {
      * @param socketWrapper
      */
     public void gdel(Socket socket, SocketData socketData, SocketWrapper socketWrapper) {
-        List<String> relatedVers = GameVersUtils.getRelatedVers(socketWrapper.getPersonaConnectionEntity().getVers());
-        Optional<GameEntity> gameEntity = gameRepository.findCurrentGameOfPersona(relatedVers, socketWrapper.getPersonaEntity().getId(), socketWrapper.isHost());
+        Optional<GameEntity> gameEntity = gameRepository.findCurrentGameOfPersona(socketWrapper.getPersonaConnectionEntity().getId());
         if(gameEntity.isPresent()) {
             GameEntity game = gameEntity.get();
             LocalDateTime now = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
@@ -474,31 +473,26 @@ public class GameService {
         gameReports.stream()
                 .sorted(Comparator.comparing(GameReportEntity::getId))
                 .forEach(gameReportEntity -> {
-            PersonaEntity personaEntity = gameReportEntity.getPersona();
-            List<String> relatedVers = GameVersUtils.getRelatedVers(gameEntity.getVers());
-            List<PersonaConnectionEntity> personaConnectionEntities =
-                    personaConnectionRepository.findByVersInAndPersonaIdAndIsHostAndEndTimeIsNull(relatedVers, personaEntity.getId(), gameReportEntity.isHost());
-            if(personaConnectionEntities.size() > 0) {
-                        PersonaConnectionEntity personaConnectionEntity = personaConnectionEntities.get(0);
-                String ipAddr = personaConnectionEntity.getAddress().replace("/", "").split(":")[0];
-                String hostPrefix = gameReportEntity.isHost() ? "@" : "";
-                content.putAll(Stream.of(new String[][] {
-                        { "OPID" + idx[0], String.valueOf(personaEntity.getId()) },
-                        { "OPPO" + idx[0], hostPrefix + personaEntity.getPers() },
-                        { "ADDR" + idx[0], ipAddr },
-                        { "LADDR" + idx[0], ipAddr },
-                        { "MADDR" + idx[0], "" },
-                        { "OPPART" + idx[0], "0" },
-                        { "OPPARAM" + idx[0], "chgBAMJQAAAVAAAAUkYAAAUAAAABAAAA" },
-                        { "OPFLAG" + idx[0], "413082880" },
-                        { "OPFLAGS" + idx[0], "413082880" },
-                        { "PRES" + idx[0], "0" },
-                        { "PARTSIZE" + idx[0], String.valueOf(gameEntity.getMaxsize()) },
-                        { "PARTPARAMS" + idx[0], "" },
-                }).collect(Collectors.toMap(data -> data[0], data -> data[1])));
-                idx[0]++;
-            }
-        });
+                    PersonaConnectionEntity personaConnectionEntity = gameReportEntity.getPersonaConnection();
+                    PersonaEntity personaEntity = personaConnectionEntity.getPersona();
+                    String ipAddr = personaConnectionEntity.getAddress().replace("/", "").split(":")[0];
+                    String hostPrefix = gameReportEntity.isHost() ? "@" : "";
+                    content.putAll(Stream.of(new String[][] {
+                            { "OPID" + idx[0], String.valueOf(personaEntity.getId()) },
+                            { "OPPO" + idx[0], hostPrefix + personaEntity.getPers() },
+                            { "ADDR" + idx[0], ipAddr },
+                            { "LADDR" + idx[0], ipAddr },
+                            { "MADDR" + idx[0], "" },
+                            { "OPPART" + idx[0], "0" },
+                            { "OPPARAM" + idx[0], "chgBAMJQAAAVAAAAUkYAAAUAAAABAAAA" },
+                            { "OPFLAG" + idx[0], "413082880" },
+                            { "OPFLAGS" + idx[0], "413082880" },
+                            { "PRES" + idx[0], "0" },
+                            { "PARTSIZE" + idx[0], String.valueOf(gameEntity.getMaxsize()) },
+                            { "PARTPARAMS" + idx[0], "" },
+                    }).collect(Collectors.toMap(data -> data[0], data -> data[1])));
+                    idx[0]++;
+});
         return content;
     }
 
@@ -513,7 +507,7 @@ public class GameService {
 
         GameReportEntity gameReportEntity = new GameReportEntity();
         gameReportEntity.setGame(gameEntity);
-        gameReportEntity.setPersona(socketWrapper.getPersonaEntity());
+        gameReportEntity.setPersonaConnection(socketWrapper.getPersonaConnectionEntity());
         gameReportEntity.setHost(socketWrapper.isHost());
         gameReportEntity.setStartTime(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
         gameReportRepository.save(gameReportEntity);
@@ -523,10 +517,8 @@ public class GameService {
      * Ends the game report because the player has left the game
      */
     public void endGameReport(SocketWrapper socketWrapper) {
-        List<String> relatedVers = GameVersUtils.getRelatedVers(socketWrapper.getPersonaConnectionEntity().getVers());
         Optional<GameReportEntity> gameReportEntityOpt =
-                gameReportRepository.findByGameVersInAndPersonaIdAndIsHostAndEndTimeIsNull(
-                        relatedVers, socketWrapper.getPersonaEntity().getId(), socketWrapper.isHost());
+                gameReportRepository.findByPersonaConnectionIdAndEndTimeIsNull(socketWrapper.getPersonaConnectionEntity().getId());
         if(gameReportEntityOpt.isPresent()) {
             GameReportEntity gameReportEntity = gameReportEntityOpt.get();
             gameReportEntity.setEndTime(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));

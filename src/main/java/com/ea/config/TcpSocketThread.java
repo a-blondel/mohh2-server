@@ -58,9 +58,7 @@ public class TcpSocketThread implements Runnable {
             }
             SocketWrapper socketWrapper = SocketManager.getSocketWrapper(clientSocket);
             if(socketWrapper != null && socketWrapper.getPersonaEntity() != null) {
-                List<String> relatedVers = GameVersUtils.getRelatedVers(socketWrapper.getPersonaConnectionEntity().getVers());
-                GameEntity gameEntity = gameRepository.findCurrentGameOfPersona(
-                        relatedVers, socketWrapper.getPersonaEntity().getId(), socketWrapper.isHost()).orElse(null);
+                GameEntity gameEntity = gameRepository.findCurrentGameOfPersona(socketWrapper.getPersonaConnectionEntity().getId()).orElse(null);
                 if(socketWrapper.isHost() && gameEntity != null) {
                     for(GameReportEntity gameReportEntity : gameReportRepository.findByGameIdAndEndTimeIsNull(gameEntity.getId())) {
                         gameReportEntity.setEndTime(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));

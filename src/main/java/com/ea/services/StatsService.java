@@ -364,7 +364,7 @@ public class StatsService {
         String startTime = getValueFromSocket(socketData.getInputMessage(), "WHEN", TAB_CHAR);
 
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern(DATETIME_FORMAT);
-        List<GameReportEntity> gameReportEntities = gameReportRepository.findByPersonaPersAndGameStartTimeAndPlayTimeAndIsHostFalse(
+        List<GameReportEntity> gameReportEntities = gameReportRepository.findByPersonaConnectionPersonaPersAndGameStartTimeAndPlayTimeAndIsHostFalse(
                 playerName, LocalDateTime.parse(startTime, formatter), 0);
         if(gameReportEntities.size() > 0) {
             GameReportEntity gameReportEntity = gameReportEntities.get(0);
@@ -374,7 +374,7 @@ public class StatsService {
             // Update PersonaStats with the new game report (ranked only)
             if(gameReportEntity.getRnk() == 1) {
                 PersonaStatsEntity personaStatsEntity = personaStatsRepository.findByPersonaIdAndVersIn(
-                        gameReportEntity.getPersona().getId(), GameVersUtils.getRelatedVers(gameReportEntity.getGame().getVers()));
+                        gameReportEntity.getPersonaConnection().getPersona().getId(), GameVersUtils.getRelatedVers(gameReportEntity.getGame().getVers()));
                 if(personaStatsEntity != null) {
                     updatePersonaStats(personaStatsEntity, gameReportEntity);
                     personaStatsRepository.save(personaStatsEntity);
