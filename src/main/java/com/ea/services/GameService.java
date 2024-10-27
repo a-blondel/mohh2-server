@@ -188,7 +188,7 @@ public class GameService {
         if(gameEntityOpt.isPresent()) {
             GameEntity gameEntity = gameEntityOpt.get();
             if(gameEntity.getEndTime() == null) {
-                startGameReport(socketWrapper, gameEntity, false);
+                startGameReport(socketWrapper, gameEntity);
                 SocketWriter.write(socket, socketData);
                 updateHostInfo(gameEntity);
                 try {
@@ -249,7 +249,7 @@ public class GameService {
                         Optional<GameEntity> gameEntityOpt = gameRepository.findByNameAndVersInAndEndTimeIsNull(gameEntityToCreate.getName(), relatedVers);
                         if(gameEntityOpt.isPresent()) {
                             GameEntity gameEntity = gameEntityOpt.get();
-                            startGameReport(socketWrapper, gameEntity, false);
+                            startGameReport(socketWrapper, gameEntity);
                             ses(socket, gameEntity);
                             updateHostInfo(gameEntity);
                             break;
@@ -261,7 +261,7 @@ public class GameService {
         } else {
             SocketWriter.write(socket, socketData);
             gameRepository.save(gameEntityToCreate);
-            startGameReport(socketWrapper, gameEntityToCreate, false);
+            startGameReport(socketWrapper, gameEntityToCreate);
             ses(socket, gameEntityToCreate);
         }
     }
@@ -300,7 +300,7 @@ public class GameService {
             gameRepository.save(gameEntity);
             SocketWriter.write(socket, socketData);
 
-            startGameReport(socketWrapper, gameEntity, true);
+            startGameReport(socketWrapper, gameEntity);
             personaService.who(socket, socketWrapper); // Used to set the game id
             try {
                 Thread.sleep(100);
@@ -369,7 +369,8 @@ public class GameService {
      * @param socketWrapper
      */
     public void gdel(Socket socket, SocketData socketData, SocketWrapper socketWrapper) {
-        Optional<GameEntity> gameEntity = gameRepository.findCurrentGameOfPersona(socketWrapper.getPersonaEntity().getId());
+        List<String> relatedVers = GameVersUtils.getRelatedVers(socketWrapper.getPersonaConnectionEntity().getVers());
+        Optional<GameEntity> gameEntity = gameRepository.findCurrentGameOfPersona(relatedVers, socketWrapper.getPersonaEntity().getId(), socketWrapper.isHost());
         if(gameEntity.isPresent()) {
             GameEntity game = gameEntity.get();
             LocalDateTime now = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
@@ -474,13 +475,11 @@ public class GameService {
                 .sorted(Comparator.comparing(GameReportEntity::getId))
                 .forEach(gameReportEntity -> {
             PersonaEntity personaEntity = gameReportEntity.getPersona();
-
             List<String> relatedVers = GameVersUtils.getRelatedVers(gameEntity.getVers());
-
-            Optional<PersonaConnectionEntity> personaConnectionEntityOpt =
-                    personaConnectionRepository.findByPersonaAndVersInAndEndTimeIsNull(personaEntity, relatedVers);
-            if(personaConnectionEntityOpt.isPresent()) {
-                PersonaConnectionEntity personaConnectionEntity = personaConnectionEntityOpt.get();
+            List<PersonaConnectionEntity> personaConnectionEntities =
+                    personaConnectionRepository.findByVersInAndPersonaIdAndIsHostAndEndTimeIsNull(relatedVers, personaEntity.getId(), gameReportEntity.isHost());
+            if(personaConnectionEntities.size() > 0) {
+                        PersonaConnectionEntity personaConnectionEntity = personaConnectionEntities.get(0);
                 String ipAddr = personaConnectionEntity.getAddress().replace("/", "").split(":")[0];
                 String hostPrefix = gameReportEntity.isHost() ? "@" : "";
                 content.putAll(Stream.of(new String[][] {
@@ -500,7 +499,6 @@ public class GameService {
                 idx[0]++;
             }
         });
-
         return content;
     }
 
@@ -508,16 +506,15 @@ public class GameService {
      * Registers a game entry
      * @param socketWrapper
      * @param gameEntity
-     * @param isHost
      */
-    private void startGameReport(SocketWrapper socketWrapper, GameEntity gameEntity, boolean isHost) {
+    private void startGameReport(SocketWrapper socketWrapper, GameEntity gameEntity) {
         // Close any game report that wasn't property ended (e.g. use Dolphin save state to leave)
         endGameReport(socketWrapper);
 
         GameReportEntity gameReportEntity = new GameReportEntity();
         gameReportEntity.setGame(gameEntity);
         gameReportEntity.setPersona(socketWrapper.getPersonaEntity());
-        gameReportEntity.setHost(isHost);
+        gameReportEntity.setHost(socketWrapper.isHost());
         gameReportEntity.setStartTime(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
         gameReportRepository.save(gameReportEntity);
     }
@@ -526,12 +523,17 @@ public class GameService {
      * Ends the game report because the player has left the game
      */
     public void endGameReport(SocketWrapper socketWrapper) {
-        Optional<GameReportEntity> gameReportEntityOpt = gameReportRepository.findByPersonaIdAndEndTimeIsNull(socketWrapper.getPersonaEntity().getId());
+        List<String> relatedVers = GameVersUtils.getRelatedVers(socketWrapper.getPersonaConnectionEntity().getVers());
+        Optional<GameReportEntity> gameReportEntityOpt =
+                gameReportRepository.findByGameVersInAndPersonaIdAndIsHostAndEndTimeIsNull(
+                        relatedVers, socketWrapper.getPersonaEntity().getId(), socketWrapper.isHost());
         if(gameReportEntityOpt.isPresent()) {
             GameReportEntity gameReportEntity = gameReportEntityOpt.get();
             gameReportEntity.setEndTime(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
             gameReportRepository.save(gameReportEntity);
-            updateHostInfo(gameReportEntity.getGame());
+            if(!gameReportEntity.isHost()) {
+                updateHostInfo(gameReportEntity.getGame());
+            }
         }
     }
 

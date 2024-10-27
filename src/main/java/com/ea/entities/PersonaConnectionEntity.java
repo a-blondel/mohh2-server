@@ -28,6 +28,8 @@ public class PersonaConnectionEntity {
 
     private String slus;
 
+    private boolean isHost;
+
     private LocalDateTime startTime;
 
     private LocalDateTime endTime;

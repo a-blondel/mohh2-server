@@ -4,11 +4,13 @@ import com.ea.dto.SocketData;
 import com.ea.dto.SocketWrapper;
 import com.ea.repositories.GameReportRepository;
 import com.ea.steps.SocketWriter;
+import com.ea.utils.GameVersUtils;
 import com.ea.utils.Props;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.net.Socket;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -128,9 +130,12 @@ public class AuthService {
             personaService.who(socket, socketWrapper);
         }
 
-        if(socketWrapper != null) {
-            boolean isInGame = null != socketWrapper.getPersonaEntity() && gameReportRepository.findByPersonaIdAndEndTimeIsNull(socketWrapper.getPersonaEntity().getId()).isPresent();
-            if (socketWrapper.isHost() && !isInGame) {
+        if(socketWrapper != null && socketWrapper.isHost()) {
+            List<String> relatedVers = GameVersUtils.getRelatedVers(socketWrapper.getPersonaConnectionEntity().getVers());
+            boolean isInGame = null != socketWrapper.getPersonaEntity()
+                    && gameReportRepository.findByGameVersInAndPersonaIdAndIsHostAndEndTimeIsNull(relatedVers,
+                            socketWrapper.getPersonaEntity().getId(), socketWrapper.isHost()).isPresent();
+            if (!isInGame) {
                 joinRoom(socket, socketData, socketWrapper);
             }
         }

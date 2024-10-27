@@ -13,13 +13,13 @@ import java.util.Optional;
 @Repository
 public interface GameReportRepository extends JpaRepository<GameReportEntity, Long> {
 
-    @Query("SELECT pc.address FROM GameReportEntity gr JOIN gr.persona p JOIN p.personaConnections pc WHERE gr.game.id = :gameId AND gr.isHost = true AND pc.endTime IS NULL")
-    Optional<String> findHostAddressByGameId(@Param("gameId") Long gameId);
+    @Query("SELECT pc.address FROM GameReportEntity gr JOIN gr.persona p JOIN p.personaConnections pc WHERE gr.game.id = :gameId AND gr.isHost = true AND pc.isHost = true AND pc.endTime IS NULL")
+    List<String> findHostAddressByGameId(@Param("gameId") Long gameId);
 
-    Optional<GameReportEntity> findByPersonaIdAndEndTimeIsNull(Long personaId);
+    Optional<GameReportEntity> findByGameVersInAndPersonaIdAndIsHostAndEndTimeIsNull(List<String> vers, Long personaId, boolean isHost);
 
     List<GameReportEntity> findByGameIdAndEndTimeIsNull(Long gameId);
 
-    List<GameReportEntity> findByPersonaPersAndGameStartTimeAndPlayTime(String pers, LocalDateTime startTime, int playTime);
+    List<GameReportEntity> findByPersonaPersAndGameStartTimeAndPlayTimeAndIsHostFalse(String pers, LocalDateTime startTime, int playTime);
 
 }

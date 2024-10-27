@@ -12,11 +12,13 @@ import com.ea.services.SocketManager;
 import com.ea.steps.SocketReader;
 import com.ea.steps.SocketWriter;
 import com.ea.utils.BeanUtil;
+import com.ea.utils.GameVersUtils;
 import lombok.extern.slf4j.Slf4j;
 
 import java.net.Socket;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -56,7 +58,9 @@ public class TcpSocketThread implements Runnable {
             }
             SocketWrapper socketWrapper = SocketManager.getSocketWrapper(clientSocket);
             if(socketWrapper != null && socketWrapper.getPersonaEntity() != null) {
-                GameEntity gameEntity = gameRepository.findCurrentGameOfPersona(socketWrapper.getPersonaEntity().getId()).orElse(null);
+                List<String> relatedVers = GameVersUtils.getRelatedVers(socketWrapper.getPersonaConnectionEntity().getVers());
+                GameEntity gameEntity = gameRepository.findCurrentGameOfPersona(
+                        relatedVers, socketWrapper.getPersonaEntity().getId(), socketWrapper.isHost()).orElse(null);
                 if(socketWrapper.isHost() && gameEntity != null) {
                     for(GameReportEntity gameReportEntity : gameReportRepository.findByGameIdAndEndTimeIsNull(gameEntity.getId())) {
                         gameReportEntity.setEndTime(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
