@@ -531,10 +531,20 @@ public class GameService {
     }
 
     /**
-     * Close expired lobbies (only for mohh2 as games aren't hosted)
+     * Set an end time to all unfinished connections and games
+     */
+    public void closeUnfinishedConnectionsAndGames() {
+        LocalDateTime now = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
+        gameReportRepository.setEndTimeForAllUnfinishedGameReports(now);
+        gameRepository.setEndTimeForAllUnfinishedGames(now);
+        personaConnectionRepository.setEndTimeForAllUnfinishedPersonaConnections(now);
+    }
+
+    /**
+     * Close expired games (applies to mohh2 only as games aren't hosted)
      * If no one is in the game after 2 minutes, close it
      */
-    public void closeExpiredLobbies() {
+    public void closeExpiredGames() {
         List<GameEntity> gameEntities = gameRepository.findByEndTimeIsNull();
         gameEntities.forEach(gameEntity -> {
             Set<GameReportEntity> gameReports = gameEntity.getGameReports();
