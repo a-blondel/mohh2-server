@@ -14,6 +14,7 @@ import com.ea.steps.SocketWriter;
 import com.ea.utils.GameVersUtils;
 import com.ea.utils.Props;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -261,6 +262,19 @@ public class GameService {
             }
         } else {
             SocketWriter.write(socket, socketData);
+
+            // Set a game server port for MoHH2 if it's not already set (the game set it if there are other games...)
+            String params = gameEntityToCreate.getParams();
+            int serverPortPos = StringUtils.ordinalIndexOf(params, ",", 20);
+            if (serverPortPos != -1 && serverPortPos < params.length()) {
+                String[] paramArray = params.split(",");
+                if (paramArray.length > 19 && paramArray[19].isEmpty()) {
+                    paramArray[19] = Integer.toHexString(3658); // Set game server port
+                    params = String.join(",", paramArray);
+                }
+            }
+            gameEntityToCreate.setParams(params);
+
             gameRepository.save(gameEntityToCreate);
             startGameReport(socketWrapper, gameEntityToCreate);
             ses(socket, gameEntityToCreate);
@@ -493,7 +507,7 @@ public class GameService {
                             { "PARTPARAMS" + idx[0], "" },
                     }).collect(Collectors.toMap(data -> data[0], data -> data[1])));
                     idx[0]++;
-});
+                });
         return content;
     }
 
