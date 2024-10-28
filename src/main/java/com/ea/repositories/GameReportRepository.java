@@ -27,5 +27,5 @@ public interface GameReportRepository extends JpaRepository<GameReportEntity, Lo
     @Transactional
     @Modifying
     @Query("UPDATE GameReportEntity gr SET gr.endTime = :endTime WHERE gr.endTime IS NULL")
-    void setEndTimeForAllUnfinishedGameReports(@Param("endTime") LocalDateTime endTime);
+    int setEndTimeForAllUnfinishedGameReports(@Param("endTime") LocalDateTime endTime);
 }

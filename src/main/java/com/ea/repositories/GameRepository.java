@@ -31,5 +31,5 @@ public interface GameRepository extends JpaRepository<GameEntity, Long> {
     @Transactional
     @Modifying
     @Query("UPDATE GameEntity g SET g.endTime = :endTime WHERE g.endTime IS NULL")
-    void setEndTimeForAllUnfinishedGames(@Param("endTime") LocalDateTime endTime);
+    int setEndTimeForAllUnfinishedGames(@Param("endTime") LocalDateTime endTime);
 }

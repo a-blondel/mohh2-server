@@ -19,5 +19,5 @@ public interface PersonaConnectionRepository extends JpaRepository<PersonaConnec
     @Transactional
     @Modifying
     @Query("UPDATE PersonaConnectionEntity pc SET pc.endTime = :endTime WHERE pc.endTime IS NULL")
-    void setEndTimeForAllUnfinishedPersonaConnections(@Param("endTime") LocalDateTime endTime);
+    int setEndTimeForAllUnfinishedPersonaConnections(@Param("endTime") LocalDateTime endTime);
 }

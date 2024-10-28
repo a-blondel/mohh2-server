@@ -13,6 +13,7 @@ import com.ea.repositories.PersonaConnectionRepository;
 import com.ea.steps.SocketWriter;
 import com.ea.utils.GameVersUtils;
 import com.ea.utils.Props;
+import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -269,7 +270,7 @@ public class GameService {
             if (serverPortPos != -1 && serverPortPos < params.length()) {
                 String[] paramArray = params.split(",");
                 if (paramArray.length > 19 && paramArray[19].isEmpty()) {
-                    paramArray[19] = Integer.toHexString(3658); // Set game server port
+                    paramArray[19] = Integer.toHexString(1); // Set game server port to 1, so it doesn't conflict with other games
                     params = String.join(",", paramArray);
                 }
             }
@@ -547,11 +548,13 @@ public class GameService {
     /**
      * Set an end time to all unfinished connections and games
      */
+    @PreDestroy
     public void closeUnfinishedConnectionsAndGames() {
         LocalDateTime now = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
-        gameReportRepository.setEndTimeForAllUnfinishedGameReports(now);
-        gameRepository.setEndTimeForAllUnfinishedGames(now);
-        personaConnectionRepository.setEndTimeForAllUnfinishedPersonaConnections(now);
+        int gameReportsCleaned = gameReportRepository.setEndTimeForAllUnfinishedGameReports(now);
+        int gameCleaned = gameRepository.setEndTimeForAllUnfinishedGames(now);
+        int personaConnectionsCleaned = personaConnectionRepository.setEndTimeForAllUnfinishedPersonaConnections(now);
+        log.info("Data cleaned: {} games, {} game reports, {} persona connections", gameCleaned, gameReportsCleaned, personaConnectionsCleaned);
     }
 
     /**
