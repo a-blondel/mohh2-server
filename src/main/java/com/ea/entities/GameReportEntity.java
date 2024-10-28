@@ -22,12 +22,12 @@ public class GameReportEntity {
     @JoinColumn(name="GAME_ID", nullable=false)
     private GameEntity game;
 
-    @ManyToOne
-    @JoinColumn(name="PERSONA_ID", nullable=false)
-    private PersonaEntity persona;
-
     @Column(name="IS_HOST", nullable=false)
     private boolean isHost;
+
+    @ManyToOne
+    @JoinColumn(name="PERSONA_CONNECTION_ID", nullable=false)
+    private PersonaConnectionEntity personaConnection;
 
     @Column(name = "SHOT")
     private int shot;

@@ -2,9 +2,13 @@ package com.ea.repositories;
 
 import com.ea.entities.GameEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -13,8 +17,8 @@ public interface GameRepository extends JpaRepository<GameEntity, Long> {
 
     Optional<GameEntity> findById(Long id);
 
-    @Query("FROM GameEntity g JOIN g.gameReports gr WHERE gr.persona.id = :personaId AND gr.endTime IS NULL")
-    Optional<GameEntity> findCurrentGameOfPersona(Long personaId);
+    @Query("SELECT g FROM GameEntity g JOIN g.gameReports gr JOIN gr.personaConnection pc WHERE pc.id = :personaConnectionId AND gr.endTime IS NULL")
+    Optional<GameEntity> findCurrentGameOfPersona(long personaConnectionId);
 
     List<GameEntity> findByEndTimeIsNull();
 
@@ -24,4 +28,8 @@ public interface GameRepository extends JpaRepository<GameEntity, Long> {
 
     boolean existsByNameAndVersInAndEndTimeIsNull(String name, List<String> vers);
 
+    @Transactional
+    @Modifying
+    @Query("UPDATE GameEntity g SET g.endTime = :endTime WHERE g.endTime IS NULL")
+    int setEndTimeForAllUnfinishedGames(@Param("endTime") LocalDateTime endTime);
 }

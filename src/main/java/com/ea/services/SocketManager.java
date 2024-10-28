@@ -35,6 +35,8 @@ public class SocketManager {
 
     public static SocketWrapper getHostSocketWrapperOfGame(Long gameId) {
         return gameReportRepository.findHostAddressByGameId(gameId)
+                .stream()
+                .findFirst()
                 .map(SocketManager::getSocketWrapper)
                 .orElse(null);
     }

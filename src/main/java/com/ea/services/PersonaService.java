@@ -96,6 +96,18 @@ public class PersonaService {
             pers = pers.split("@")[0] + pers.split("@")[1];
         }
 
+        // Check if the persona is already connected (allowed for host only)
+        Optional<PersonaConnectionEntity> personaConnectionEntityOpt =
+                personaConnectionRepository.findByVersAndSlusAndPersonaPersAndIsHostFalseAndEndTimeIsNull(
+                        socketWrapper.getPersonaConnectionEntity().getVers(),
+                        socketWrapper.getPersonaConnectionEntity().getSlus(),
+                        pers);
+        if(personaConnectionEntityOpt.isPresent()) {
+            socketData.setIdMessage("persmauth"); // (EC_MASTER_AUTH / EC_PERSONA_SET ?)
+            SocketWriter.write(socket, socketData);
+            return;
+        }
+
         Optional<PersonaEntity> personaEntityOpt = personaRepository.findByPers(pers);
         if (personaEntityOpt.isPresent()) {
             PersonaEntity personaEntity = personaEntityOpt.get();
@@ -113,7 +125,7 @@ public class PersonaService {
             socketData.setOutputData(content);
             SocketWriter.write(socket, socketData);
 
-            startPersonaConnection(socketWrapper, personaEntity);
+            startPersonaConnection(socketWrapper);
 
             // Check if the persona has stats for this game title ("VERS"), and create them if not
             String vers = socketWrapper.getPersonaConnectionEntity().getVers();
@@ -130,14 +142,15 @@ public class PersonaService {
     /**
      * Registers a connection of the persona
      * @param socketWrapper
-     * @param personaEntity
      */
-    private void startPersonaConnection(SocketWrapper socketWrapper, PersonaEntity personaEntity) {
+    private void startPersonaConnection(SocketWrapper socketWrapper) {
         // Close current connection if the user got a "soft" disconnection (TCP connection is still active)
+        PersonaEntity personaEntity = socketWrapper.getPersonaEntity();
         Optional<PersonaConnectionEntity> personaConnectionEntityOpt =
-                personaConnectionRepository.findByPersonaAndVersAndSlusAndEndTimeIsNull(personaEntity,
+                personaConnectionRepository.findByVersAndSlusAndPersonaPersAndIsHostFalseAndEndTimeIsNull(
                         socketWrapper.getPersonaConnectionEntity().getVers(),
-                        socketWrapper.getPersonaConnectionEntity().getSlus());
+                        socketWrapper.getPersonaConnectionEntity().getSlus(),
+                        personaEntity.getPers());
         if(personaConnectionEntityOpt.isPresent()) {
             PersonaConnectionEntity personaConnectionEntity = personaConnectionEntityOpt.get();
             personaConnectionEntity.setEndTime(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
@@ -145,6 +158,7 @@ public class PersonaService {
         }
         PersonaConnectionEntity personaConnectionEntity = socketWrapper.getPersonaConnectionEntity();
         personaConnectionEntity.setPersona(personaEntity);
+        personaConnectionEntity.setHost(socketWrapper.isHost());
         personaConnectionRepository.save(personaConnectionEntity);
     }
 
@@ -201,7 +215,9 @@ public class PersonaService {
         PersonaStatsEntity personaStatsEntity = personaStatsRepository.findByPersonaIdAndVers(personaEntity.getId(), vers);
         boolean hasStats = null != personaStatsEntity;
 
-        Long gameId = gameRepository.findCurrentGameOfPersona(personaEntity.getId()).map(gameEntity -> gameEntity.getId()).orElse(0L);
+        Long gameId = gameRepository.findCurrentGameOfPersona(socketWrapper.getPersonaConnectionEntity().getId())
+                .map(gameEntity -> Optional.ofNullable(gameEntity.getOriginalId()).orElse(gameEntity.getId()))
+                .orElse(0L);
 
         String hostPrefix = socketWrapper.isHost() ? "@" : "";
 

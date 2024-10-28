@@ -128,24 +128,19 @@ public class AuthService {
             personaService.who(socket, socketWrapper);
         }
 
-        if(socketWrapper != null) {
-            boolean isInGame = null != socketWrapper.getPersonaEntity() && gameReportRepository.findByPersonaIdAndEndTimeIsNull(socketWrapper.getPersonaEntity().getId()).isPresent();
-            if (socketWrapper.isHost() && !isInGame) {
-                joinRoom(socket, socketData, socketWrapper);
-            }
+        if(socketWrapper != null && socketWrapper.isHost()) {
+            joinRoom(socket, socketData, socketWrapper);
         }
 
     }
 
     private void joinRoom(Socket socket, SocketData socketData, SocketWrapper socketWrapper) {
         personaService.who(socket, socketWrapper); // Used to set the room info
-
         try {
             Thread.sleep(100);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }
-
         gameService.rom(socket, socketData);
     }
 

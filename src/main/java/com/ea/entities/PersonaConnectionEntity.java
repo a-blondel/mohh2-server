@@ -6,6 +6,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -28,8 +29,13 @@ public class PersonaConnectionEntity {
 
     private String slus;
 
+    private boolean isHost;
+
     private LocalDateTime startTime;
 
     private LocalDateTime endTime;
+
+    @OneToMany(mappedBy = "personaConnection")
+    private Set<GameReportEntity> gameReports;
 
 }

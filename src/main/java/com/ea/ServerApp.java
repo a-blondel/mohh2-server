@@ -33,9 +33,7 @@ import java.util.function.Function;
 @SpringBootApplication(exclude = { SecurityAutoConfiguration.class })
 public class ServerApp implements CommandLineRunner {
 
-    private static final String WII = "wii";
-
-    private ScheduledExecutorService closeExpiredLobbiesThread = Executors.newSingleThreadScheduledExecutor();
+    private ScheduledExecutorService processExpiredGamesThread = Executors.newSingleThreadScheduledExecutor();
 
     @Autowired
     private Props props;
@@ -55,6 +53,8 @@ public class ServerApp implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
+        gameService.closeUnfinishedConnectionsAndGames();
+
         Security.setProperty("jdk.tls.disabledAlgorithms", "");
         System.setProperty("https.protocols", props.getSslProtocols());
         System.setProperty("https.cipherSuites", props.getSslCipherSuites());
@@ -66,19 +66,6 @@ public class ServerApp implements CommandLineRunner {
         }
 
         try {
-            if(props.isCloseExpiredLobbiesEnabled()) {
-                closeExpiredLobbiesThread.scheduleAtFixedRate(() -> {
-                    try {
-                        gameService.closeExpiredLobbies();
-                    } catch (Exception e) {
-                        log.error("Error cleaning up expired lobbies", e);
-                    }
-                }, 30, 120, TimeUnit.SECONDS);
-                log.info("Close expired lobbies thread started.");
-            }
-
-            gracefullyExit();
-
             log.info("Starting servers...");
 
             if(props.getHostedGames().contains("mohh_psp_pal")) {
@@ -135,6 +122,8 @@ public class ServerApp implements CommandLineRunner {
         } catch (Exception e) {
             log.error("Error starting servers", e);
         }
+        processExpiredGames();
+        gracefullyExit();
     }
 
     private void startServerThread(ServerSocket serverSocket, Function<Socket, Runnable> runnableFactory) {
@@ -155,16 +144,24 @@ public class ServerApp implements CommandLineRunner {
 
     private void gracefullyExit() {
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            log.debug("Shutting down...");
-            closeExpiredLobbiesThread.shutdown();
+            log.info("Shutting down...");
+            gameService.closeUnfinishedConnectionsAndGames();
+            processExpiredGamesThread.shutdown();
             try {
-                if (!closeExpiredLobbiesThread.awaitTermination(800, TimeUnit.MILLISECONDS)) {
-                    closeExpiredLobbiesThread.shutdownNow();
+                if (!processExpiredGamesThread.awaitTermination(800, TimeUnit.MILLISECONDS)) {
+                    processExpiredGamesThread.shutdownNow();
                 }
             } catch (InterruptedException e) {
-                closeExpiredLobbiesThread.shutdownNow();
+                processExpiredGamesThread.shutdownNow();
             }
+            log.info("Shutdown complete.");
         }));
+    }
+
+    private void processExpiredGames() {
+        processExpiredGamesThread.scheduleAtFixedRate(() -> {
+            gameService.closeExpiredGames();
+        }, 60, 120, TimeUnit.SECONDS);
     }
 
 }
