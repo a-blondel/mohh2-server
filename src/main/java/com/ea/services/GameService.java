@@ -575,4 +575,17 @@ public class GameService {
         });
     }
 
+    /**
+     * Profanity filter a string
+     * @param socket
+     * @param socketData
+     */
+    public void filt(Socket socket, SocketData socketData) {
+        Map<String, String> content = Stream.of(new String[][] {
+                { "TEXT", getValueFromSocket(socketData.getInputMessage(), "TEXT") },
+        }).collect(Collectors.toMap(data -> data[0], data -> data[1]));
+        socketData.setOutputData(content);
+        SocketWriter.write(socket, socketData);
+    }
+
 }
