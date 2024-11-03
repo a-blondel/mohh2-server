@@ -69,14 +69,14 @@ public class ServerApp implements CommandLineRunner {
             log.info("Starting servers...");
 
             if(props.getHostedGames().contains("mohh_psp_pal")) {
-                SSLServerSocket mohh2PspPalSslServerSocket = serverConfig.createSslServerSocket(11181, Certificates.MOHH_PSP);
-                startServerThread(mohh2PspPalSslServerSocket, (socket) -> new SslSocketThread((SSLSocket) socket));
+                SSLServerSocket mohhPspPalSslServerSocket = serverConfig.createSslServerSocket(11181, Certificates.MOHH_PSP);
+                startServerThread(mohhPspPalSslServerSocket, (socket) -> new SslSocketThread((SSLSocket) socket));
                 log.info("MOHH PSP PAL SSL server started.");
             }
 
             if(props.getHostedGames().contains("mohh_psp_ntsc")) {
-                SSLServerSocket mohh2PspNtscSslServerSocket = serverConfig.createSslServerSocket(11191, Certificates.MOHH_PSP);
-                startServerThread(mohh2PspNtscSslServerSocket, (socket) -> new SslSocketThread((SSLSocket) socket));
+                SSLServerSocket mohhPspNtscSslServerSocket = serverConfig.createSslServerSocket(11191, Certificates.MOHH_PSP);
+                startServerThread(mohhPspNtscSslServerSocket, (socket) -> new SslSocketThread((SSLSocket) socket));
                 log.info("MOHH PSP NTSC SSL server started.");
             }
 

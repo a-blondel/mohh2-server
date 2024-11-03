@@ -101,6 +101,9 @@ public class SocketProcessor {
             case ("gdel"):
                 gameService.gdel(socket, socketData, socketWrapper);
                 break;
+            case ("filt"):
+                gameService.filt(socket, socketData);
+                break;
             default:
                 log.info("Unsupported operation: {}", socketData.getIdMessage());
                 SocketWriter.write(socket, socketData);
