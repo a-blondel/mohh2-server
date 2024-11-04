@@ -8,7 +8,6 @@ ssl:
 tcp:
   # Must be machine IP if hosting for other machines. Must be WSL IP if using docker through WSL (local only)
   host: ${TCP_HOST_IP:127.0.0.1}
-  port: 11100
   debug:
     enabled: ${TCP_DEBUG_ENABLED:false}
     exclusions: '~png'

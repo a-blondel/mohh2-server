@@ -4,6 +4,7 @@ import com.ea.dto.SocketData;
 import com.ea.dto.SocketWrapper;
 import com.ea.repositories.GameReportRepository;
 import com.ea.steps.SocketWriter;
+import com.ea.utils.GameVersUtils;
 import com.ea.utils.Props;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -32,11 +33,13 @@ public class AuthService {
     private GameReportRepository gameReportRepository;
 
     public void dir(Socket socket, SocketData socketData) {
+        String slus = getValueFromSocket(socketData.getInputMessage(), "SLUS");
+
         Map<String, String> content = Stream.of(new String[][] {
                 // { "DIRECT", "0" }, // 0x8001FC04
                 // if DIRECT == 0 then read ADDR and PORT
                 { "ADDR", props.getTcpHost() }, // 0x8001FC18
-                { "PORT", String.valueOf(props.getTcpPort()) }, // 0x8001fc30
+                { "PORT", String.valueOf(GameVersUtils.getTcpPort(slus)) }, // 0x8001fc30
                 // { "SESS", "0" }, // 0x8001fc48 %s-%s-%08x 0--498ea96f
                 // { "MASK", "0" }, // 0x8001fc60
                 // if ADDR == 0 then read DOWN
@@ -63,7 +66,7 @@ public class AuthService {
     public void news(Socket socket, SocketData socketData) {
         Map<String, String> content = Stream.of(new String[][] {
                 { "BUDDY_SERVER", props.getTcpHost() },
-                { "BUDDY_PORT", String.valueOf(props.getTcpPort()) },
+                { "BUDDY_PORT", String.valueOf(11192) },
                 { "TOSAC_URL", "https://tos.ea.com/legalapp/webterms/us/fr/pc/" },
                 { "TOSA_URL", "https://tos.ea.com/legalapp/webterms/us/fr/pc/" },
                 { "TOS_URL", "https://tos.ea.com/legalapp/webterms/us/fr/pc/" },

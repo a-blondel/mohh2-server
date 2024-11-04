@@ -19,7 +19,7 @@ public class SocketReader {
     public static void read(Socket socket) {
         try {
             InputStream is = socket.getInputStream();
-            byte[] buffer = new byte[1024];
+            byte[] buffer = new byte[4096];
             int readLength;
             while((readLength = is.read(buffer)) != -1) {
                 SocketParser.parse(socket, buffer, readLength);

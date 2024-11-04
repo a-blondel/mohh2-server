@@ -22,9 +22,6 @@ public class Props {
     @Value("${ssl.debug.enabled}")
     private boolean sslDebugEnabled;
 
-    @Value("${tcp.port}")
-    private int tcpPort;
-
     @Value("${tcp.host}")
     private String tcpHost;
 

@@ -5,6 +5,7 @@ import java.util.List;
 public class GameVersUtils {
 
     public static final String VERS_MOHH_PSP_HOST = "PSP/MOHGPS071";
+    public static final String SLUS_MOHH_PSP_HOST = "MOHA10000";
 
     public static final List<String> VERS_MOHH_PSP = List.of("PSP/MOH07", VERS_MOHH_PSP_HOST);
     public static final List<String> SLUS_MOHH_PSP_PAL = List.of("ULES00557", "ULES00558", "ULES00559", "ULES00560", "ULES00561", "ULES00562");
@@ -17,6 +18,23 @@ public class GameVersUtils {
     public static final List<String> VERS_MOHH2_WII = List.of("WII/MOH08");
     public static final List<String> SLUS_MOHH2_WII_PAL = List.of("RM2X", "RM2P");
     public static final List<String> SLUS_MOHH2_WII_NTSC = List.of("RM2E");
+
+    public static int getTcpPort(String slus) {
+        if (SLUS_MOHH_PSP_PAL.contains(slus)) {
+            return 11180;
+        } else if (SLUS_MOHH_PSP_NTSC.contains(slus) || SLUS_MOHH_PSP_HOST.equals(slus)) {
+            return 11190;
+        } else if (SLUS_MOHH2_PSP_PAL.contains(slus)) {
+            return 21180;
+        } else if (SLUS_MOHH2_PSP_NTSC.contains(slus)) {
+            return 21190;
+        } else if (SLUS_MOHH2_WII_PAL.contains(slus)) {
+            return 21170;
+        } else if (SLUS_MOHH2_WII_NTSC.contains(slus)) {
+            return 21120;
+        }
+        return -1;
+    }
 
 
     public static List<String> getRelatedVers(String vers) {

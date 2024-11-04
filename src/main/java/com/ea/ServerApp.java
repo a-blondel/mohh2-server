@@ -71,42 +71,56 @@ public class ServerApp implements CommandLineRunner {
             if(props.getHostedGames().contains("mohh_psp_pal")) {
                 SSLServerSocket mohhPspPalSslServerSocket = serverConfig.createSslServerSocket(11181, Certificates.MOHH_PSP);
                 startServerThread(mohhPspPalSslServerSocket, (socket) -> new SslSocketThread((SSLSocket) socket));
-                log.info("MOHH PSP PAL SSL server started.");
+
+                ServerSocket mohhPspPalTcpServerSocket = serverConfig.createTcpServerSocket(11180);
+                startServerThread(mohhPspPalTcpServerSocket, TcpSocketThread::new);
+                log.info("MOHH PSP PAL servers started.");
             }
 
             if(props.getHostedGames().contains("mohh_psp_ntsc")) {
                 SSLServerSocket mohhPspNtscSslServerSocket = serverConfig.createSslServerSocket(11191, Certificates.MOHH_PSP);
                 startServerThread(mohhPspNtscSslServerSocket, (socket) -> new SslSocketThread((SSLSocket) socket));
-                log.info("MOHH PSP NTSC SSL server started.");
+
+                ServerSocket mohhPspNtscTcpServerSocket = serverConfig.createTcpServerSocket(11190);
+                startServerThread(mohhPspNtscTcpServerSocket, TcpSocketThread::new);
+                log.info("MOHH PSP NTSC servers started.");
             }
 
             if(props.getHostedGames().contains("mohh2_psp_pal")) {
                 SSLServerSocket mohh2PspPalSslServerSocket = serverConfig.createSslServerSocket(21181, Certificates.MOHH2_PSP);
                 startServerThread(mohh2PspPalSslServerSocket, (socket) -> new SslSocketThread((SSLSocket) socket));
-                log.info("MOHH2 PSP PAL SSL server started.");
+
+                ServerSocket mohh2PspPalTcpServerSocket = serverConfig.createTcpServerSocket(21180);
+                startServerThread(mohh2PspPalTcpServerSocket, TcpSocketThread::new);
+                log.info("MOHH2 PSP PAL servers started.");
             }
 
             if(props.getHostedGames().contains("mohh2_psp_ntsc")) {
                 SSLServerSocket mohh2PspNtscSslServerSocket = serverConfig.createSslServerSocket(21191, Certificates.MOHH2_PSP);
                 startServerThread(mohh2PspNtscSslServerSocket, (socket) -> new SslSocketThread((SSLSocket) socket));
-                log.info("MOHH2 PSP NTSC SSL server started.");
+
+                ServerSocket mohh2PspNtscTcpServerSocket = serverConfig.createTcpServerSocket(21190);
+                startServerThread(mohh2PspNtscTcpServerSocket, TcpSocketThread::new);
+                log.info("MOHH2 PSP NTSC servers started.");
             }
 
             if(props.getHostedGames().contains("mohh2_wii_pal")) {
                 SSLServerSocket mohh2WiiPalSslServerSocket = serverConfig.createSslServerSocket(21171, Certificates.MOHH2_WII);
                 startServerThread(mohh2WiiPalSslServerSocket, (socket) -> new SslSocketThread((SSLSocket) socket));
-                log.info("MOHH2 WII PAL SSL server started.");
+
+                ServerSocket mohh2WiiPalTcpServerSocket = serverConfig.createTcpServerSocket(21170);
+                startServerThread(mohh2WiiPalTcpServerSocket, TcpSocketThread::new);
+                log.info("MOHH2 WII PAL servers started.");
             }
 
             if(props.getHostedGames().contains("mohh2_wii_ntsc")) {
                 SSLServerSocket mohh2WiiNtscSslServerSocket = serverConfig.createSslServerSocket(21121, Certificates.MOHH2_WII);
                 startServerThread(mohh2WiiNtscSslServerSocket, (socket) -> new SslSocketThread((SSLSocket) socket));
-                log.info("MOHH2 WII NTSC SSL server started.");
-            }
 
-            ServerSocket mohTcpServerSocket = serverConfig.createTcpServerSocket(props.getTcpPort());
-            startServerThread(mohTcpServerSocket, TcpSocketThread::new);
-            log.info("TCP server started.");
+                ServerSocket mohh2WiiNtscTcpServerSocket = serverConfig.createTcpServerSocket(21120);
+                startServerThread(mohh2WiiNtscTcpServerSocket, TcpSocketThread::new);
+                log.info("MOHH2 WII NTSC servers started.");
+            }
 
             if (props.isTosEnabled()) {
                 ServerSocket tosTcpServerSocket = serverConfig.createTcpServerSocket(80);

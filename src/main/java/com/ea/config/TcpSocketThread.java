@@ -59,7 +59,9 @@ public class TcpSocketThread implements Runnable {
             SocketWrapper socketWrapper = SocketManager.getSocketWrapper(clientSocket);
             if(socketWrapper != null && socketWrapper.getPersonaEntity() != null) {
                 GameEntity gameEntity = gameRepository.findCurrentGameOfPersona(socketWrapper.getPersonaConnectionEntity().getId()).orElse(null);
-                log.info("Persona {} ({}) disconnected {}",
+                log.info("{}:{} - Persona {} ({}) disconnected {}",
+                        clientSocket.getInetAddress().getHostAddress(),
+                        clientSocket.getPort(),
                         socketWrapper.getPersonaEntity().getPers(),
                         socketWrapper.isHost() ? "host" : "non-host",
                         gameEntity != null ? "while in game #" + gameEntity.getId() : "while not in game");
