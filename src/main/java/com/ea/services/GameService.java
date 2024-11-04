@@ -39,7 +39,7 @@ public class GameService {
     private Props props;
 
     @Autowired
-    private GameRepository gameRepository;
+    public GameRepository gameRepository;
 
     @Autowired
     private GameReportRepository gameReportRepository;
