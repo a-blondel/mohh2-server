@@ -18,12 +18,12 @@ public class SslSocketThread implements Runnable {
     }
 
     public void run() {
-        log.info("SSL client session started: {}:{}", clientSocket.getInetAddress().getHostAddress(), clientSocket.getPort());
+        log.info("SSL client session started: {}", clientSocket.getRemoteSocketAddress().toString());
         try {
             SocketReader socketReader = new SocketReader();
             socketReader.read(clientSocket);
         } finally {
-            log.info("SSL client session ended: {}:{}", clientSocket.getInetAddress().getHostAddress(), clientSocket.getPort());
+            log.info("SSL client session ended: {}", clientSocket.getRemoteSocketAddress().toString());
         }
     }
 

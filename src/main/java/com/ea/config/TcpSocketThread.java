@@ -46,7 +46,7 @@ public class TcpSocketThread implements Runnable {
     }
 
     public void run() {
-        log.info("TCP client session started: {}:{}", clientSocket.getInetAddress().getHostAddress(), clientSocket.getPort());
+        log.info("TCP client session started: {}", clientSocket.getRemoteSocketAddress().toString());
         try {
             pingExecutor = Executors.newSingleThreadScheduledExecutor();
             pingExecutor.scheduleAtFixedRate(() -> png(clientSocket), 30, 30, TimeUnit.SECONDS);
@@ -58,30 +58,11 @@ public class TcpSocketThread implements Runnable {
             }
             SocketWrapper socketWrapper = SocketManager.getSocketWrapper(clientSocket);
             if(socketWrapper != null && socketWrapper.getPersonaEntity() != null) {
-                GameEntity gameEntity = gameRepository.findCurrentGameOfPersona(socketWrapper.getPersonaConnectionEntity().getId()).orElse(null);
-                log.info("{}:{} - Persona {} ({}) disconnected {}",
-                        clientSocket.getInetAddress().getHostAddress(),
-                        clientSocket.getPort(),
-                        socketWrapper.getPersonaEntity().getPers(),
-                        socketWrapper.isHost() ? "host" : "client",
-                        gameEntity != null ? "while in game #" + gameEntity.getId() : "while not in game");
-                if(socketWrapper.isHost() && gameEntity != null) {
-                    for(GameReportEntity gameReportEntity : gameReportRepository.findByGameIdAndEndTimeIsNull(gameEntity.getId())) {
-                        gameReportEntity.setEndTime(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
-                        gameReportRepository.save(gameReportEntity);
-                    }
-                    gameEntity.setEndTime(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
-                    gameRepository.save(gameEntity);
-                } else {
-                    gameService.endGameReport(socketWrapper); // If the player doesn't leave from the game
-                    if(gameEntity != null) {
-                        gameService.updateHostInfo(gameEntity);
-                    }
-                }
+                gameService.endGameReport(socketWrapper);
                 personaService.endPersonaConnection(socketWrapper);
                 SocketManager.removeSocket(socketWrapper.getIdentifier());
             }
-            log.info("TCP client session ended: {}:{}", clientSocket.getInetAddress().getHostAddress(), clientSocket.getPort());
+            log.info("TCP client session ended: {}", clientSocket.getRemoteSocketAddress().toString());
         }
     }
 

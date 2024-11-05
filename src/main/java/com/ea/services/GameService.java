@@ -537,10 +537,18 @@ public class GameService {
                 gameReportRepository.findByPersonaConnectionIdAndEndTimeIsNull(socketWrapper.getPersonaConnectionEntity().getId());
         if(gameReportEntityOpt.isPresent()) {
             GameReportEntity gameReportEntity = gameReportEntityOpt.get();
-            gameReportEntity.setEndTime(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
-            gameReportRepository.save(gameReportEntity);
-            if(!gameReportEntity.isHost()) {
-                updateHostInfo(gameReportEntity.getGame());
+            GameEntity gameEntity = gameReportEntity.getGame();
+            if(socketWrapper.isHost()) {
+                for(GameReportEntity gameReportToClose : gameReportRepository.findByGameIdAndEndTimeIsNull(gameEntity.getId())) {
+                    gameReportToClose.setEndTime(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
+                    gameReportRepository.save(gameReportToClose);
+                }
+                gameEntity.setEndTime(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
+                gameRepository.save(gameEntity);
+            } else {
+                gameReportEntity.setEndTime(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
+                gameReportRepository.save(gameReportEntity);
+                updateHostInfo(gameEntity);
             }
         }
     }
