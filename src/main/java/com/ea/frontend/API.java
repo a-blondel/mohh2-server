@@ -7,12 +7,11 @@ import com.ea.services.GameService;
 import com.ea.repositories.GameReportRepository;
 import com.ea.repositories.PersonaConnectionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RestController;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -48,7 +47,6 @@ public class API {
      * Gets count of players currently in active games (excluding hosts)
      */
     public int getPlayersInGame() {
-        // Count unique players that have active game reports and aren't hosts
         return (int) gameReportRepository.findAll().stream()
                 .filter(report -> report.getEndTime() == null)
                 .filter(report -> !report.isHost())
@@ -61,7 +59,7 @@ public class API {
      * Gets count of players in lobby (connected but not in game)
      */
     public int getPlayersInLobby() {
-        // Get all active persona connections
+        // Get all active persona connections (excluding hosts)
         List<PersonaConnectionEntity> activeConnections = personaConnectionRepository.findAll().stream()
                 .filter(pc -> pc.getEndTime() == null && !pc.isHost())
                 .collect(Collectors.toList());
@@ -80,17 +78,25 @@ public class API {
     }
 
     /**
-     * Formats a LocalDateTime to a string in format "yyyy-MM-dd HH:mm:ss"
+     * Converts LocalDateTime to UTC Instant considering system timezone
      */
-    public String formatDateTime(LocalDateTime dateTime) {
-        return dateTime.format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+    public Instant toUTCInstant(LocalDateTime localDateTime) {
+        return localDateTime != null ? localDateTime.atZone(ZoneId.systemDefault()).toInstant() : null;
     }
 
     /**
      * Formats duration since the given time until now in format "Xh Ym" or "Y min"
+     * All calculations are done in UTC
      */
-    public String formatDuration(LocalDateTime startTime) {
-        long minutes = ChronoUnit.MINUTES.between(startTime, LocalDateTime.now());
+    public String formatDuration(Instant startTime) {
+        if (startTime == null) {
+            return "N/A";
+        }
+
+        long minutes = ChronoUnit.MINUTES.between(startTime, Instant.now());
+        if (minutes < 0) {
+            return "0 min";  // Handle case where time might be slightly in the future due to clock skew
+        }
         if (minutes < 60) {
             return minutes + " min";
         }
@@ -98,7 +104,7 @@ public class API {
     }
 
     record MonitorResponse(
-            LocalDateTime timestamp,
+            Instant timestamp,
             Statistics stats,
             List<GameInfo> activeGames
     ) {}
@@ -114,7 +120,7 @@ public class API {
             Long id,
             String name,
             String version,
-            LocalDateTime startTime,
+            Instant startTime,
             Integer maxPlayers,
             List<PlayerInfo> activePlayers
     ) {}
@@ -122,8 +128,7 @@ public class API {
     record PlayerInfo(
             String name,
             boolean isHost,
-            LocalDateTime joinTime,
+            Instant joinTime,
             String playTime
     ) {}
 }
-
