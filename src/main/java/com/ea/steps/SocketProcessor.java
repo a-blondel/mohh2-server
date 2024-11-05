@@ -24,7 +24,10 @@ public class SocketProcessor {
     public static void process(Socket socket, SocketData socketData) {
         SocketWrapper socketWrapper = SocketManager.getSocketWrapper(socket);
         switch (socketData.getIdMessage()) {
-            case ("@tic"), ("~png"):
+            case ("~png"):
+                break;
+            case ("@tic"):
+                SocketWriter.write(socket, socketData);
                 break;
             case ("@dir"):
                 authService.dir(socket, socketData);
