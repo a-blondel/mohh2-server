@@ -7,28 +7,28 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
+
+
 
 @RestController
 public class ServerStatusAPI {
-
     @Autowired
     private API api;
 
     @GetMapping("/games/api")
     public ResponseEntity<API.MonitorResponse> getGameMonitorJson() {
-        // Get active games
         List<GameEntity> activeGames = api.getActiveGames();
 
-        // Calculate statistics
         int playersInGame = api.getPlayersInGame();
         int playersInLobby = api.getPlayersInLobby();
         int totalPlayers = playersInGame + playersInLobby;
 
-        // Create response object
         API.MonitorResponse response = new API.MonitorResponse(
-                LocalDateTime.now(),
+                Instant.now(),
                 new API.Statistics(
                         activeGames.size(),
                         playersInGame,
@@ -43,6 +43,16 @@ public class ServerStatusAPI {
         return ResponseEntity.ok(response);
     }
 
+    private int getMaxPlayerSize(GameEntity game)
+    {
+        int maxSize = game.getMaxsize() -1;
+        if (maxSize < 0)
+        {
+            maxSize = 0;
+        }
+        return maxSize;
+    }
+
     private API.GameInfo convertToGameInfo(GameEntity game) {
         List<API.PlayerInfo> activePlayers = api.getActiveReports(game)
                 .stream()
@@ -53,8 +63,8 @@ public class ServerStatusAPI {
                 game.getId(),
                 game.getName(),
                 game.getVers(),
-                game.getStartTime(),
-                game.getMaxsize(),
+                api.toUTCInstant(game.getStartTime()),
+                getMaxPlayerSize(game),
                 activePlayers
         );
     }
@@ -63,8 +73,8 @@ public class ServerStatusAPI {
         return new API.PlayerInfo(
                 report.getPersonaConnection().getPersona().getPers(),
                 report.isHost(),
-                report.getStartTime(),
-                api.formatDuration(report.getStartTime())
+                api.toUTCInstant(report.getStartTime()),
+                api.formatDuration(api.toUTCInstant(report.getStartTime()))
         );
     }
 }
