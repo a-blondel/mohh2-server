@@ -81,14 +81,14 @@ public class GameService {
     }
 
     public void gset(Socket socket, SocketData socketData, SocketWrapper socketWrapper) {
-        String name = getValueFromSocket(socketData.getInputMessage(), "NAME");
+        //String name = getValueFromSocket(socketData.getInputMessage(), "NAME");
         String params = getValueFromSocket(socketData.getInputMessage(), "PARAMS");
         String sysflags = getValueFromSocket(socketData.getInputMessage(), "SYSFLAGS");
 
-        String vers = socketWrapper.getPersonaConnectionEntity().getVers();
-        List<String> relatedVers = GameVersUtils.getRelatedVers(vers);
-
-        GameEntity gameEntity = gameRepository.findByNameAndVersInAndEndTimeIsNull(name, relatedVers).orElse(null);
+        GameEntity gameEntity = gameReportRepository.findByPersonaConnectionIdAndEndTimeIsNull(
+                socketWrapper.getPersonaConnectionEntity().getId())
+                .filter(GameReportEntity::isHost)
+                .map(GameReportEntity::getGame).orElse(null);
 
         SocketWriter.write(socket, socketData);
 
@@ -109,7 +109,7 @@ public class GameService {
                     newGameEntity.setOriginalId(Optional.ofNullable(gameEntity.getOriginalId()).orElse(gameEntity.getId()));
                     newGameEntity.setVers(gameEntity.getVers());
                     newGameEntity.setSlus(gameEntity.getSlus());
-                    newGameEntity.setName(name);
+                    newGameEntity.setName(gameEntity.getName());
                     newGameEntity.setParams(params);
                     newGameEntity.setSysflags(sysflags);
                     newGameEntity.setStartTime(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
