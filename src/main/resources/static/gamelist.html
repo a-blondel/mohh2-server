@@ -4,105 +4,104 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Medal of Honor Heroes Server List</title>
-    <link href="styles.css" rel="stylesheet"/>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/inter-ui/3.19.3/inter.css" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
 </head>
 <body>
 <div class="container">
-    <!-- Header Section -->
     <header class="header">
-        <h1 class="title">Medal of Honor Heroes Server List</h1>
+        <h1 id="medal-of-honor-heroes-server-list" class="title">
+            Medal of Honor Heroes Server List
+        </h1>
+
         <div class="refresh-section">
             <div class="auto-refresh">
                 <label class="switch">
-                    <input type="checkbox" id="auto-refresh-toggle">
+                    <input type="checkbox" id="auto-refresh-toggle" checked>
                     <span class="slider"></span>
                 </label>
-                <span>Auto-refresh</span>
+                Auto-refresh
             </div>
+
+            <div class="dark-mode-toggle">
+                <label class="switch">
+                    <input type="checkbox" id="dark-mode-toggle">
+                    <span class="slider"></span>
+                </label>
+                Dark Mode
+            </div>
+
             <span id="last-update">Last updated: Never</span>
         </div>
     </header>
 
-    <!-- Error Message -->
-    <div class="error-message" id="error-message">
+    <div id="error-message" class="error-message">
         Unable to fetch server data. Please try again later.
     </div>
 
-    <!-- Loading State -->
-    <div class="loading" id="loading">
-        <span class="loading-spinner">↻</span>
-        Loading server data...
+    <div id="loading" class="loading">
+        <span class="loading-spinner">↻</span> Loading server data...
     </div>
 
-    <!-- Statistics Grid -->
-    <div class="stats-grid" id="stats-grid">
+    <div id="stats-grid" class="stats-grid">
         <div class="stat-box">
-            <div class="stat-value" id="active-games">0</div>
+            <div id="active-games" class="stat-value">0</div>
             <div class="stat-label">Active Games</div>
         </div>
+
         <div class="stat-box">
-            <div class="stat-value" id="players-in-game">0</div>
+            <div id="players-in-game" class="stat-value">0</div>
             <div class="stat-label">Players In Game</div>
         </div>
+
         <div class="stat-box">
-            <div class="stat-value" id="players-in-lobby">0</div>
+            <div id="players-in-lobby" class="stat-value">0</div>
             <div class="stat-label">Players In Lobby</div>
         </div>
+
         <div class="stat-box">
-            <div class="stat-value" id="total-players">0</div>
+            <div id="total-players" class="stat-value">0</div>
             <div class="stat-label">Total Players</div>
         </div>
     </div>
 
-    <!-- Games Container -->
     <div id="games-container">
-        <!-- Empty State -->
-        <div class="no-games" id="no-games">
+        <div id="no-games" class="no-games">
             No active games found.
         </div>
-
-        <!-- Game Card Template -->
-        <template id="game-card-template">
-            <div class="game-card">
-                <div class="game-header">
-                    <div>
-                        <div class="game-title">
-                            <span class="game-name"></span>
-                            <span class="game-version"></span>
-                        </div>
-                        <div class="game-meta">
-                                <span class="meta-item">
-                                    <span>Started:</span>
-                                    <span class="game-start-time"></span>
-                                </span>
-                            <span class="meta-item">
-                                    <span>Players:</span>
-                                    <span class="player-count"></span>
-                                </span>
-                            <span class="meta-item">Max Players: <span class="max-players"></span> (+host)</span>
-
-                        </div>
-                    </div>
-                </div>
-                <div class="player-list">
-                    <!-- Player items will be inserted here -->
-                </div>
-            </div>
-        </template>
-
-        <!-- Player Item Template -->
-        <template id="player-item-template">
-            <div class="player-item">
-                <div class="player-info">
-                    <span class="player-name"></span>
-                    <span class="host-badge">Host</span>
-                </div>
-                <div class="player-time"></div>
-            </div>
-        </template>
     </div>
 </div>
+
+<!-- Templates -->
+<template id="game-card-template">
+    <div class="game-card">
+        <div class="game-header">
+            <div>
+                <div class="game-title">
+                    <span class="game-name"></span>
+                    <span class="game-version"></span>
+                </div>
+                <div class="game-meta">
+                    <span class="meta-item">Started: <span class="game-start-time"></span></span>
+                    <span class="meta-item">Players: <span class="player-count"></span></span>
+                    <span class="meta-item">Max Players: <span class="max-players"></span> (+host)</span>
+                </div>
+            </div>
+        </div>
+        <div class="player-list"></div>
+    </div>
+</template>
+
+<template id="player-item-template">
+    <div class="player-item">
+        <div class="player-info">
+            <span class="player-name"></span>
+            <span class="host-badge">Host</span>
+        </div>
+        <div class="player-time"></div>
+    </div>
+</template>
+
 <script src="gamelist.js"></script>
 </body>
 </html>
