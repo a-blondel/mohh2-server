@@ -167,7 +167,69 @@ class GameListManager {
     }
 }
 
-// Initialize when DOM is loaded
+// Dark mode functionality
+class DarkModeManager {
+    constructor() {
+        this.darkModeToggle = document.querySelector('.dark-mode-toggle input');
+        this.root = document.documentElement;
+
+        // Initialize dark mode based on:
+        // 1. Previous preference in localStorage
+        // 2. System preference
+        this.initializeDarkMode();
+
+        // Bind event listeners
+        this.darkModeToggle.addEventListener('change', this.handleDarkModeToggle.bind(this));
+
+        // Listen for system theme changes
+        this.setupSystemThemeListener();
+    }
+
+    initializeDarkMode() {
+        // Check localStorage first
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme) {
+            this.setTheme(savedTheme);
+            this.darkModeToggle.checked = savedTheme === 'dark';
+            return;
+        }
+
+        // Check system preference
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            this.setTheme('dark');
+            this.darkModeToggle.checked = true;
+        } else {
+            this.setTheme('light');
+            this.darkModeToggle.checked = false;
+        }
+    }
+
+    setupSystemThemeListener() {
+        if (window.matchMedia) {
+            window.matchMedia('(prefers-color-scheme: dark)')
+                .addEventListener('change', (e) => {
+                    // Only auto-switch if there's no saved preference
+                    if (!localStorage.getItem('theme')) {
+                        this.setTheme(e.matches ? 'dark' : 'light');
+                        this.darkModeToggle.checked = e.matches;
+                    }
+                });
+        }
+    }
+
+    handleDarkModeToggle(event) {
+        const theme = event.target.checked ? 'dark' : 'light';
+        this.setTheme(theme);
+        localStorage.setItem('theme', theme);
+    }
+
+    setTheme(theme) {
+        this.root.setAttribute('data-theme', theme);
+    }
+}
+
+// Update the existing code to initialize both managers
 document.addEventListener('DOMContentLoaded', () => {
     window.gameListManager = new GameListManager();
+    window.darkModeManager = new DarkModeManager();
 });
