@@ -63,7 +63,7 @@ public class TcpSocketThread implements Runnable {
                         clientSocket.getInetAddress().getHostAddress(),
                         clientSocket.getPort(),
                         socketWrapper.getPersonaEntity().getPers(),
-                        socketWrapper.isHost() ? "host" : "non-host",
+                        socketWrapper.isHost() ? "host" : "client",
                         gameEntity != null ? "while in game #" + gameEntity.getId() : "while not in game");
                 if(socketWrapper.isHost() && gameEntity != null) {
                     for(GameReportEntity gameReportEntity : gameReportRepository.findByGameIdAndEndTimeIsNull(gameEntity.getId())) {

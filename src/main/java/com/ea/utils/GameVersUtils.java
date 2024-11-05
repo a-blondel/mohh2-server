@@ -1,7 +1,10 @@
 package com.ea.utils;
 
+import lombok.extern.slf4j.Slf4j;
+
 import java.util.List;
 
+@Slf4j
 public class GameVersUtils {
 
     public static final String VERS_MOHH_PSP_HOST = "PSP/MOHGPS071";
@@ -33,6 +36,7 @@ public class GameVersUtils {
         } else if (SLUS_MOHH2_WII_NTSC.contains(slus)) {
             return 21120;
         }
+        log.error("Unknown SLUS: {}", slus);
         return -1;
     }
 
