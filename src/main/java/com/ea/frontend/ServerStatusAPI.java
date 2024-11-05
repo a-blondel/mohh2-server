@@ -10,28 +10,34 @@ import org.springframework.web.bind.annotation.RestController;
 import java.time.LocalDateTime;
 import java.util.List;
 
-
 @RestController
 public class ServerStatusAPI {
-
-    @GetMapping("/gamelist")
-    public String gamelist() {
-        return "redirect:/gamelist.html";
-    }
 
     @Autowired
     private API api;
 
     @GetMapping("/games/api")
     public ResponseEntity<API.MonitorResponse> getGameMonitorJson() {
+        // Get active games
         List<GameEntity> activeGames = api.getActiveGames();
-        int totalPlayers = api.calculateTotalPlayers(activeGames);
-        double avgPlayersPerGame = api.calculateAveragePlayersPerGame(totalPlayers, activeGames);
 
+        // Calculate statistics
+        int playersInGame = api.getPlayersInGame();
+        int playersInLobby = api.getPlayersInLobby();
+        int totalPlayers = playersInGame + playersInLobby;
+
+        // Create response object
         API.MonitorResponse response = new API.MonitorResponse(
                 LocalDateTime.now(),
-                new API.Statistics(activeGames.size(), totalPlayers, avgPlayersPerGame),
-                activeGames.stream().map(this::convertToGameInfo).toList()
+                new API.Statistics(
+                        activeGames.size(),
+                        playersInGame,
+                        playersInLobby,
+                        totalPlayers
+                ),
+                activeGames.stream()
+                        .map(this::convertToGameInfo)
+                        .toList()
         );
 
         return ResponseEntity.ok(response);
