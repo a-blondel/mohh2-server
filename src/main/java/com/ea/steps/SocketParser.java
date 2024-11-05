@@ -1,6 +1,8 @@
 package com.ea.steps;
 
 import com.ea.dto.HttpRequestData;
+import com.ea.dto.SocketWrapper;
+import com.ea.services.SocketManager;
 import com.ea.utils.*;
 import com.ea.dto.SocketData;
 import lombok.extern.slf4j.Slf4j;
@@ -65,8 +67,17 @@ public class SocketParser {
         String content = new String(message, 12, messageSize - 12);
         SocketData socketData = new SocketData(id, content, null);
 
-        if (props.isTcpDebugEnabled() && !props.getTcpDebugExclusions().contains(socketData.getIdMessage())) {
-            log.info("Received from {}:{} :\n{}", socket.getInetAddress().getHostAddress(), socket.getPort(), HexUtils.formatHexDump(message));
+        SocketWrapper socketWrapper = SocketManager.getSocketWrapper(socket);
+        String playerInfo = "";
+        if (socketWrapper != null && socketWrapper.getAccountEntity() != null) {
+            String account = socketWrapper.getAccountEntity().getName();
+            String role = socketWrapper.isHost() ? "host" : "client";
+            playerInfo = account + " (" + role + ")";
+        }
+        if (!props.getTcpDebugExclusions().contains(socketData.getIdMessage())) {
+            log.info("<-- {} {} {}", socket.getRemoteSocketAddress().toString(),
+                    props.isTcpDebugEnabled() ? playerInfo : socketData.getIdMessage(),
+                props.isTcpDebugEnabled() ? "\n" + HexUtils.formatHexDump(message) : playerInfo);
         }
 
         SocketProcessor.process(socket, socketData);
