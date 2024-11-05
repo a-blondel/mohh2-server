@@ -58,15 +58,15 @@
     }
 
     function createGameCard(game) {
-        const playersList = game.players.length === 0
+        const playersList = game.activePlayers.length === 0
             ? "<div class='player-item'>No active players</div>"
-            : game.players.map(player => `
+            : game.activePlayers.map(player => `
                 <div class='player-item'>
                     <div>
                         ${player.name}
                         ${player.isHost ? "<span class='host-badge'>Host</span>" : ""}
                     </div>
-                    <div>${formatDuration(player.joinTime)}</div>
+                    <div>${player.playTime}</div>
                 </div>
             `).join('');
 
@@ -104,8 +104,9 @@
                 const statsGrid = document.getElementById('stats-grid');
                 statsGrid.innerHTML =
                     createStatBox('Active Games', data.stats.activeGames) +
-                    createStatBox('Total Players', data.stats.totalPlayers) +
-                    createStatBox('Avg. Players/Game', data.stats.averagePlayersPerGame.toFixed(1));
+                    createStatBox('In-Game Players', data.stats.playersInGame) +
+                    createStatBox('Lobby Players', data.stats.playersInLobby) +
+                    createStatBox('Total Players', data.stats.totalPlayers);
 
                 // Update games
                 const gamesContainer = document.getElementById('games-container');
