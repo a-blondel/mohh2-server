@@ -6,6 +6,7 @@ import com.ea.entities.PersonaConnectionEntity;
 import com.ea.services.GameService;
 import com.ea.repositories.GameReportRepository;
 import com.ea.repositories.PersonaConnectionRepository;
+import lombok.Getter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -21,6 +22,7 @@ public class API {
     @Autowired
     private GameService gameService;
 
+    @Getter
     @Autowired
     private GameReportRepository gameReportRepository;
 
@@ -38,9 +40,7 @@ public class API {
      * Gets all active players (excluding host) for a specific game
      */
     public List<GameReportEntity> getActiveReports(GameEntity game) {
-        return gameReportRepository.findByGameIdAndEndTimeIsNull(game.getId()).stream()
-                .filter(report -> !report.isHost())
-                .toList();
+        return gameReportRepository.findByGameIdAndEndTimeIsNull(game.getId()).stream().toList();
     }
 
     /**
@@ -122,6 +122,7 @@ public class API {
             String version,
             Instant startTime,
             Integer maxPlayers,
+            String hosterName,
             List<PlayerInfo> activePlayers
     ) {}
 
