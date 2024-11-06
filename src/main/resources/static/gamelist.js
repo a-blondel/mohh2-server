@@ -92,6 +92,13 @@ class GameListManager {
         card.querySelector('.player-count').textContent = game.activePlayers.length;
         card.querySelector('.max-players').textContent = game.maxPlayers;
 
+        // Create host badge with existing styling
+        const gameTitle = card.querySelector('.game-title');
+        const hostBadge = document.createElement('span');
+        hostBadge.className = 'game-host-badge';
+        hostBadge.textContent = game.hosterName;
+        gameTitle.appendChild(hostBadge);
+
         // Add players
         const playerList = card.querySelector('.player-list');
         game.activePlayers.forEach(player => {

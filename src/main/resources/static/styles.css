@@ -412,3 +412,34 @@ input:checked + .slider:before {
         border: 1px solid var(--border-color);
     }
 }
+
+/* Add this to your existing CSS file */
+
+.game-host-badge {
+    background-color: var(--host-badge-bg);
+    color: white;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-left: 0.75rem;
+    display: inline-flex;
+    align-items: center;
+}
+
+.game-host-badge::before {
+    content: "Hosting user:";
+    margin-right: 0.25rem;
+    opacity: 0.9;
+}
+
+@media (max-width: 640px) {
+    .game-title {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .game-host-badge {
+        margin-left: 0;
+    }
+}

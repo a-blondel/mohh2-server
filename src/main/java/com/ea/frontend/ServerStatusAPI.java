@@ -8,11 +8,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.List;
-
-
 
 @RestController
 public class ServerStatusAPI {
@@ -43,19 +39,27 @@ public class ServerStatusAPI {
         return ResponseEntity.ok(response);
     }
 
-    private int getMaxPlayerSize(GameEntity game)
-    {
-        int maxSize = game.getMaxsize() -1;
-        if (maxSize < 0)
-        {
+    private int getMaxPlayerSize(GameEntity game) {
+        int maxSize = game.getMaxsize() - 1;
+        if (maxSize < 0) {
             maxSize = 0;
         }
         return maxSize;
     }
 
     private API.GameInfo convertToGameInfo(GameEntity game) {
-        List<API.PlayerInfo> activePlayers = api.getActiveReports(game)
-                .stream()
+        List<GameReportEntity> reports = api.getGameReportRepository().findByGameIdAndEndTimeIsNull(game.getId());
+
+        // Find host name
+        String hostName = reports.stream()
+                .filter(GameReportEntity::isHost)
+                .map(report -> report.getPersonaConnection().getPersona().getPers())
+                .findFirst()
+                .orElse(null);
+
+        // Get non-host players
+        List<API.PlayerInfo> activePlayers = reports.stream()
+                .filter(report -> !report.isHost())
                 .map(this::convertToPlayerInfo)
                 .toList();
 
@@ -65,6 +69,7 @@ public class ServerStatusAPI {
                 game.getVers(),
                 api.toUTCInstant(game.getStartTime()),
                 getMaxPlayerSize(game),
+                hostName,
                 activePlayers
         );
     }
