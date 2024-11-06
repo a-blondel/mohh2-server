@@ -1,6 +1,8 @@
 package com.ea.steps;
 
 import com.ea.dto.SocketData;
+import com.ea.dto.SocketWrapper;
+import com.ea.services.SocketManager;
 import com.ea.utils.BeanUtil;
 import com.ea.utils.HexUtils;
 import com.ea.utils.Props;
@@ -57,9 +59,17 @@ public class SocketWriter {
             }
 
             byte[] bufferBytes = buffer.toByteArray();
-
-            if (props.isTcpDebugEnabled() && !props.getTcpDebugExclusions().contains(socketData.getIdMessage())) {
-                log.info("Send to {}:{} :\n{}", socket.getInetAddress().getHostAddress(), socket.getPort(), HexUtils.formatHexDump(bufferBytes));
+            SocketWrapper socketWrapper = SocketManager.getSocketWrapper(socket);
+            String playerInfo = "";
+            if (socketWrapper != null && socketWrapper.getAccountEntity() != null) {
+                String account = socketWrapper.getAccountEntity().getName();
+                String role = socketWrapper.isHost() ? "host" : "client";
+                playerInfo = account + " (" + role + ")";
+            }
+            if (!props.getTcpDebugExclusions().contains(socketData.getIdMessage())) {
+                log.info("--> {} {} {}", socket.getRemoteSocketAddress().toString(),
+                        props.isTcpDebugEnabled() ? playerInfo : socketData.getIdMessage(),
+                        props.isTcpDebugEnabled() ? "\n" + HexUtils.formatHexDump(bufferBytes) : playerInfo);
             }
 
             socket.getOutputStream().write(bufferBytes);
