@@ -64,12 +64,13 @@ public class AuthService {
     }
 
     public void news(Socket socket, SocketData socketData) {
+        String tosUrl = props.getTosBaseUrl() + "/legalapp/webterms/us/fr/pc/";
         Map<String, String> content = Stream.of(new String[][] {
                 { "BUDDY_SERVER", props.getTcpHost() },
                 { "BUDDY_PORT", String.valueOf(11192) },
-                { "TOSAC_URL", "https://tos.ea.com/legalapp/webterms/us/fr/pc/" },
-                { "TOSA_URL", "https://tos.ea.com/legalapp/webterms/us/fr/pc/" },
-                { "TOS_URL", "https://tos.ea.com/legalapp/webterms/us/fr/pc/" },
+                { "TOSAC_URL", tosUrl },
+                { "TOSA_URL", tosUrl },
+                { "TOS_URL", tosUrl },
         }).collect(Collectors.toMap(data -> data[0], data -> data[1]));
 
         socketData.setOutputData(content);
