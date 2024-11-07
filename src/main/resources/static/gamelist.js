@@ -96,7 +96,7 @@ class GameListManager {
         const gameTitle = card.querySelector('.game-title');
         const hostBadge = document.createElement('span');
         hostBadge.className = 'game-host-badge';
-        hostBadge.textContent = game.hosterName;
+        hostBadge.textContent = game.host   Name;
         gameTitle.appendChild(hostBadge);
 
         // Add players
