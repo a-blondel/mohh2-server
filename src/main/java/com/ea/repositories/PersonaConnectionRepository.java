@@ -24,11 +24,16 @@ public interface PersonaConnectionRepository extends JpaRepository<PersonaConnec
 
     @Transactional
     @Modifying
-    @Query("UPDATE PersonaConnectionEntity pc SET pc.endTime = :endTime WHERE pc.endTime IS NULL")
+    @Query("""
+        UPDATE PersonaConnectionEntity pc 
+        SET pc.endTime = :endTime 
+        WHERE pc.endTime IS NULL
+    """)
     int setEndTimeForAllUnfinishedPersonaConnections(@Param("endTime") LocalDateTime endTime);
 
     @Query("""
-        SELECT COUNT(pc) FROM PersonaConnectionEntity pc 
+        SELECT COUNT(pc) 
+        FROM PersonaConnectionEntity pc 
         WHERE pc.endTime IS NULL 
         AND pc.isHost = false 
         AND pc.id NOT IN (
@@ -39,15 +44,22 @@ public interface PersonaConnectionRepository extends JpaRepository<PersonaConnec
     """)
     int countPlayersInLobby();
 
-    @Query("SELECT COUNT(pc) FROM PersonaConnectionEntity pc " +
-            "WHERE pc.endTime IS NULL AND pc.isHost = false")
+    @Query("""
+        SELECT COUNT(pc) 
+        FROM PersonaConnectionEntity pc 
+        WHERE pc.endTime IS NULL 
+        AND pc.isHost = false
+    """)
     int countActiveNonHostConnections();
 
-    @Query("SELECT pc FROM PersonaConnectionEntity pc " +
-            "JOIN FETCH pc.persona " +
-            "WHERE pc.endTime IS NULL " +
-            "AND pc.isHost = false " +
-            "ORDER BY pc.startTime DESC")
+    @Query("""
+        SELECT pc 
+        FROM PersonaConnectionEntity pc 
+        JOIN FETCH pc.persona 
+        WHERE pc.endTime IS NULL 
+        AND pc.isHost = false 
+        ORDER BY pc.startTime DESC
+    """)
     List<PersonaConnectionEntity> findActiveNonHostConnectionsWithPersonas();
 
     @Query("""
@@ -61,4 +73,3 @@ public interface PersonaConnectionRepository extends JpaRepository<PersonaConnec
     """)
     DTO.ConnectionStatsDTO getActiveConnectionStats();
 }
-
