@@ -1,7 +1,9 @@
 package com.ea.frontend;
 
-import com.ea.entities.GameEntity;
-import com.ea.entities.GameReportEntity;
+import com.ea.frontend.API;
+import com.ea.frontend.DTO;
+import com.ea.repositories.GameReportRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -11,27 +13,31 @@ import java.time.Instant;
 import java.util.List;
 
 @RestController
-public class ServerStatusAPI {
+@RequiredArgsConstructor
+public class ServerStatusAPI
+{
     @Autowired
-    private API api;
+    private final API api;
+
+    @Autowired
+    private final GameReportRepository gameReportRepository;
 
     @GetMapping("/games/api")
-    public ResponseEntity<API.MonitorResponse> getGameMonitorJson() {
-        List<GameEntity> activeGames = api.getActiveGames();
+    public ResponseEntity<DTO.MonitorResponse> getGameMonitorJson() {
+        List<DTO.GameStatusDTO> gameStats = gameReportRepository.findAllActiveGamesWithStats();
 
         int playersInGame = api.getPlayersInGame();
         int playersInLobby = api.getPlayersInLobby();
-        int totalPlayers = playersInGame + playersInLobby;
 
-        API.MonitorResponse response = new API.MonitorResponse(
+        DTO.MonitorResponse response = new DTO.MonitorResponse(
                 Instant.now(),
-                new API.Statistics(
-                        activeGames.size(),
+                new DTO.Statistics(
+                        gameStats.size(),
                         playersInGame,
                         playersInLobby,
-                        totalPlayers
+                        playersInGame + playersInLobby
                 ),
-                activeGames.stream()
+                gameStats.stream()
                         .map(this::convertToGameInfo)
                         .toList()
         );
@@ -39,47 +45,31 @@ public class ServerStatusAPI {
         return ResponseEntity.ok(response);
     }
 
-    private int getMaxPlayerSize(GameEntity game) {
-        int maxSize = game.getMaxsize() - 1;
-        if (maxSize < 0) {
-            maxSize = 0;
-        }
-        return maxSize;
+    private DTO.GameInfo convertToGameInfo(DTO.GameStatusDTO game) {
+        return new DTO.GameInfo(
+                game.id(),
+                game.name(),
+                game.version(),
+                api.toUTCInstant(game.startTime()),
+                getMaxPlayerSize(game.maxPlayers()),
+                game.hostName(),
+                getActivePlayers(game.id())
+        );
     }
 
-    private API.GameInfo convertToGameInfo(GameEntity game) {
-        List<GameReportEntity> reports = api.getGameReportRepository().findByGameIdAndEndTimeIsNull(game.getId());
+    private int getMaxPlayerSize(Integer maxSize) {
+        return maxSize != null ? Math.max(maxSize - 1, 0) : 0;
+    }
 
-        // Find host name
-        String hostName = reports.stream()
-                .filter(GameReportEntity::isHost)
-                .map(report -> report.getPersonaConnection().getPersona().getPers())
-                .findFirst()
-                .orElse(null);
-
-        // Get non-host players
-        List<API.PlayerInfo> activePlayers = reports.stream()
-                .filter(report -> !report.isHost())
-                .map(this::convertToPlayerInfo)
+    private List<DTO.PlayerInfo> getActivePlayers(Long gameId) {
+        return gameReportRepository.findActivePlayersByGameId(gameId)
+                .stream()
+                .map(player -> new DTO.PlayerInfo(
+                        player.playerName(),
+                        player.isHost(),
+                        api.toUTCInstant(player.startTime()),
+                        api.formatDuration(api.toUTCInstant(player.startTime()))
+                ))
                 .toList();
-
-        return new API.GameInfo(
-                game.getId(),
-                game.getName(),
-                game.getVers(),
-                api.toUTCInstant(game.getStartTime()),
-                getMaxPlayerSize(game),
-                hostName,
-                activePlayers
-        );
-    }
-
-    private API.PlayerInfo convertToPlayerInfo(GameReportEntity report) {
-        return new API.PlayerInfo(
-                report.getPersonaConnection().getPersona().getPers(),
-                report.isHost(),
-                api.toUTCInstant(report.getStartTime()),
-                api.formatDuration(api.toUTCInstant(report.getStartTime()))
-        );
     }
 }

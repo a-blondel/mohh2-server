@@ -1,6 +1,7 @@
 package com.ea.repositories;
 
 import com.ea.entities.GameReportEntity;
+import com.ea.frontend.DTO;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -15,17 +16,65 @@ import java.util.Optional;
 @Repository
 public interface GameReportRepository extends JpaRepository<GameReportEntity, Long> {
 
-    @Query("SELECT pc.address FROM GameReportEntity gr JOIN gr.personaConnection pc WHERE gr.game.id = :gameId AND gr.isHost = true AND pc.isHost = true AND pc.endTime IS NULL")
+    @Query("SELECT pc.address FROM GameReportEntity gr JOIN gr.personaConnection pc " +
+            "WHERE gr.game.id = :gameId AND gr.isHost = true AND pc.isHost = true AND pc.endTime IS NULL")
     List<String> findHostAddressByGameId(@Param("gameId") Long gameId);
 
     Optional<GameReportEntity> findByPersonaConnectionIdAndEndTimeIsNull(Long personaConnectionId);
 
     List<GameReportEntity> findByGameIdAndEndTimeIsNull(Long gameId);
 
-    List<GameReportEntity> findByPersonaConnectionPersonaPersAndGameStartTimeAndPlayTimeAndIsHostFalse(String pers, LocalDateTime startTime, int playTime);
+    List<GameReportEntity> findByPersonaConnectionPersonaPersAndGameStartTimeAndPlayTimeAndIsHostFalse(
+            String pers,
+            LocalDateTime startTime,
+            int playTime
+    );
 
     @Transactional
     @Modifying
     @Query("UPDATE GameReportEntity gr SET gr.endTime = :endTime WHERE gr.endTime IS NULL")
     int setEndTimeForAllUnfinishedGameReports(@Param("endTime") LocalDateTime endTime);
+
+    @Query("SELECT COUNT(DISTINCT gr.personaConnection.id) FROM GameReportEntity gr " +
+            "WHERE gr.endTime IS NULL AND gr.isHost = false")
+    int countActiveNonHostPlayers();
+
+    @Query("SELECT gr.personaConnection.persona.pers FROM GameReportEntity gr " +
+            "WHERE gr.game.id = :gameId AND gr.isHost = true AND gr.endTime IS NULL")
+    String findHostNameByGameId(@Param("gameId") Long gameId);
+
+    @Query("SELECT new com.ea.frontend.DTO$PlayerInfoDTO(" +
+            "gr.personaConnection.persona.pers, " +
+            "gr.isHost, " +
+            "gr.startTime) " +
+            "FROM GameReportEntity gr " +
+            "WHERE gr.game.id = :gameId " +
+            "AND gr.endTime IS NULL " +
+            "AND gr.isHost = false")
+    List<DTO.PlayerInfoDTO> findActivePlayersByGameId(@Param("gameId") Long gameId);
+
+    @Query("""
+        SELECT new com.ea.frontend.DTO$GameStatusDTO(
+            g.id,
+            g.name,
+            g.vers,
+            g.startTime,
+            g.maxsize,
+            h.personaConnection.persona.pers,
+            COUNT(p)
+        )
+        FROM GameEntity g
+        LEFT JOIN GameReportEntity h ON h.game = g AND h.isHost = true AND h.endTime IS NULL
+        LEFT JOIN GameReportEntity p ON p.game = g AND p.isHost = false AND p.endTime IS NULL
+        WHERE g.endTime IS NULL
+        GROUP BY g.id, g.name, g.vers, g.startTime, g.maxsize, h.personaConnection.persona.pers
+    """)
+    List<DTO.GameStatusDTO> findAllActiveGamesWithStats();
+
+    @Query("SELECT gr FROM GameReportEntity gr " +
+            "JOIN FETCH gr.personaConnection pc " +
+            "JOIN FETCH pc.persona " +
+            "WHERE gr.game.id = :gameId AND gr.endTime IS NULL")
+    List<GameReportEntity> findActiveReportsWithPersonasByGameId(@Param("gameId") Long gameId);
 }
+
