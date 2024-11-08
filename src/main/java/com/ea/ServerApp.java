@@ -21,9 +21,7 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.security.Security;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.function.Function;
 
 /**
@@ -34,6 +32,8 @@ import java.util.function.Function;
 public class ServerApp implements CommandLineRunner {
 
     private ScheduledExecutorService processExpiredGamesThread = Executors.newSingleThreadScheduledExecutor();
+
+    private ExecutorService clientHandlingExecutor = Executors.newFixedThreadPool(100);
 
     @Autowired
     private Props props;
@@ -53,6 +53,8 @@ public class ServerApp implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
+        setupThreadPool();
+        
         gameService.closeUnfinishedConnectionsAndGames();
 
         Security.setProperty("jdk.tls.disabledAlgorithms", "");
@@ -125,7 +127,7 @@ public class ServerApp implements CommandLineRunner {
                     if (!(socket instanceof SSLSocket)) {
                         SocketManager.addSocket(socket.getRemoteSocketAddress().toString(), socket);
                     }
-                    new Thread(runnableFactory.apply(socket)).start();
+                    clientHandlingExecutor.submit(runnableFactory.apply(socket));
                 }
             } catch (IOException e) {
                 log.error("Error accepting connections on port: {}", serverSocket.getLocalPort(), e);
@@ -138,12 +140,17 @@ public class ServerApp implements CommandLineRunner {
             log.info("Shutting down...");
             gameService.closeUnfinishedConnectionsAndGames();
             processExpiredGamesThread.shutdown();
+            clientHandlingExecutor.shutdown();
             try {
                 if (!processExpiredGamesThread.awaitTermination(800, TimeUnit.MILLISECONDS)) {
                     processExpiredGamesThread.shutdownNow();
                 }
+                if (!clientHandlingExecutor.awaitTermination(800, TimeUnit.MILLISECONDS)) {
+                    clientHandlingExecutor.shutdownNow();
+                }
             } catch (InterruptedException e) {
                 processExpiredGamesThread.shutdownNow();
+                clientHandlingExecutor.shutdownNow();
             }
             log.info("Shutdown complete.");
         }));
@@ -153,6 +160,23 @@ public class ServerApp implements CommandLineRunner {
         processExpiredGamesThread.scheduleAtFixedRate(() -> {
             gameService.closeExpiredGames();
         }, 60, 120, TimeUnit.SECONDS);
+    }
+
+    private void setupThreadPool() {
+        int poolSize = 100;
+        BlockingQueue<Runnable> queue = new LinkedBlockingQueue<>(200);
+        ThreadFactory threadFactory = Executors.defaultThreadFactory();
+        RejectedExecutionHandler handler = new ThreadPoolExecutor.CallerRunsPolicy();
+
+        clientHandlingExecutor = new ThreadPoolExecutor(
+                poolSize,
+                poolSize,
+                0L,
+                TimeUnit.MILLISECONDS,
+                queue,
+                threadFactory,
+                handler
+        );
     }
 
 }
