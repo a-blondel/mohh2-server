@@ -3,77 +3,62 @@ package com.ea.frontend;
 import com.ea.entities.GameEntity;
 import com.ea.entities.GameReportEntity;
 import com.ea.services.GameService;
+import com.ea.repositories.GameReportRepository;
+import com.ea.repositories.PersonaConnectionRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class API {
     @Autowired
-    private GameService gameService;
+    private final GameService gameService;
+
+    @Autowired
+    private final GameReportRepository gameReportRepository;
+
+    @Autowired
+    private final PersonaConnectionRepository personaConnectionRepository;
 
     public List<GameEntity> getActiveGames() {
         return gameService.gameRepository.findByEndTimeIsNull();
     }
 
-    public int calculateTotalPlayers(List<GameEntity> activeGames) {
-        return activeGames.stream()
-                .mapToInt(game -> (int) game.getGameReports().stream()
-                        .filter(report -> report.getEndTime() == null)
-                        .count())
-                .sum();
+    public List<GameReportEntity> getActiveReports(GameEntity game) {
+        return gameReportRepository.findActiveReportsWithPersonasByGameId(game.getId());
     }
 
-    public double calculateAveragePlayersPerGame(int totalPlayers, List<GameEntity> activeGames) {
-        return activeGames.isEmpty() ? 0 : (double) totalPlayers / activeGames.size();
+    public int getPlayersInGame() {
+        return gameReportRepository.countActiveNonHostPlayers();
     }
 
-    public String formatDateTime(LocalDateTime dateTime) {
-        return dateTime.format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+    public int getPlayersInLobby() {
+        return personaConnectionRepository.countPlayersInLobby();
     }
 
-    public String formatDuration(LocalDateTime startTime) {
-        long minutes = ChronoUnit.MINUTES.between(startTime, LocalDateTime.now());
+    public Instant toUTCInstant(LocalDateTime localDateTime) {
+        return localDateTime != null ? localDateTime.atZone(ZoneId.systemDefault()).toInstant() : null;
+    }
+
+    public String formatDuration(Instant startTime) {
+        if (startTime == null) {
+            return "N/A";
+        }
+
+        long minutes = ChronoUnit.MINUTES.between(startTime, Instant.now());
+        if (minutes < 0) {
+            return "0 min";
+        }
         if (minutes < 60) {
             return minutes + " min";
         }
         return (minutes / 60) + "h " + (minutes % 60) + "m";
     }
-
-    public List<GameReportEntity> getActiveReports(GameEntity game) {
-        return game.getGameReports().stream()
-                .filter(report -> report.getEndTime() == null)
-                .toList();
-    }
-
-    record MonitorResponse(
-            LocalDateTime timestamp,
-            Statistics stats,
-            List<GameInfo> activeGames
-    ) {}
-
-    record Statistics(
-            int activeGames,
-            int totalPlayers,
-            double averagePlayersPerGame
-    ) {}
-
-    record GameInfo(
-            Long id,
-            String name,
-            String version,
-            LocalDateTime startTime,
-            Integer maxPlayers,
-            List<PlayerInfo> players
-    ) {}
-
-    record PlayerInfo(
-            String name,
-            boolean isHost,
-            LocalDateTime joinTime,
-            String playTime
-    ) {}
 }

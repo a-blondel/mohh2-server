@@ -13,6 +13,7 @@ tcp:
     exclusions: '~png'
 tos:
   enabled: ${TOS_ENABLED:true} # Starts socket servers on port 80 and 443 to handle TOS HTTP(S) requests
+  base_url: ${TOS_BASE_URL:https://tos.ea.com}
 ssc2:
   key: 51ba8aee64ddfacae5baefa6bf61e009
 

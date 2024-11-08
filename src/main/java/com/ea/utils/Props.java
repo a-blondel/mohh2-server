@@ -34,6 +34,9 @@ public class Props {
     @Value("${tos.enabled}")
     private boolean tosEnabled;
 
+    @Value("${tos.base_url}")
+    private String tosBaseUrl;
+
     @Value("${ssc2.key}")
     private String ssc2Key;
 
