@@ -2,8 +2,6 @@ package com.ea.config;
 
 import com.ea.dto.SocketData;
 import com.ea.dto.SocketWrapper;
-import com.ea.entities.GameEntity;
-import com.ea.entities.GameReportEntity;
 import com.ea.repositories.GameReportRepository;
 import com.ea.repositories.GameRepository;
 import com.ea.services.GameService;
@@ -12,13 +10,9 @@ import com.ea.services.SocketManager;
 import com.ea.steps.SocketReader;
 import com.ea.steps.SocketWriter;
 import com.ea.utils.BeanUtil;
-import com.ea.utils.GameVersUtils;
 import lombok.extern.slf4j.Slf4j;
 
 import java.net.Socket;
-import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
-import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;

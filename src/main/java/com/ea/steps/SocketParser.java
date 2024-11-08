@@ -13,8 +13,8 @@ import java.nio.ByteBuffer;
 @Slf4j
 public class SocketParser {
 
-    private static Props props = BeanUtil.getBean(Props.class);
-    private static ByteBuffer messageBuffer = ByteBuffer.allocate(1024);
+    private Props props = BeanUtil.getBean(Props.class);
+    private ByteBuffer messageBuffer = ByteBuffer.allocate(1024);
 
     /**
      * Parses input messages based on current content of the stream
@@ -24,7 +24,7 @@ public class SocketParser {
      * @param buffer the buffer to read from
      * @param readLength the size of written content in buffer
      */
-    public static void parse(Socket socket, byte[] buffer, int readLength) {
+    public void parse(Socket socket, byte[] buffer, int readLength) {
         if (HttpRequestUtils.isHttpPacket(buffer)) {
             handleHttpRequest(socket, buffer);
         } else {
@@ -32,12 +32,12 @@ public class SocketParser {
         }
     }
 
-    private static void handleHttpRequest(Socket socket, byte[] buffer) {
+    private void handleHttpRequest(Socket socket, byte[] buffer) {
         HttpRequestData request = HttpRequestUtils.extractHttpRequest(buffer);
         HttpProcessor.process(socket, request);
     }
 
-    private static void handleSocketData(Socket socket, byte[] buffer, int readLength) {
+    private void handleSocketData(Socket socket, byte[] buffer, int readLength) {
         if (messageBuffer.remaining() < readLength) {
             ByteBuffer newBuffer = ByteBuffer.allocate(messageBuffer.capacity() + readLength);
             messageBuffer.flip();
@@ -62,7 +62,7 @@ public class SocketParser {
         messageBuffer.compact();
     }
 
-    private static void processCompleteMessage(Socket socket, byte[] message, int messageSize) {
+    private void processCompleteMessage(Socket socket, byte[] message, int messageSize) {
         String id = new String(message, 0, 4);
         String content = new String(message, 12, messageSize - 12);
         SocketData socketData = new SocketData(id, content, null);
@@ -77,7 +77,7 @@ public class SocketParser {
         if (!props.getTcpDebugExclusions().contains(socketData.getIdMessage())) {
             log.info("<-- {} {} {}", socket.getRemoteSocketAddress().toString(),
                     props.isTcpDebugEnabled() ? playerInfo : socketData.getIdMessage(),
-                props.isTcpDebugEnabled() ? "\n" + HexUtils.formatHexDump(message) : playerInfo);
+                    props.isTcpDebugEnabled() ? "\n" + HexUtils.formatHexDump(message) : playerInfo);
         }
 
         SocketProcessor.process(socket, socketData);

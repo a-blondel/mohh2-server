@@ -17,15 +17,17 @@ public class SocketReader {
      * @throws IOException
      */
     public static void read(Socket socket) {
+        SocketParser parser = new SocketParser();
+
         try {
             InputStream is = socket.getInputStream();
             byte[] buffer = new byte[4096];
             int readLength;
-            while((readLength = is.read(buffer)) != -1) {
-                SocketParser.parse(socket, buffer, readLength);
+            while ((readLength = is.read(buffer)) != -1) {
+                parser.parse(socket, buffer, readLength);
             }
         } catch (SocketException e) {
-            log.warn("Socket closed, stopping reading", e);
+            log.warn("Socket closed, stopping reading");
         } catch (IOException e) {
             log.error("Error reading from socket", e);
         }
