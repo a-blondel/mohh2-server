@@ -2,35 +2,43 @@ package com.ea.services;
 
 import com.ea.dto.SocketData;
 import com.ea.dto.SocketWrapper;
-import com.ea.repositories.GameReportRepository;
 import com.ea.steps.SocketWriter;
 import com.ea.utils.GameVersUtils;
 import com.ea.utils.Props;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
 
 import java.net.Socket;
+import java.util.Collections;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static com.ea.utils.SocketUtils.SPACE_CHAR;
 import static com.ea.utils.SocketUtils.getValueFromSocket;
 
-@Component
+@RequiredArgsConstructor
+@Service
 public class AuthService {
 
-    @Autowired
-    Props props;
+    private final Props props;
+    private final PersonaService personaService;
+    private final GameService gameService;
+    private final SocketWriter socketWriter;
+    private final SocketManager socketManager;
 
-    @Autowired
-    private PersonaService personaService;
-
-    @Autowired
-    private GameService gameService;
-
-    @Autowired
-    private GameReportRepository gameReportRepository;
+    public void png(Socket socket, SocketData socketData) {
+        SocketWrapper socketWrapper = socketManager.getSocketWrapper(socket);
+        if (socketWrapper != null) {
+            AtomicInteger pingReceiveCounter = socketWrapper.getPingReceiveCounter();
+            String time = getValueFromSocket(socketData.getInputMessage(), "TIME");
+            if (time != null) {
+                int pingId = Integer.parseInt(time);
+                pingReceiveCounter.set(pingId);
+            }
+        }
+    }
 
     public void dir(Socket socket, SocketData socketData) {
         String slus = getValueFromSocket(socketData.getInputMessage(), "SLUS");
@@ -47,20 +55,17 @@ public class AuthService {
         }).collect(Collectors.toMap(data -> data[0], data -> data[1]));
 
         socketData.setOutputData(content);
-        SocketWriter.write(socket, socketData);
+        socketWriter.write(socket, socketData);
     }
 
     public void addr(Socket socket, SocketData socketData) {
-        SocketWriter.write(socket, socketData);
+        socketWriter.write(socket, socketData);
     }
 
     public void skey(Socket socket, SocketData socketData) {
-        Map<String, String> content = Stream.of(new String[][] {
-                { "SKEY", "$51ba8aee64ddfacae5baefa6bf61e009" },
-        }).collect(Collectors.toMap(data -> data[0], data -> data[1]));
-
+        Map<String, String> content = Collections.singletonMap("SKEY", "$51ba8aee64ddfacae5baefa6bf61e009");
         socketData.setOutputData(content);
-        SocketWriter.write(socket, socketData);
+        socketWriter.write(socket, socketData);
     }
 
     public void news(Socket socket, SocketData socketData) {
@@ -74,7 +79,7 @@ public class AuthService {
         }).collect(Collectors.toMap(data -> data[0], data -> data[1]));
 
         socketData.setOutputData(content);
-        SocketWriter.write(socket, socketData);
+        socketWriter.write(socket, socketData);
     }
 
     public void sele(Socket socket, SocketData socketData, SocketWrapper socketWrapper) {
@@ -126,13 +131,13 @@ public class AuthService {
         }
 
         socketData.setOutputData(content);
-        SocketWriter.write(socket, socketData, SPACE_CHAR);
+        socketWriter.write(socket, socketData, SPACE_CHAR);
 
         if(null != stats || null != inGame) {
             personaService.who(socket, socketWrapper);
         }
 
-        if(socketWrapper != null && socketWrapper.isHost()) {
+        if(socketWrapper != null && socketWrapper.getIsHost().get()) {
             joinRoom(socket, socketData, socketWrapper);
         }
 
@@ -143,7 +148,7 @@ public class AuthService {
         try {
             Thread.sleep(100);
         } catch (InterruptedException e) {
-            throw new RuntimeException(e);
+            Thread.currentThread().interrupt();
         }
         gameService.rom(socket, socketData);
     }

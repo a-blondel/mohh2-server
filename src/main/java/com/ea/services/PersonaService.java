@@ -1,5 +1,16 @@
 package com.ea.services;
 
+import java.net.Socket;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import lombok.RequiredArgsConstructor;
+
 import com.ea.dto.SocketData;
 import com.ea.dto.SocketWrapper;
 import com.ea.entities.AccountEntity;
@@ -12,37 +23,22 @@ import com.ea.repositories.PersonaRepository;
 import com.ea.repositories.PersonaStatsRepository;
 import com.ea.steps.SocketWriter;
 import com.ea.utils.AccountUtils;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-
-import java.net.Socket;
-import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
 import static com.ea.utils.GameVersUtils.VERS_MOHH_PSP_HOST;
 import static com.ea.utils.SocketUtils.getValueFromSocket;
 
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+
 @Slf4j
-@Component
+@RequiredArgsConstructor
+@Service
 public class PersonaService {
 
-    @Autowired
-    private PersonaRepository personaRepository;
-
-    @Autowired
-    private PersonaConnectionRepository personaConnectionRepository;
-
-    @Autowired
-    private PersonaStatsRepository personaStatsRepository;
-
-    @Autowired
-    private GameRepository gameRepository;
+    private final PersonaRepository personaRepository;
+    private final PersonaConnectionRepository personaConnectionRepository;
+    private final PersonaStatsRepository personaStatsRepository;
+    private final GameRepository gameRepository;
+    private final SocketWriter socketWriter;
 
     /**
      * Persona creation
@@ -80,7 +76,7 @@ public class PersonaService {
             personaRepository.save(personaEntity);
         }
 
-        SocketWriter.write(socket, socketData);
+        socketWriter.write(socket, socketData);
     }
 
     /**
@@ -92,7 +88,7 @@ public class PersonaService {
     public void pers(Socket socket, SocketData socketData, SocketWrapper socketWrapper) {
         String pers = getValueFromSocket(socketData.getInputMessage(), "PERS");
         if(pers.contains("@")) { // Remove @ from persona name (UHS naming convention)
-            socketWrapper.setHost(true);
+            socketWrapper.getIsHost().set(true);
             pers = pers.split("@")[0] + pers.split("@")[1];
         }
 
@@ -103,15 +99,18 @@ public class PersonaService {
                         socketWrapper.getPersonaConnectionEntity().getSlus(),
                         pers);
         if(personaConnectionEntityOpt.isPresent()) {
-            socketData.setIdMessage("persmauth"); // (EC_MASTER_AUTH / EC_PERSONA_SET ?)
-            SocketWriter.write(socket, socketData);
+            socketData.setIdMessage("perspset");
+            socketWriter.write(socket, socketData);
             return;
         }
 
         Optional<PersonaEntity> personaEntityOpt = personaRepository.findByPers(pers);
         if (personaEntityOpt.isPresent()) {
             PersonaEntity personaEntity = personaEntityOpt.get();
-            socketWrapper.setPersonaEntity(personaEntity);
+            synchronized (this) {
+                socketWrapper.setPersonaEntity(personaEntity);
+            }
+
             Map<String, String> content = Stream.of(new String[][] {
                     { "PERS", personaEntity.getPers() },
                     { "LKEY", "" },
@@ -123,7 +122,7 @@ public class PersonaService {
             }).collect(Collectors.toMap(data -> data[0], data -> data[1]));
 
             socketData.setOutputData(content);
-            SocketWriter.write(socket, socketData);
+            socketWriter.write(socket, socketData);
 
             startPersonaConnection(socketWrapper);
 
@@ -158,7 +157,7 @@ public class PersonaService {
         }
         PersonaConnectionEntity personaConnectionEntity = socketWrapper.getPersonaConnectionEntity();
         personaConnectionEntity.setPersona(personaEntity);
-        personaConnectionEntity.setHost(socketWrapper.isHost());
+        personaConnectionEntity.setHost(socketWrapper.getIsHost().get());
         personaConnectionRepository.save(personaConnectionEntity);
     }
 
@@ -186,7 +185,7 @@ public class PersonaService {
             personaEntity.setDeletedOn(LocalDateTime.now());
             personaRepository.save(personaEntity);
         }
-        SocketWriter.write(socket, socketData);
+        socketWriter.write(socket, socketData);
     }
 
     public void llvl(Socket socket, SocketData socketData, SocketWrapper socketWrapper) {
@@ -197,7 +196,7 @@ public class PersonaService {
         }).collect(Collectors.toMap(data -> data[0], data -> data[1]));
 
         socketData.setOutputData(content);
-        SocketWriter.write(socket, socketData);
+        socketWriter.write(socket, socketData);
 
         who(socket, socketWrapper);
     }
@@ -219,7 +218,7 @@ public class PersonaService {
                 .map(gameEntity -> Optional.ofNullable(gameEntity.getOriginalId()).orElse(gameEntity.getId()))
                 .orElse(0L);
 
-        String hostPrefix = socketWrapper.isHost() ? "@" : "";
+        String hostPrefix = socketWrapper.getIsHost().get() ? "@" : "";
 
         Map<String, String> content = Stream.of(new String[][] {
                 { "I", String.valueOf(accountEntity.getId()) },
@@ -259,7 +258,7 @@ public class PersonaService {
                 { "RM", "room" },
                 { "RF", "C" },
         }).collect(Collectors.toMap(data -> data[0], data -> data[1]));
-        SocketWriter.write(socket, new SocketData("+who", null, content));
+        socketWriter.write(socket, new SocketData("+who", null, content));
     }
 
 

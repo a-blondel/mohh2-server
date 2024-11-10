@@ -2,11 +2,10 @@ package com.ea.frontend;
 
 import com.ea.entities.GameEntity;
 import com.ea.entities.GameReportEntity;
-import com.ea.services.GameService;
+import com.ea.repositories.GameRepository;
 import com.ea.repositories.GameReportRepository;
 import com.ea.repositories.PersonaConnectionRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -18,17 +17,12 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class API {
-    @Autowired
-    private final GameService gameService;
-
-    @Autowired
+    private final GameRepository gameRepository;
     private final GameReportRepository gameReportRepository;
-
-    @Autowired
     private final PersonaConnectionRepository personaConnectionRepository;
 
     public List<GameEntity> getActiveGames() {
-        return gameService.gameRepository.findByEndTimeIsNull();
+        return gameRepository.findByEndTimeIsNull();
     }
 
     public List<GameReportEntity> getActiveReports(GameEntity game) {
