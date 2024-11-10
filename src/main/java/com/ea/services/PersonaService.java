@@ -99,7 +99,7 @@ public class PersonaService {
                         socketWrapper.getPersonaConnectionEntity().getSlus(),
                         pers);
         if(personaConnectionEntityOpt.isPresent()) {
-            socketData.setIdMessage("persmauth"); // (EC_MASTER_AUTH / EC_PERSONA_SET ?)
+            socketData.setIdMessage("perspset");
             socketWriter.write(socket, socketData);
             return;
         }
