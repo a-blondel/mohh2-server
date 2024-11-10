@@ -11,9 +11,9 @@ import com.ea.repositories.GameReportRepository;
 import com.ea.repositories.PersonaStatsRepository;
 import com.ea.steps.SocketWriter;
 import com.ea.utils.GameVersUtils;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -30,18 +30,14 @@ import static com.ea.utils.GameVersUtils.VERS_MOHH_PSP;
 import static com.ea.utils.SocketUtils.*;
 
 @Slf4j
-@Component
+@RequiredArgsConstructor
+@Service
 public class StatsService {
 
-
-    @Autowired
-    private SocketMapper socketMapper;
-
-    @Autowired
-    private PersonaStatsRepository personaStatsRepository;
-
-    @Autowired
-    private GameReportRepository gameReportRepository;
+    private final SocketMapper socketMapper;
+    private final SocketWriter socketWriter;
+    private final PersonaStatsRepository personaStatsRepository;
+    private final GameReportRepository gameReportRepository;
 
     /**
      * Retrieve ranking categories
@@ -60,7 +56,7 @@ public class StatsService {
         }).collect(Collectors.toMap(data -> data[0], data -> data[1]));
 
         socketData.setOutputData(content);
-        SocketWriter.write(socket, socketData);
+        socketWriter.write(socket, socketData);
     }
 
     /**
@@ -238,7 +234,7 @@ public class StatsService {
         }
 
         socketData.setOutputData(content);
-        SocketWriter.write(socket, socketData);
+        socketWriter.write(socket, socketData);
 
         snp(socket, isMohh, rankingCategory, personaStatsEntityList, offset);
     }
@@ -350,7 +346,7 @@ public class StatsService {
 
         for (Map<String, String> ranking : rankingList) {
             SocketData socketData = new SocketData("+snp", null, ranking);
-            SocketWriter.write(socket, socketData);
+            socketWriter.write(socket, socketData);
         }
     }
 
@@ -381,7 +377,7 @@ public class StatsService {
                 }
             }
         }
-        SocketWriter.write(socket, socketData);
+        socketWriter.write(socket, socketData);
     }
 
     private void updatePersonaStats(PersonaStatsEntity personaStatsEntity, GameReportEntity gameReportEntity) {

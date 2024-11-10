@@ -1,5 +1,22 @@
 package com.ea.services;
 
+import java.net.Socket;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.stereotype.Service;
+
 import com.ea.dto.SocketData;
 import com.ea.dto.SocketWrapper;
 import com.ea.entities.GameEntity;
@@ -12,46 +29,25 @@ import com.ea.repositories.GameRepository;
 import com.ea.repositories.PersonaConnectionRepository;
 import com.ea.steps.SocketWriter;
 import com.ea.utils.GameVersUtils;
-import com.ea.utils.Props;
-import jakarta.annotation.PreDestroy;
-import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-
-import java.net.Socket;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoUnit;
-import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
 import static com.ea.utils.GameVersUtils.VERS_MOHH_PSP;
 import static com.ea.utils.SocketUtils.DATETIME_FORMAT;
 import static com.ea.utils.SocketUtils.getValueFromSocket;
 
-@Component
+import jakarta.annotation.PreDestroy;
+import lombok.extern.slf4j.Slf4j;
+
 @Slf4j
+@RequiredArgsConstructor
+@Service
 public class GameService {
 
-    @Autowired
-    private Props props;
-
-    @Autowired
-    public GameRepository gameRepository;
-
-    @Autowired
-    private GameReportRepository gameReportRepository;
-
-    @Autowired
-    private PersonaConnectionRepository personaConnectionRepository;
-
-    @Autowired
-    private SocketMapper socketMapper;
-
-    @Autowired
-    private PersonaService personaService;
+    private final GameRepository gameRepository;
+    private final GameReportRepository gameReportRepository;
+    private final PersonaConnectionRepository personaConnectionRepository;
+    private final SocketMapper socketMapper;
+    private final PersonaService personaService;
+    private final SocketWriter socketWriter;
+    private final SocketManager socketManager;
 
     /**
      * Distribute room change updates
@@ -73,11 +69,11 @@ public class GameService {
 
         socketData.setOutputData(content);
         socketData.setIdMessage("+rom");
-        SocketWriter.write(socket, socketData);
+        socketWriter.write(socket, socketData);
     }
 
     public void gsta(Socket socket, SocketData socketData) {
-        SocketWriter.write(socket, socketData);
+        socketWriter.write(socket, socketData);
     }
 
     public void gset(Socket socket, SocketData socketData, SocketWrapper socketWrapper) {
@@ -90,7 +86,7 @@ public class GameService {
                 .filter(GameReportEntity::isHost)
                 .map(GameReportEntity::getGame).orElse(null);
 
-        SocketWriter.write(socket, socketData);
+        socketWriter.write(socket, socketData);
 
         new Thread(() -> {
             try {
@@ -149,7 +145,7 @@ public class GameService {
         }).collect(Collectors.toMap(data -> data[0], data -> data[1]));
 
         socketData.setOutputData(content);
-        SocketWriter.write(socket, socketData);
+        socketWriter.write(socket, socketData);
 
         gam(socket, gameEntities);
     }
@@ -175,7 +171,7 @@ public class GameService {
 
         for (Map<String, String> game : games) {
             SocketData socketData = new SocketData("+gam", null, game);
-            SocketWriter.write(socket, socketData);
+            socketWriter.write(socket, socketData);
         }
     }
 
@@ -192,7 +188,7 @@ public class GameService {
             GameEntity gameEntity = gameEntityOpt.get();
             if(gameEntity.getEndTime() == null) {
                 startGameReport(socketWrapper, gameEntity);
-                SocketWriter.write(socket, socketData);
+                socketWriter.write(socket, socketData);
                 updateHostInfo(gameEntity);
                 try {
                     Thread.sleep(100);
@@ -201,10 +197,10 @@ public class GameService {
                 }
                 ses(socket, gameEntity);
             } else {
-                SocketWriter.write(socket, new SocketData("gjoiugam", null, null)); // Game closed
+                socketWriter.write(socket, new SocketData("gjoiugam", null, null)); // Game closed
             }
         } else {
-            SocketWriter.write(socket, new SocketData("gjoiugam", null, null)); // Game unknown
+            socketWriter.write(socket, new SocketData("gjoiugam", null, null)); // Game unknown
         }
     }
 
@@ -223,14 +219,14 @@ public class GameService {
         boolean duplicateName = gameRepository.existsByNameAndVersInAndEndTimeIsNull(gameEntityToCreate.getName(), relatedVers);
         if(duplicateName) {
             socketData.setIdMessage("gpscdupl");
-            SocketWriter.write(socket, socketData);
+            socketWriter.write(socket, socketData);
         } else if(isMohh) {
-            SocketWrapper gpsSocketWrapper = SocketManager.getAvailableGps();
+            SocketWrapper gpsSocketWrapper = socketManager.getAvailableGps();
             if(gpsSocketWrapper == null) {
                 socketData.setIdMessage("gpscnfnd");
-                SocketWriter.write(socket, socketData);
+                socketWriter.write(socket, socketData);
             } else {
-                SocketWriter.write(socket, socketData);
+                socketWriter.write(socket, socketData);
                 Map<String, String> content = Stream.of(new String[][] {
                         { "NAME", gameEntityToCreate.getName() },
                         { "PARAMS", gameEntityToCreate.getParams() },
@@ -239,7 +235,7 @@ public class GameService {
                         { "MAXSIZE", String.valueOf(gameEntityToCreate.getMaxsize()) },
                         { "PASS", null != gameEntityToCreate.getPass() ? gameEntityToCreate.getPass() : "" },
                 }).collect(Collectors.toMap(data -> data[0], data -> data[1]));
-                SocketWriter.write(gpsSocketWrapper.getSocket(), new SocketData("$cre", null, content));
+                socketWriter.write(gpsSocketWrapper.getSocket(), new SocketData("$cre", null, content));
 
                 new Thread(() -> {
                     int retries = 0;
@@ -262,7 +258,7 @@ public class GameService {
                 }).start();
             }
         } else {
-            SocketWriter.write(socket, socketData);
+            socketWriter.write(socket, socketData);
 
             // Set a game server port for MoHH2 if it's not already set (the game set it if there are other games...)
             String params = gameEntityToCreate.getParams();
@@ -287,11 +283,11 @@ public class GameService {
      * @param gameEntity
      */
     public void updateHostInfo(GameEntity gameEntity) {
-        SocketWrapper hostSocketWrapper = SocketManager.getHostSocketWrapperOfGame(gameEntity.getId());
+        SocketWrapper hostSocketWrapper = socketManager.getHostSocketWrapperOfGame(gameEntity.getId());
         if(hostSocketWrapper != null) {
             Map<String, String> content = getGameInfo(gameEntity);
-            SocketWriter.write(hostSocketWrapper.getSocket(), new SocketData("+mgm", null, content));
-            SocketWriter.write(hostSocketWrapper.getSocket(), new SocketData("+ses", null, content));
+            socketWriter.write(hostSocketWrapper.getSocket(), new SocketData("+mgm", null, content));
+            socketWriter.write(hostSocketWrapper.getSocket(), new SocketData("+ses", null, content));
         }
     }
 
@@ -311,10 +307,10 @@ public class GameService {
 
         if(duplicateName) {
             socketData.setIdMessage("gcredupl");
-            SocketWriter.write(socket, socketData);
+            socketWriter.write(socket, socketData);
         } else {
             gameRepository.save(gameEntity);
-            SocketWriter.write(socket, socketData);
+            socketWriter.write(socket, socketData);
 
             startGameReport(socketWrapper, gameEntity);
             personaService.who(socket, socketWrapper); // Used to set the game id
@@ -323,7 +319,7 @@ public class GameService {
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
-            SocketWriter.write(socket, new SocketData("+mgm", null, getGameInfo(gameEntity)));
+            socketWriter.write(socket, new SocketData("+mgm", null, getGameInfo(gameEntity)));
         }
     }
 
@@ -335,7 +331,7 @@ public class GameService {
      */
     public void glea(Socket socket, SocketData socketData, SocketWrapper socketWrapper) {
         endGameReport(socketWrapper);
-        SocketWriter.write(socket, socketData);
+        socketWriter.write(socket, socketData);
     }
 
     /**
@@ -348,17 +344,17 @@ public class GameService {
      * @param socketData
      */
     public void gpss(Socket socket, SocketData socketData) {
-        SocketWriter.write(socket, socketData);
+        socketWriter.write(socket, socketData);
 
         String status = getValueFromSocket(socketData.getInputMessage(), "STATUS");
 
-        SocketWrapper socketWrapper = SocketManager.getSocketWrapper(socket);
+        SocketWrapper socketWrapper = socketManager.getSocketWrapper(socket);
         // Add a flag to indicate that the game is hosted
         if(("A").equals(status)) {
-            socketWrapper.setGps(true);
-            socketWrapper.setHosting(false);
+            socketWrapper.getIsGps().set(true);
+            socketWrapper.getIsHosting().set(false);
         } else if(("G").equals(status)) {
-            socketWrapper.setHosting(true);
+            socketWrapper.getIsHosting().set(true);
         }
 
     }
@@ -375,7 +371,7 @@ public class GameService {
             }).collect(Collectors.toMap(data -> data[0], data -> data[1]));
             socketData.setOutputData(content);
             socketData.setIdMessage("$gps");
-            SocketWriter.write(socket, socketData);
+            socketWriter.write(socket, socketData);
     }
 
     /**
@@ -396,10 +392,10 @@ public class GameService {
                 gameReportRepository.save(report);
             });
         }
-        SocketWriter.write(socket, socketData);
+        socketWriter.write(socket, socketData);
 
         // This prevents the server from killing itself, but we can't set a new game after that (it keeps the old game parameters)
-        //SocketWriter.write(socket, new SocketData("$cre", null, null));
+        //socketWriter.write(socket, new SocketData("$cre", null, null));
         //personaService.who(socket, socketWrapper);
     }
 
@@ -409,7 +405,7 @@ public class GameService {
      * @param gameEntity
      */
     public void ses(Socket socket, GameEntity gameEntity) {
-        SocketWriter.write(socket, new SocketData("+ses", null, getGameInfo(gameEntity)));
+        socketWriter.write(socket, new SocketData("+ses", null, getGameInfo(gameEntity)));
     }
 
     /**
@@ -422,13 +418,13 @@ public class GameService {
         Optional<GameEntity> gameEntityOpt = gameRepository.findById(Long.valueOf(ident));
         if(gameEntityOpt.isPresent()) {
             GameEntity gameEntity = gameEntityOpt.get();
-            SocketWriter.write(socket, new SocketData("gget", null, getGameInfo(gameEntity)));
+            socketWriter.write(socket, new SocketData("gget", null, getGameInfo(gameEntity)));
         }
     }
 
     public Map<String, String> getGameInfo(GameEntity gameEntity) {
         Long gameId = gameEntity.getId();
-        SocketWrapper hostSocketWrapperOfGame = SocketManager.getHostSocketWrapperOfGame(gameId);
+        SocketWrapper hostSocketWrapperOfGame = socketManager.getHostSocketWrapperOfGame(gameId);
 
         List<GameReportEntity> gameReports = gameReportRepository.findByGameIdAndEndTimeIsNull(gameId);
 
@@ -524,7 +520,7 @@ public class GameService {
         GameReportEntity gameReportEntity = new GameReportEntity();
         gameReportEntity.setGame(gameEntity);
         gameReportEntity.setPersonaConnection(socketWrapper.getPersonaConnectionEntity());
-        gameReportEntity.setHost(socketWrapper.isHost());
+        gameReportEntity.setHost(socketWrapper.getIsHost().get());
         gameReportEntity.setStartTime(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
         gameReportRepository.save(gameReportEntity);
     }
@@ -538,7 +534,7 @@ public class GameService {
         if(gameReportEntityOpt.isPresent()) {
             GameReportEntity gameReportEntity = gameReportEntityOpt.get();
             GameEntity gameEntity = gameReportEntity.getGame();
-            if(socketWrapper.isHost()) {
+            if(socketWrapper.getIsHost().get()) {
                 for(GameReportEntity gameReportToClose : gameReportRepository.findByGameIdAndEndTimeIsNull(gameEntity.getId())) {
                     gameReportToClose.setEndTime(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
                     gameReportRepository.save(gameReportToClose);
@@ -574,7 +570,7 @@ public class GameService {
         gameEntities.forEach(gameEntity -> {
             Set<GameReportEntity> gameReports = gameEntity.getGameReports();
             if(gameReports.stream().noneMatch(report -> report.isHost() && null == report.getEndTime())) {
-                if(gameReports.stream().allMatch(report -> report.getEndTime().plusSeconds(120).isBefore(LocalDateTime.now()))) {
+                if(gameReports.stream().allMatch(report -> report.getEndTime().plusSeconds(90).isBefore(LocalDateTime.now()))) {
                     log.info("Closing expired game: {} - {}", gameEntity.getId(), gameEntity.getName());
                     gameEntity.setEndTime(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
                     gameRepository.save(gameEntity);
@@ -593,7 +589,7 @@ public class GameService {
                 { "TEXT", getValueFromSocket(socketData.getInputMessage(), "TEXT") },
         }).collect(Collectors.toMap(data -> data[0], data -> data[1]));
         socketData.setOutputData(content);
-        SocketWriter.write(socket, socketData);
+        socketWriter.write(socket, socketData);
     }
 
 }

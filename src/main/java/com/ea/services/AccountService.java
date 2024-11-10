@@ -10,9 +10,9 @@ import com.ea.steps.SocketWriter;
 import com.ea.utils.AccountUtils;
 import com.ea.utils.PasswordUtils;
 import com.ea.utils.SocketUtils;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import java.net.Socket;
 import java.time.LocalDateTime;
@@ -25,20 +25,15 @@ import java.util.stream.Stream;
 import static com.ea.utils.SocketUtils.getValueFromSocket;
 
 @Slf4j
-@Component
+@RequiredArgsConstructor
+@Service
 public class AccountService {
 
-    @Autowired
-    private PasswordUtils passwordUtils;
-
-    @Autowired
-    private SocketMapper socketMapper;
-
-    @Autowired
-    private AccountRepository accountRepository;
-
-    @Autowired
-    private PersonaService personaService;
+    private final PasswordUtils passwordUtils;
+    private final SocketMapper socketMapper;
+    private final AccountRepository accountRepository;
+    private final PersonaService personaService;
+    private final SocketWriter socketWriter;
 
     /**
      * Account creation
@@ -63,7 +58,7 @@ public class AccountService {
             AccountEntity accountEntity = socketMapper.toAccountEntity(socketData.getInputMessage());
             accountRepository.save(accountEntity);
         }
-        SocketWriter.write(socket, socketData);
+        socketWriter.write(socket, socketData);
     }
 
     /**
@@ -111,7 +106,7 @@ public class AccountService {
             socketData.setIdMessage("editimst"); // Inexisting error (EC_INV_MASTER)
         }
 
-        SocketWriter.write(socket, socketData);
+        socketWriter.write(socket, socketData);
     }
 
     /**
@@ -135,7 +130,9 @@ public class AccountService {
             AccountEntity accountEntity = accountEntityOpt.get();
             String decodedPass = passwordUtils.ssc2Decode(pass);
             if (passwordUtils.bCryptMatches(decodedPass, accountEntity.getPass())) {
-                socketWrapper.setAccountEntity(accountEntity);
+                synchronized (this) {
+                    socketWrapper.setAccountEntity(accountEntity);
+                }
 
                 String personas = accountEntity.getPersonas().stream()
                         .filter(p -> p.getDeletedOn() == null)
@@ -161,7 +158,9 @@ public class AccountService {
                 personaConnectionEntity.setStartTime(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
                 personaConnectionEntity.setVers(vers);
                 personaConnectionEntity.setSlus(slus);
-                socketWrapper.setPersonaConnectionEntity(personaConnectionEntity);
+                synchronized (this) {
+                    socketWrapper.setPersonaConnectionEntity(personaConnectionEntity);
+                }
 
             } else {
                 socketData.setIdMessage("authpass"); // Invalid password error (EC_INV_PASS)
@@ -170,7 +169,7 @@ public class AccountService {
             socketData.setIdMessage("authimst"); // Inexisting error (EC_INV_MASTER)
         }
 
-        SocketWriter.write(socket, socketData);
+        socketWriter.write(socket, socketData);
     }
 
 

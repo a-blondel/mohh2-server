@@ -1,6 +1,8 @@
 package com.ea.steps;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -8,7 +10,11 @@ import java.net.Socket;
 import java.net.SocketException;
 
 @Slf4j
+@RequiredArgsConstructor
+@Component
 public class SocketReader {
+
+    private final SocketParser parser;
 
     /**
      * Waits for data to come from the client
@@ -16,9 +22,7 @@ public class SocketReader {
      * @param socket the socket to read
      * @throws IOException
      */
-    public static void read(Socket socket) {
-        SocketParser parser = new SocketParser();
-
+    public void read(Socket socket) {
         try {
             InputStream is = socket.getInputStream();
             byte[] buffer = new byte[4096];
@@ -32,5 +36,4 @@ public class SocketReader {
             log.error("Error reading from socket", e);
         }
     }
-
 }
