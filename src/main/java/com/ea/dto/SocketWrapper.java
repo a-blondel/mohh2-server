@@ -1,12 +1,16 @@
 package com.ea.dto;
 
-import com.ea.entities.*;
+import java.net.Socket;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import com.ea.entities.AccountEntity;
+import com.ea.entities.PersonaConnectionEntity;
+import com.ea.entities.PersonaEntity;
+
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
-import java.net.Socket;
 
 @AllArgsConstructor
 @NoArgsConstructor
@@ -15,11 +19,10 @@ import java.net.Socket;
 public class SocketWrapper {
     private Socket socket;
     private String identifier;
-    private boolean host = false;
-    private boolean gps = false; // Game Persistent Spawn Service
-    private boolean hosting = false;
-    private AccountEntity accountEntity;
-    private PersonaEntity personaEntity;
-    private PersonaConnectionEntity personaConnectionEntity;
-
+    private AtomicBoolean isHost = new AtomicBoolean(false);
+    private AtomicBoolean isGps = new AtomicBoolean(false);
+    private AtomicBoolean isHosting = new AtomicBoolean(false);
+    private volatile AccountEntity accountEntity;
+    private volatile PersonaEntity personaEntity;
+    private volatile PersonaConnectionEntity personaConnectionEntity;
 }

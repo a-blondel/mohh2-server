@@ -2,55 +2,58 @@ package com.ea.services;
 
 import com.ea.dto.SocketWrapper;
 import com.ea.repositories.GameReportRepository;
-import com.ea.utils.BeanUtil;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
 
 import java.net.Socket;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
+@RequiredArgsConstructor
+@Component
 public class SocketManager {
 
-    private static GameReportRepository gameReportRepository = BeanUtil.getBean(GameReportRepository.class);
-    private static final ConcurrentHashMap<String, SocketWrapper> sockets = new ConcurrentHashMap<>();
+    private final GameReportRepository gameReportRepository;
+    private final ConcurrentHashMap<String, SocketWrapper> sockets = new ConcurrentHashMap<>();
 
-    public static void addSocket(String identifier, Socket socket) {
+    public void addSocket(String identifier, Socket socket) {
         SocketWrapper wrapper = new SocketWrapper();
         wrapper.setSocket(socket);
         wrapper.setIdentifier(identifier);
         sockets.put(identifier, wrapper);
     }
 
-    public static void removeSocket(String identifier) {
+    public void removeSocket(String identifier) {
         sockets.remove(identifier);
     }
 
-    public static SocketWrapper getSocketWrapper(Socket socket) {
+    public SocketWrapper getSocketWrapper(Socket socket) {
         return getSocketWrapper(socket.getRemoteSocketAddress().toString());
     }
 
-    private static SocketWrapper getSocketWrapper(String identifier) {
+    private SocketWrapper getSocketWrapper(String identifier) {
         return sockets.get(identifier);
     }
 
-    public static SocketWrapper getHostSocketWrapperOfGame(Long gameId) {
+    public SocketWrapper getHostSocketWrapperOfGame(Long gameId) {
         return gameReportRepository.findHostAddressByGameId(gameId)
                 .stream()
                 .findFirst()
-                .map(SocketManager::getSocketWrapper)
+                .map(this::getSocketWrapper)
                 .orElse(null);
     }
 
-    public static SocketWrapper getAvailableGps() {
+    public SocketWrapper getAvailableGps() {
         return sockets.values().stream()
-                .filter(wrapper -> wrapper.isGps() && !wrapper.isHosting())
+                .filter(wrapper -> wrapper.getIsGps().get() && !wrapper.getIsHosting().get())
                 .findFirst()
                 .orElse(null);
     }
 
-    public static List<Socket> getHostSockets() {
+    public List<Socket> getHostSockets() {
         return sockets.values().stream()
-                .filter(wrapper -> wrapper.isHost())
+                .filter(wrapper -> wrapper.getIsHost().get())
                 .map(SocketWrapper::getSocket)
                 .collect(Collectors.toList());
     }

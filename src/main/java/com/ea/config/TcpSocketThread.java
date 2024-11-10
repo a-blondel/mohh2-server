@@ -1,74 +1,62 @@
 package com.ea.config;
 
+import java.net.Socket;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
 import com.ea.dto.SocketData;
 import com.ea.dto.SocketWrapper;
-import com.ea.entities.GameEntity;
-import com.ea.entities.GameReportEntity;
-import com.ea.repositories.GameReportRepository;
-import com.ea.repositories.GameRepository;
 import com.ea.services.GameService;
 import com.ea.services.PersonaService;
 import com.ea.services.SocketManager;
 import com.ea.steps.SocketReader;
 import com.ea.steps.SocketWriter;
-import com.ea.utils.BeanUtil;
-import com.ea.utils.GameVersUtils;
-import lombok.extern.slf4j.Slf4j;
 
-import java.net.Socket;
-import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
-import java.util.List;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Thread to handle a unique tcp socket
  */
 @Slf4j
+@RequiredArgsConstructor
 public class TcpSocketThread implements Runnable {
-
-    private static PersonaService personaService = BeanUtil.getBean(PersonaService.class);
-
-    private static GameService gameService = BeanUtil.getBean(GameService.class);
-
-    private static GameRepository gameRepository = BeanUtil.getBean(GameRepository.class);
-
-    private static GameReportRepository gameReportRepository = BeanUtil.getBean(GameReportRepository.class);
-
-    private final Socket clientSocket;
 
     private ScheduledExecutorService pingExecutor;
 
-    public TcpSocketThread(Socket clientSocket) {
-        this.clientSocket = clientSocket;
-    }
+    private final Socket clientSocket;
+    private final SocketManager socketManager;
+    private final SocketReader socketReader;
+    private final SocketWriter socketWriter;
+    private final PersonaService personaService;
+    private final GameService gameService;
 
+    @Override
     public void run() {
-        log.info("TCP client session started: {}", clientSocket.getRemoteSocketAddress().toString());
+        log.info("TCP client session started: {}", clientSocket.getRemoteSocketAddress());
         try {
             pingExecutor = Executors.newSingleThreadScheduledExecutor();
             pingExecutor.scheduleAtFixedRate(() -> png(clientSocket), 30, 30, TimeUnit.SECONDS);
-
-            SocketReader.read(clientSocket);
+            socketReader.read(clientSocket);
+        } catch (Exception e) {
+            log.error("Exception in TcpSocketThread: ", e);
         } finally {
-            if (pingExecutor != null) {
-                pingExecutor.shutdown();
+            if (pingExecutor != null && !pingExecutor.isShutdown()) {
+                pingExecutor.shutdownNow();
             }
-            SocketWrapper socketWrapper = SocketManager.getSocketWrapper(clientSocket);
-            if(socketWrapper != null && socketWrapper.getPersonaEntity() != null) {
+            SocketWrapper socketWrapper = socketManager.getSocketWrapper(clientSocket);
+            if (socketWrapper != null && socketWrapper.getPersonaEntity() != null) {
                 gameService.endGameReport(socketWrapper);
                 personaService.endPersonaConnection(socketWrapper);
-                SocketManager.removeSocket(socketWrapper.getIdentifier());
+                socketManager.removeSocket(socketWrapper.getIdentifier());
             }
-            log.info("TCP client session ended: {}", clientSocket.getRemoteSocketAddress().toString());
+            log.info("TCP client session ended: {}", clientSocket.getRemoteSocketAddress());
         }
     }
 
-    public void png(Socket socket) {
+    private void png(Socket socket) {
         SocketData socketData = new SocketData("~png", null, null);
-        SocketWriter.write(socket, socketData);
+        socketWriter.write(socket, socketData);
     }
-
 }

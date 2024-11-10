@@ -3,31 +3,36 @@ package com.ea.steps;
 import com.ea.dto.SocketData;
 import com.ea.dto.SocketWrapper;
 import com.ea.services.*;
-import com.ea.utils.BeanUtil;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Component;
 
 import java.net.Socket;
 
 @Slf4j
+@RequiredArgsConstructor
+@Component
 public class SocketProcessor {
-    private static AuthService authService = BeanUtil.getBean(AuthService.class);
-    private static AccountService accountService = BeanUtil.getBean(AccountService.class);
-    private static PersonaService personaService = BeanUtil.getBean(PersonaService.class);
-    private static StatsService statsService = BeanUtil.getBean(StatsService.class);
-    private static GameService gameService = BeanUtil.getBean(GameService.class);
+    private final AuthService authService;
+    private final AccountService accountService;
+    private final PersonaService personaService;
+    private final StatsService statsService;
+    private final GameService gameService;
+    private final SocketWriter socketWriter;
+    private final SocketManager socketManager;
 
     /**
      * Dispatch to appropriate service based on request type
      * @param socket the socket to handle
      * @param socketData the object to process
      */
-    public static void process(Socket socket, SocketData socketData) {
-        SocketWrapper socketWrapper = SocketManager.getSocketWrapper(socket);
+    public void process(Socket socket, SocketData socketData) {
+        SocketWrapper socketWrapper = socketManager.getSocketWrapper(socket);
         switch (socketData.getIdMessage()) {
             case ("~png"):
                 break;
             case ("@tic"):
-                SocketWriter.write(socket, socketData);
+                socketWriter.write(socket, socketData);
                 break;
             case ("@dir"):
                 authService.dir(socket, socketData);
@@ -109,7 +114,7 @@ public class SocketProcessor {
                 break;
             default:
                 log.info("Unsupported operation: {}", socketData.getIdMessage());
-                SocketWriter.write(socket, socketData);
+                socketWriter.write(socket, socketData);
                 break;
         }
     }
