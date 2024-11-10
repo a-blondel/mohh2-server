@@ -1,19 +1,19 @@
 package com.ea.services;
 
-import java.net.Socket;
-import java.util.Collections;
-import java.util.Map;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import lombok.RequiredArgsConstructor;
-
 import com.ea.dto.SocketData;
 import com.ea.dto.SocketWrapper;
 import com.ea.steps.SocketWriter;
 import com.ea.utils.GameVersUtils;
 import com.ea.utils.Props;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+
+import java.net.Socket;
+import java.util.Collections;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static com.ea.utils.SocketUtils.SPACE_CHAR;
 import static com.ea.utils.SocketUtils.getValueFromSocket;
@@ -26,6 +26,19 @@ public class AuthService {
     private final PersonaService personaService;
     private final GameService gameService;
     private final SocketWriter socketWriter;
+    private final SocketManager socketManager;
+
+    public void png(Socket socket, SocketData socketData) {
+        SocketWrapper socketWrapper = socketManager.getSocketWrapper(socket);
+        if (socketWrapper != null) {
+            AtomicInteger pingReceiveCounter = socketWrapper.getPingReceiveCounter();
+            String time = getValueFromSocket(socketData.getInputMessage(), "TIME");
+            if (time != null) {
+                int pingId = Integer.parseInt(time);
+                pingReceiveCounter.set(pingId);
+            }
+        }
+    }
 
     public void dir(Socket socket, SocketData socketData) {
         String slus = getValueFromSocket(socketData.getInputMessage(), "SLUS");
@@ -51,7 +64,6 @@ public class AuthService {
 
     public void skey(Socket socket, SocketData socketData) {
         Map<String, String> content = Collections.singletonMap("SKEY", "$51ba8aee64ddfacae5baefa6bf61e009");
-
         socketData.setOutputData(content);
         socketWriter.write(socket, socketData);
     }
