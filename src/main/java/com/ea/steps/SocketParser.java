@@ -79,12 +79,7 @@ public class SocketParser {
         SocketData socketData = new SocketData(id, content, null);
 
         SocketWrapper socketWrapper = socketManager.getSocketWrapper(socket);
-        String playerInfo = "";
-        if (socketWrapper != null && socketWrapper.getAccountEntity() != null) {
-            String account = socketWrapper.getAccountEntity().getName();
-            String role = socketWrapper.getIsHost().get() ? "host" : "client";
-            playerInfo = account + " (" + role + ")";
-        }
+        String playerInfo = SocketUtils.getPlayerInfo(socketWrapper);
         if (!props.getTcpDebugExclusions().contains(socketData.getIdMessage())) {
             log.info("<-- {} {} {}", socket.getRemoteSocketAddress().toString(),
                     props.isTcpDebugEnabled() ? playerInfo : socketData.getIdMessage(),

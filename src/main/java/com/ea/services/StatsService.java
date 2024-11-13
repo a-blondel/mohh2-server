@@ -88,7 +88,8 @@ public class StatsService {
         if (MY_LEADERBOARD.mohh2Id.equals(rankingCategory)) {
             personaStatsEntityList = personaStatsRepository.getLeaderboardByVers(vers, 100, offset);
         } else if (TOP_100.mohh2Id.equals(rankingCategory)) {
-            offset = personaStatsRepository.getRankByPersonaIdAndVers(socketWrapper.getPersonaEntity().getId(), vers);
+            Long rank = personaStatsRepository.getRankByPersonaIdAndVers(socketWrapper.getPersonaEntity().getId(), vers);
+            offset = (rank != null) ? rank : 0;
             offset = Math.max(offset - 50, 0);
             personaStatsEntityList = personaStatsRepository.getLeaderboardByVers(vers, 100, offset);
         } else if (WEAPON_LEADERS.mohh2Id.equals(rankingCategory)) {

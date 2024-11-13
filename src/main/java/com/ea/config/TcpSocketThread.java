@@ -2,12 +2,10 @@ package com.ea.config;
 
 import java.io.IOException;
 import java.net.Socket;
-import java.util.Collections;
-import java.util.Map;
+import java.time.LocalDateTime;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import com.ea.dto.SocketData;
 import com.ea.dto.SocketWrapper;
@@ -17,6 +15,7 @@ import com.ea.services.SocketManager;
 import com.ea.steps.SocketReader;
 import com.ea.steps.SocketWriter;
 
+import com.ea.utils.SocketUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -62,20 +61,31 @@ public class TcpSocketThread implements Runnable {
     private void png(Socket socket) {
         SocketWrapper socketWrapper = socketManager.getSocketWrapper(socket);
         if (socketWrapper != null) {
-            AtomicInteger pingSendCounter = socketWrapper.getPingSendCounter();
-            AtomicInteger pingReceiveCounter = socketWrapper.getPingReceiveCounter();
-            if (!socketWrapper.getIsHost().get() && pingReceiveCounter.get() != pingSendCounter.get()) {
-                log.warn("Client did not respond to last ping, closing socket");
+            SocketData socketData = new SocketData("~png", null, null);
+            socketWriter.write(socket, socketData);
+            synchronized (this) {
+                socketWrapper.setLastPingSent(LocalDateTime.now());
+            }
+
+            try {
+                Thread.sleep(3000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+
+            LocalDateTime lastPingSent = socketWrapper.getLastPingSent();
+            LocalDateTime lastPingReceived = socketWrapper.getLastPingReceived();
+            boolean isExpired = lastPingReceived != null && lastPingReceived.isBefore(lastPingSent);
+            if (isExpired) {
+                String playerInfo = SocketUtils.getPlayerInfo(socketWrapper);
+                log.warn("{} {} - Last ping received {} is before last ping sent {}",
+                        socket.getRemoteSocketAddress().toString(), playerInfo, lastPingReceived, lastPingSent);
                 try {
                     socket.close();
                 } catch (IOException e) {
                     log.error("Error closing socket", e);
                 }
-                return;
             }
-            Map<String, String> content = Collections.singletonMap("TIME", String.valueOf(pingSendCounter.incrementAndGet()));
-            SocketData socketData = new SocketData("~png", null, content);
-            socketWriter.write(socket, socketData);
         }
     }
 }

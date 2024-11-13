@@ -90,8 +90,7 @@ public class GameService {
 
         new Thread(() -> {
             try {
-                // That's better if we wait that each game report has been updated, but it's not mandatory
-                Thread.sleep(10000);
+                Thread.sleep(500);
                 if(gameEntity != null) {
                     List<GameReportEntity> gameReports = gameReportRepository.findByGameIdAndEndTimeIsNull(gameEntity.getId()); // maybe findByGameStartTimeAndPlayTime ?
                     for(GameReportEntity gameReportEntity : gameReports) {
@@ -125,7 +124,7 @@ public class GameService {
                     updateHostInfo(newGameEntity);
                 }
             } catch (InterruptedException e) {
-                log.error("Error while waiting to close the game", e);
+                Thread.currentThread().interrupt();
             }
         }).start();
     }
@@ -193,7 +192,7 @@ public class GameService {
                 try {
                     Thread.sleep(100);
                 } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
+                    Thread.currentThread().interrupt();
                 }
                 ses(socket, gameEntity);
             } else {
@@ -243,7 +242,7 @@ public class GameService {
                         try {
                             Thread.sleep(500);
                         } catch (InterruptedException e) {
-                            throw new RuntimeException(e);
+                            Thread.currentThread().interrupt();
                         }
                         Optional<GameEntity> gameEntityOpt = gameRepository.findByNameAndVersInAndEndTimeIsNull(gameEntityToCreate.getName(), relatedVers);
                         if(gameEntityOpt.isPresent()) {
@@ -287,6 +286,11 @@ public class GameService {
         if(hostSocketWrapper != null) {
             Map<String, String> content = getGameInfo(gameEntity);
             socketWriter.write(hostSocketWrapper.getSocket(), new SocketData("+mgm", null, content));
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
             socketWriter.write(hostSocketWrapper.getSocket(), new SocketData("+ses", null, content));
         }
     }
@@ -317,7 +321,7 @@ public class GameService {
             try {
                 Thread.sleep(100);
             } catch (InterruptedException e) {
-                throw new RuntimeException(e);
+                Thread.currentThread().interrupt();
             }
             socketWriter.write(socket, new SocketData("+mgm", null, getGameInfo(gameEntity)));
         }

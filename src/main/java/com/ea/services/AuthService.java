@@ -9,9 +9,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.net.Socket;
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -28,14 +28,11 @@ public class AuthService {
     private final SocketWriter socketWriter;
     private final SocketManager socketManager;
 
-    public void png(Socket socket, SocketData socketData) {
+    public void png(Socket socket) {
         SocketWrapper socketWrapper = socketManager.getSocketWrapper(socket);
         if (socketWrapper != null) {
-            AtomicInteger pingReceiveCounter = socketWrapper.getPingReceiveCounter();
-            String time = getValueFromSocket(socketData.getInputMessage(), "TIME");
-            if (time != null) {
-                int pingId = Integer.parseInt(time);
-                pingReceiveCounter.set(pingId);
+            synchronized (this) {
+                socketWrapper.setLastPingReceived(LocalDateTime.now());
             }
         }
     }

@@ -36,7 +36,7 @@ public class SocketMapper {
         AccountEntity accountEntity = new AccountEntity();
         setFieldsFromSocket(accountEntity, socket, RETURN_CHAR);
         accountEntity.setPass(passwordUtils.bCryptEncode(passwordUtils.ssc2Decode(accountEntity.getPass())));
-        accountEntity.setCreatedOn(LocalDateTime.now());
+        accountEntity.setCreatedOn(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
         return accountEntity;
     }
 

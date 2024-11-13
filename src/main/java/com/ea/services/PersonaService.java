@@ -64,7 +64,7 @@ public class PersonaService {
             PersonaEntity personaEntity = new PersonaEntity();
             personaEntity.setAccount(socketWrapper.getAccountEntity());
             personaEntity.setPers(pers);
-            personaEntity.setCreatedOn(LocalDateTime.now());
+            personaEntity.setCreatedOn(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
 
             PersonaStatsEntity personaStatsEntity = new PersonaStatsEntity();
             personaStatsEntity.setPersona(personaEntity);
@@ -182,7 +182,7 @@ public class PersonaService {
         Optional<PersonaEntity> personaEntityOpt = personaRepository.findByPers(pers);
         if (personaEntityOpt.isPresent()) {
             PersonaEntity personaEntity = personaEntityOpt.get();
-            personaEntity.setDeletedOn(LocalDateTime.now());
+            personaEntity.setDeletedOn(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
             personaRepository.save(personaEntity);
         }
         socketWriter.write(socket, socketData);

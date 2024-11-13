@@ -5,6 +5,7 @@ import com.ea.dto.SocketWrapper;
 import com.ea.services.SocketManager;
 import com.ea.utils.HexUtils;
 import com.ea.utils.Props;
+import com.ea.utils.SocketUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -63,12 +64,7 @@ public class SocketWriter {
 
             byte[] bufferBytes = buffer.toByteArray();
             SocketWrapper socketWrapper = socketManager.getSocketWrapper(socket);
-            String playerInfo = "";
-            if (socketWrapper != null && socketWrapper.getAccountEntity() != null) {
-                String account = socketWrapper.getAccountEntity().getName();
-                String role = socketWrapper.getIsHost().get() ? "host" : "client";
-                playerInfo = account + " (" + role + ")";
-            }
+            String playerInfo = SocketUtils.getPlayerInfo(socketWrapper);
             if (!props.getTcpDebugExclusions().contains(socketData.getIdMessage())) {
                 log.info("--> {} {} {}",
                         socket.getRemoteSocketAddress().toString(),
