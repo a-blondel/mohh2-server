@@ -1,5 +1,6 @@
 package com.ea.utils;
 
+import com.ea.dto.SocketWrapper;
 import lombok.extern.slf4j.Slf4j;
 
 import java.net.InetAddress;
@@ -126,6 +127,21 @@ public class SocketUtils {
             }
         }
         return socketIp;
+    }
+
+    /**
+     * Get player info from socket wrapper
+     * @param socketWrapper
+     * @return
+     */
+    public static String getPlayerInfo(SocketWrapper socketWrapper) {
+        String playerInfo = "";
+        if (socketWrapper != null && socketWrapper.getPersonaEntity() != null) {
+            String pers = socketWrapper.getPersonaEntity().getPers();
+            String role = socketWrapper.getIsHost().get() ? "host" : "client";
+            playerInfo = pers + " (" + role + ")";
+        }
+        return playerInfo;
     }
 
 }

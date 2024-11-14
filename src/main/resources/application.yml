@@ -10,7 +10,7 @@ tcp:
   host: ${TCP_HOST_IP:127.0.0.1}
   debug:
     enabled: ${TCP_DEBUG_ENABLED:false}
-    exclusions: '~png'
+    exclusions: ${TCP_DEBUG_EXCLUSIONS:~png}
 tos:
   enabled: ${TOS_ENABLED:true} # Starts socket servers on port 80 and 443 to handle TOS HTTP(S) requests
   base_url: ${TOS_BASE_URL:https://tos.ea.com}
