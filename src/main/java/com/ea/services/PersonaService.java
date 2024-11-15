@@ -1,5 +1,6 @@
 package com.ea.services;
 
+import java.io.IOException;
 import java.net.Socket;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -9,6 +10,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.ea.utils.SocketUtils;
 import lombok.RequiredArgsConstructor;
 
 import com.ea.dto.SocketData;
@@ -39,6 +41,7 @@ public class PersonaService {
     private final PersonaStatsRepository personaStatsRepository;
     private final GameRepository gameRepository;
     private final SocketWriter socketWriter;
+    private final SocketManager socketManager;
 
     /**
      * Persona creation
@@ -99,9 +102,25 @@ public class PersonaService {
                         socketWrapper.getPersonaConnectionEntity().getSlus(),
                         pers);
         if(personaConnectionEntityOpt.isPresent()) {
-            socketData.setIdMessage("perspset");
-            socketWriter.write(socket, socketData);
-            return;
+//            socketData.setIdMessage("perspset");
+//            socketWriter.write(socket, socketData);
+//            return;
+            log.warn("Persona {} already connected, ending old session", pers);
+            PersonaConnectionEntity personaConnectionEntity = personaConnectionEntityOpt.get();
+            Socket socketToClose = socketManager.getSocketWrapper(personaConnectionEntity.getAddress()).getSocket();
+            if(socketToClose != null) {
+                log.info("Closing old socket {}", socketToClose.getRemoteSocketAddress());
+                try {
+                    socketToClose.close();
+                } catch (IOException e) {
+                    log.error("Error while closing socket", e);
+                }
+            } else {
+                log.error("Socket to close not found");
+                personaConnectionEntity.setEndTime(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
+                personaConnectionRepository.save(personaConnectionEntity);
+            }
+
         }
 
         Optional<PersonaEntity> personaEntityOpt = personaRepository.findByPers(pers);
@@ -118,7 +137,7 @@ public class PersonaService {
                     { "LOC", personaEntity.getAccount().getLoc() },
                     { "A", socket.getInetAddress().getHostAddress() },
                     { "LA", socket.getInetAddress().getHostAddress() },
-                    { "IDLE", "35000" },
+                    { "IDLE", "70000" },
             }).collect(Collectors.toMap(data -> data[0], data -> data[1]));
 
             socketData.setOutputData(content);
@@ -166,7 +185,7 @@ public class PersonaService {
      */
     public void endPersonaConnection(SocketWrapper socketWrapper) {
         PersonaConnectionEntity personaConnectionEntity = socketWrapper.getPersonaConnectionEntity();
-        if(null != personaConnectionEntity) {
+        if (personaConnectionEntity != null && personaConnectionEntity.getPersona() != null) {
             personaConnectionEntity.setEndTime(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
             personaConnectionRepository.save(personaConnectionEntity);
         }
@@ -225,7 +244,7 @@ public class PersonaService {
                 { "M", hostPrefix + accountEntity.getName() },
                 { "N", hostPrefix + personaEntity.getPers() },
                 { "F", "U" },
-                { "P", "40" },
+                { "P", "80" },
                 // Stats : kills (in hex) at 8th position, deaths (in hex) at 9th
                 { "S", ",,,,,,," +
                         (hasStats ? Long.toHexString(personaStatsEntity.getKill()) : "0") +

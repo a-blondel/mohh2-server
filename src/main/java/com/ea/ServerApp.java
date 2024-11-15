@@ -118,7 +118,6 @@ public class ServerApp implements CommandLineRunner {
                 log.info("Starting server thread for port: {}", serverSocket.getLocalPort());
                 while (true) {
                     Socket socket = serverSocket.accept();
-                    log.info("Accepted connection from: {}", socket.getRemoteSocketAddress());
                     if (!(socket instanceof SSLSocket)) {
                         socketManager.addSocket(socket.getRemoteSocketAddress().toString(), socket);
                     }

@@ -33,7 +33,7 @@ public class SocketReader {
         } catch (SocketException e) {
             log.warn("Socket closed, stopping reading");
         } catch (IOException e) {
-            log.error("Error reading from socket", e);
+            log.error("Error reading from socket : {}", e.getMessage());
         }
     }
 }
