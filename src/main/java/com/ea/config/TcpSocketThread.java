@@ -61,15 +61,10 @@ public class TcpSocketThread implements Runnable {
     private void png(Socket socket) {
         SocketWrapper socketWrapper = socketManager.getSocketWrapper(socket);
         if (socketWrapper != null) {
-            String playerInfo = SocketUtils.getPlayerInfo(socketWrapper);
             SocketData socketData = new SocketData("~png", null, null);
             socketWriter.write(socket, socketData);
             synchronized (this) {
-                LocalDateTime now = LocalDateTime.now();
-                if(!socketWrapper.getIsHost().get()) {
-                    log.info("{} {} - Setting last ping sent to {}", socket.getRemoteSocketAddress(), playerInfo, now);
-                }
-                socketWrapper.setLastPingSent(now);
+                socketWrapper.setLastPingSent(LocalDateTime.now());
             }
 
             try {
@@ -82,6 +77,7 @@ public class TcpSocketThread implements Runnable {
             LocalDateTime lastPingReceived = socketWrapper.getLastPingReceived();
             boolean isExpired = lastPingReceived != null && lastPingReceived.isBefore(lastPingSent);
             if (isExpired) {
+                String playerInfo = SocketUtils.getPlayerInfo(socketWrapper);
                 log.warn("{} {} - Last ping sent {} is after last ping received {}",
                         socket.getRemoteSocketAddress().toString(), playerInfo, lastPingSent, lastPingReceived);
 //                try {

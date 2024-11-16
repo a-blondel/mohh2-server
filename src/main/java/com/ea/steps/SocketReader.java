@@ -31,7 +31,7 @@ public class SocketReader {
                 parser.parse(socket, buffer, readLength);
             }
         } catch (SocketException e) {
-            log.warn("Socket closed, stopping reading");
+            log.warn("Socket closed, stop reading");
         } catch (IOException e) {
             log.error("Error reading from socket : {}", e.getMessage());
         }

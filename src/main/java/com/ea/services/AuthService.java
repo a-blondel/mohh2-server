@@ -5,7 +5,6 @@ import com.ea.dto.SocketWrapper;
 import com.ea.steps.SocketWriter;
 import com.ea.utils.GameVersUtils;
 import com.ea.utils.Props;
-import com.ea.utils.SocketUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -35,12 +34,7 @@ public class AuthService {
         SocketWrapper socketWrapper = socketManager.getSocketWrapper(socket);
         if (socketWrapper != null) {
             synchronized (this) {
-                String playerInfo = SocketUtils.getPlayerInfo(socketWrapper);
-                LocalDateTime now = LocalDateTime.now();
-                if(!socketWrapper.getIsHost().get()) {
-                    log.info("{} {} - Setting last ping received to {}", socket.getRemoteSocketAddress(), playerInfo, now);
-                }
-                socketWrapper.setLastPingReceived(now);
+                socketWrapper.setLastPingReceived(LocalDateTime.now());
             }
         }
     }
