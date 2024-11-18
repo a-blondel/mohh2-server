@@ -21,6 +21,7 @@ import java.lang.reflect.Method;
 import java.net.Socket;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -366,6 +367,7 @@ public class StatsService {
         if(gameReportEntities.size() > 0) {
             GameReportEntity gameReportEntity = gameReportEntities.get(0);
             socketMapper.toGameReportEntity(gameReportEntity, socketData.getInputMessage());
+            gameReportEntity.setEndTime(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
             gameReportRepository.save(gameReportEntity);
 
             // Update PersonaStats with the new game report (ranked only)

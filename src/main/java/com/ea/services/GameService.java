@@ -90,9 +90,9 @@ public class GameService {
 
         new Thread(() -> {
             try {
-                Thread.sleep(500);
+                Thread.sleep(2000);
                 if(gameEntity != null) {
-                    List<GameReportEntity> gameReports = gameReportRepository.findByGameIdAndEndTimeIsNull(gameEntity.getId()); // maybe findByGameStartTimeAndPlayTime ?
+                    List<GameReportEntity> gameReports = gameReportRepository.findByGameIdAndEndTimeIsNull(gameEntity.getId());
                     for(GameReportEntity gameReportEntity : gameReports) {
                         gameReportEntity.setEndTime(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
                         gameReportRepository.save(gameReportEntity);
@@ -385,9 +385,9 @@ public class GameService {
      * @param socketWrapper
      */
     public void gdel(Socket socket, SocketData socketData, SocketWrapper socketWrapper) {
-        Optional<GameEntity> gameEntity = gameRepository.findCurrentGameOfPersona(socketWrapper.getPersonaConnectionEntity().getId());
-        if(gameEntity.isPresent()) {
-            GameEntity game = gameEntity.get();
+        List<GameEntity> gameEntity = gameRepository.findCurrentGameOfPersona(socketWrapper.getPersonaConnectionEntity().getId());
+        if(gameEntity.size() > 0) {
+            GameEntity game = gameEntity.get(0);
             LocalDateTime now = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
             game.setEndTime(now);
             gameRepository.save(game);
@@ -397,10 +397,6 @@ public class GameService {
             });
         }
         socketWriter.write(socket, socketData);
-
-        // This prevents the server from killing itself, but we can't set a new game after that (it keeps the old game parameters)
-        //socketWriter.write(socket, new SocketData("$cre", null, null));
-        //personaService.who(socket, socketWrapper);
     }
 
     /**

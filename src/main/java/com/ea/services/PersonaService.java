@@ -4,21 +4,15 @@ import java.io.IOException;
 import java.net.Socket;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import com.ea.utils.SocketUtils;
+import com.ea.entities.*;
 import lombok.RequiredArgsConstructor;
 
 import com.ea.dto.SocketData;
 import com.ea.dto.SocketWrapper;
-import com.ea.entities.AccountEntity;
-import com.ea.entities.PersonaConnectionEntity;
-import com.ea.entities.PersonaEntity;
-import com.ea.entities.PersonaStatsEntity;
 import com.ea.repositories.GameRepository;
 import com.ea.repositories.PersonaConnectionRepository;
 import com.ea.repositories.PersonaRepository;
@@ -162,18 +156,7 @@ public class PersonaService {
      * @param socketWrapper
      */
     private void startPersonaConnection(SocketWrapper socketWrapper) {
-        // Close current connection if the user got a "soft" disconnection (TCP connection is still active)
         PersonaEntity personaEntity = socketWrapper.getPersonaEntity();
-        Optional<PersonaConnectionEntity> personaConnectionEntityOpt =
-                personaConnectionRepository.findByVersAndSlusAndPersonaPersAndIsHostFalseAndEndTimeIsNull(
-                        socketWrapper.getPersonaConnectionEntity().getVers(),
-                        socketWrapper.getPersonaConnectionEntity().getSlus(),
-                        personaEntity.getPers());
-        if(personaConnectionEntityOpt.isPresent()) {
-            PersonaConnectionEntity personaConnectionEntity = personaConnectionEntityOpt.get();
-            personaConnectionEntity.setEndTime(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
-            personaConnectionRepository.save(personaConnectionEntity);
-        }
         PersonaConnectionEntity personaConnectionEntity = socketWrapper.getPersonaConnectionEntity();
         personaConnectionEntity.setPersona(personaEntity);
         personaConnectionEntity.setHost(socketWrapper.getIsHost().get());
@@ -233,9 +216,16 @@ public class PersonaService {
         PersonaStatsEntity personaStatsEntity = personaStatsRepository.findByPersonaIdAndVers(personaEntity.getId(), vers);
         boolean hasStats = null != personaStatsEntity;
 
-        Long gameId = gameRepository.findCurrentGameOfPersona(socketWrapper.getPersonaConnectionEntity().getId())
+        List<GameEntity> gameIds = gameRepository.findCurrentGameOfPersona(socketWrapper.getPersonaConnectionEntity().getId());
+        if(gameIds.size() > 1) {
+            log.error("Multiple current games found for persona {}", personaEntity.getPers());
+        }
+
+        long gameId = gameIds
+                .stream()
+                .max(Comparator.comparing(GameEntity::getStartTime))
                 .map(gameEntity -> Optional.ofNullable(gameEntity.getOriginalId()).orElse(gameEntity.getId()))
-                .orElse(0L);
+                .orElse(0L);;
 
         String hostPrefix = socketWrapper.getIsHost().get() ? "@" : "";
 
@@ -279,6 +269,5 @@ public class PersonaService {
         }).collect(Collectors.toMap(data -> data[0], data -> data[1]));
         socketWriter.write(socket, new SocketData("+who", null, content));
     }
-
 
 }
