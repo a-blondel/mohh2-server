@@ -26,8 +26,8 @@ public enum MapMoHH2 {
     BASE_DM("MAP13", "601", "8"),
     BASE_TDM("MAP14", "601", "7");
 
-    public final String id;
-    public final String key;
+    public final String code;
+    public final String decimalId;
     public final String modeId;
     private static final Map<String, List<String>> mapStatId = new HashMap<>();
 
@@ -40,9 +40,9 @@ public enum MapMoHH2 {
         mapStatId.put("12", List.of("601")); // Base
     }
 
-    MapMoHH2(String id, String key, String modeId) {
-        this.id = id;
-        this.key = key;
+    MapMoHH2(String code, String decimalId, String modeId) {
+        this.code = code;
+        this.decimalId = decimalId;
         this.modeId = modeId;
     }
 

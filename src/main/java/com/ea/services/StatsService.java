@@ -453,8 +453,8 @@ public class StatsService {
                 if(isMohh) {
                     mapKey = "181";
                     for (MapMoHH map : MapMoHH.values()) {
-                        if (map.id.equals("MAP" + i)) {
-                            mapKey = map.key;
+                        if (map.code.equals("MAP" + i)) {
+                            mapKey = map.decimalId;
                             break;
                         }
                     }
@@ -462,8 +462,8 @@ public class StatsService {
                 } else {
                     mapKey = "101";
                     for (MapMoHH2 map : MapMoHH2.values()) {
-                        if (map.id.equals("MAP" + i)) {
-                            mapKey = map.key;
+                        if (map.code.equals("MAP" + i)) {
+                            mapKey = map.decimalId;
                             break;
                         }
                     }
