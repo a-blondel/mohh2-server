@@ -1,7 +1,6 @@
 package com.ea.config;
 
 import java.net.Socket;
-import java.time.LocalDateTime;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -59,33 +58,7 @@ public class TcpSocketThread implements Runnable {
     }
 
     private void png(Socket socket) {
-        SocketWrapper socketWrapper = socketManager.getSocketWrapper(socket);
-        if (socketWrapper != null) {
-            SocketData socketData = new SocketData("~png", null, null);
-            socketWriter.write(socket, socketData);
-            synchronized (this) {
-                socketWrapper.setLastPingSent(LocalDateTime.now());
-            }
-
-            try {
-                Thread.sleep(8000);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-
-            LocalDateTime lastPingSent = socketWrapper.getLastPingSent();
-            LocalDateTime lastPingReceived = socketWrapper.getLastPingReceived();
-            boolean isExpired = lastPingReceived != null && lastPingReceived.isBefore(lastPingSent);
-            if (isExpired) {
-                String playerInfo = SocketUtils.getPlayerInfo(socketWrapper);
-                log.warn("{} {} - Last ping sent {} is after last ping received {}",
-                        socket.getRemoteSocketAddress().toString(), playerInfo, lastPingSent, lastPingReceived);
-//                try {
-//                    socket.close();
-//                } catch (IOException e) {
-//                    log.error("Error closing socket", e);
-//                }
-            }
-        }
+        SocketData socketData = new SocketData("~png", null, null);
+        socketWriter.write(socket, socketData);
     }
 }

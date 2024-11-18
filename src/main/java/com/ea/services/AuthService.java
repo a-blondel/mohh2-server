@@ -30,15 +30,6 @@ public class AuthService {
     private final SocketWriter socketWriter;
     private final SocketManager socketManager;
 
-    public void png(Socket socket) {
-        SocketWrapper socketWrapper = socketManager.getSocketWrapper(socket);
-        if (socketWrapper != null) {
-            synchronized (this) {
-                socketWrapper.setLastPingReceived(LocalDateTime.now());
-            }
-        }
-    }
-
     public void dir(Socket socket, SocketData socketData) {
         String slus = getValueFromSocket(socketData.getInputMessage(), "SLUS");
 
