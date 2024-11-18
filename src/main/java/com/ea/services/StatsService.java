@@ -367,7 +367,6 @@ public class StatsService {
         if(gameReportEntities.size() > 0) {
             GameReportEntity gameReportEntity = gameReportEntities.get(0);
             socketMapper.toGameReportEntity(gameReportEntity, socketData.getInputMessage());
-            gameReportEntity.setEndTime(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
             gameReportRepository.save(gameReportEntity);
 
             // Update PersonaStats with the new game report (ranked only)
@@ -379,6 +378,20 @@ public class StatsService {
                     personaStatsRepository.save(personaStatsEntity);
                 }
             }
+
+            // This is to make sure the end time is set in case something goes wrong in 'gset'
+            LocalDateTime endTime = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
+            new Thread(
+                    () -> {
+                        try {
+                            Thread.sleep(5000);
+                            gameReportEntity.setEndTime(endTime);
+                            gameReportRepository.save(gameReportEntity);
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                        }
+                    }
+            );
         }
         socketWriter.write(socket, socketData);
     }

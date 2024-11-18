@@ -165,8 +165,8 @@ public class ServerApp implements CommandLineRunner {
     }
 
     private void setupThreadPool() {
-        int poolSize = 100;
-        BlockingQueue<Runnable> queue = new LinkedBlockingQueue<>(200);
+        int poolSize = 200;
+        BlockingQueue<Runnable> queue = new LinkedBlockingQueue<>(300);
         ThreadFactory threadFactory = Executors.defaultThreadFactory();
         RejectedExecutionHandler handler = new ThreadPoolExecutor.CallerRunsPolicy();
 
