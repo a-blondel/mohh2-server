@@ -364,7 +364,7 @@ public class StatsService {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern(DATETIME_FORMAT);
         List<GameReportEntity> gameReportEntities = gameReportRepository.findByPersonaConnectionPersonaPersAndGameStartTimeAndPlayTimeAndIsHostFalse(
                 playerName, LocalDateTime.parse(startTime, formatter), 0);
-        if(gameReportEntities.size() > 0) {
+        if(!gameReportEntities.isEmpty()) {
             GameReportEntity gameReportEntity = gameReportEntities.get(0);
             socketMapper.toGameReportEntity(gameReportEntity, socketData.getInputMessage());
             gameReportRepository.save(gameReportEntity);
