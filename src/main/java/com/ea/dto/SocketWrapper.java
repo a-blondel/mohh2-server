@@ -1,9 +1,7 @@
 package com.ea.dto;
 
 import java.net.Socket;
-import java.time.LocalDateTime;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import com.ea.entities.AccountEntity;
 import com.ea.entities.PersonaConnectionEntity;
@@ -24,8 +22,6 @@ public class SocketWrapper {
     private final AtomicBoolean isHost = new AtomicBoolean(false);
     private final AtomicBoolean isGps = new AtomicBoolean(false);
     private final AtomicBoolean isHosting = new AtomicBoolean(false);
-    private volatile LocalDateTime lastPingSent;
-    private volatile LocalDateTime lastPingReceived;
     private volatile AccountEntity accountEntity;
     private volatile PersonaEntity personaEntity;
     private volatile PersonaConnectionEntity personaConnectionEntity;

@@ -32,7 +32,7 @@ public class SocketManager {
         return getSocketWrapper(socket.getRemoteSocketAddress().toString());
     }
 
-    private SocketWrapper getSocketWrapper(String identifier) {
+    public SocketWrapper getSocketWrapper(String identifier) {
         return sockets.get(identifier);
     }
 

@@ -48,7 +48,7 @@ public class ServerStatusAPI
     private DTO.GameInfo convertToGameInfo(DTO.GameStatusDTO game) {
         return new DTO.GameInfo(
                 game.id(),
-                game.name(),
+                game.name().replaceAll("\"", ""),
                 game.version(),
                 api.toUTCInstant(game.startTime()),
                 getMaxPlayerSize(game.maxPlayers()),
@@ -65,7 +65,7 @@ public class ServerStatusAPI
         return gameReportRepository.findActivePlayersByGameId(gameId)
                 .stream()
                 .map(player -> new DTO.PlayerInfo(
-                        player.playerName(),
+                        player.playerName().replaceAll("\"", ""),
                         player.isHost(),
                         api.toUTCInstant(player.startTime()),
                         api.formatDuration(api.toUTCInstant(player.startTime()))

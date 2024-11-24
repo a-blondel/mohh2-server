@@ -88,16 +88,17 @@ public class GameService {
 
         socketWriter.write(socket, socketData);
 
+        LocalDateTime now = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
         new Thread(() -> {
             try {
-                Thread.sleep(500);
+                Thread.sleep(2000);
                 if(gameEntity != null) {
-                    List<GameReportEntity> gameReports = gameReportRepository.findByGameIdAndEndTimeIsNull(gameEntity.getId()); // maybe findByGameStartTimeAndPlayTime ?
+                    List<GameReportEntity> gameReports = gameReportRepository.findByGameIdAndEndTimeIsNull(gameEntity.getId());
                     for(GameReportEntity gameReportEntity : gameReports) {
-                        gameReportEntity.setEndTime(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
+                        gameReportEntity.setEndTime(now);
                         gameReportRepository.save(gameReportEntity);
                     }
-                    gameEntity.setEndTime(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
+                    gameEntity.setEndTime(now);
                     gameRepository.save(gameEntity);
 
                     GameEntity newGameEntity = new GameEntity();
@@ -107,7 +108,7 @@ public class GameService {
                     newGameEntity.setName(gameEntity.getName());
                     newGameEntity.setParams(params);
                     newGameEntity.setSysflags(sysflags);
-                    newGameEntity.setStartTime(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
+                    newGameEntity.setStartTime(now);
                     newGameEntity.setPass(gameEntity.getPass());
                     newGameEntity.setMinsize(gameEntity.getMinsize());
                     newGameEntity.setMaxsize(gameEntity.getMaxsize());
@@ -118,7 +119,7 @@ public class GameService {
                         newGameReportEntity.setGame(newGameEntity);
                         newGameReportEntity.setPersonaConnection(gameReportEntity.getPersonaConnection());
                         newGameReportEntity.setHost(gameReportEntity.isHost());
-                        newGameReportEntity.setStartTime(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
+                        newGameReportEntity.setStartTime(now);
                         gameReportRepository.save(newGameReportEntity);
                     }
                     updateHostInfo(newGameEntity);
@@ -385,9 +386,9 @@ public class GameService {
      * @param socketWrapper
      */
     public void gdel(Socket socket, SocketData socketData, SocketWrapper socketWrapper) {
-        Optional<GameEntity> gameEntity = gameRepository.findCurrentGameOfPersona(socketWrapper.getPersonaConnectionEntity().getId());
-        if(gameEntity.isPresent()) {
-            GameEntity game = gameEntity.get();
+        List<GameEntity> gameEntity = gameRepository.findCurrentGameOfPersona(socketWrapper.getPersonaConnectionEntity().getId());
+        if(gameEntity.size() > 0) {
+            GameEntity game = gameEntity.get(0);
             LocalDateTime now = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
             game.setEndTime(now);
             gameRepository.save(game);
@@ -397,10 +398,6 @@ public class GameService {
             });
         }
         socketWriter.write(socket, socketData);
-
-        // This prevents the server from killing itself, but we can't set a new game after that (it keeps the old game parameters)
-        //socketWriter.write(socket, new SocketData("$cre", null, null));
-        //personaService.who(socket, socketWrapper);
     }
 
     /**
