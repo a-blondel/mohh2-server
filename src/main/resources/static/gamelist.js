@@ -84,9 +84,25 @@ class GameListManager {
 
     createGameCard(game) {
         const card = this.gameCardTemplate.content.cloneNode(true);
+        const params = game.params;
+        const friendlyFire = params.split(',')[2];
+        const aimAssist = params.split(',')[3];
+        const ranked = params.split(',')[8];
 
         // Update game info
         card.querySelector('.game-name').textContent = game.name;
+        card.querySelector('.game-map').textContent = game.map;
+        if(ranked === '1') {
+            card.querySelector('#game-ranked').style.display = 'flex';
+        }
+        if(friendlyFire === '1') {
+            card.querySelector('#game-friendly-fire').style.display = 'flex';
+        } else if (friendlyFire === '2') {
+            card.querySelector('#game-reverse-friendly-fire').style.display = 'flex';
+        }
+        if(aimAssist === '1') {
+            card.querySelector('#game-aim-assist').style.display = 'flex';
+        }
         card.querySelector('.game-version').textContent = game.version;
         card.querySelector('.game-start-time').textContent = this.formatTime(game.startTime);
         card.querySelector('.player-count').textContent = game.activePlayers.length;

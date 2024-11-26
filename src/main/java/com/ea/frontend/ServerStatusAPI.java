@@ -1,5 +1,6 @@
 package com.ea.frontend;
 
+import com.ea.enums.MapMoHH;
 import com.ea.frontend.API;
 import com.ea.frontend.DTO;
 import com.ea.repositories.GameReportRepository;
@@ -50,6 +51,8 @@ public class ServerStatusAPI
                 game.id(),
                 game.name().replaceAll("\"", ""),
                 game.version(),
+                MapMoHH.getMapNameByHexId(game.params().split(",")[1]),
+                game.params(),
                 api.toUTCInstant(game.startTime()),
                 getMaxPlayerSize(game.maxPlayers()),
                 game.hostName(),
