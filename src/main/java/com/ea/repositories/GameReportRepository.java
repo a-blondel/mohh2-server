@@ -81,6 +81,7 @@ public interface GameReportRepository extends JpaRepository<GameReportEntity, Lo
             g.id,
             g.name,
             g.vers,
+            g.params,
             g.startTime,
             g.maxsize,
             h.personaConnection.persona.pers,

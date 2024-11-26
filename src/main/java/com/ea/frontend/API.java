@@ -1,7 +1,5 @@
 package com.ea.frontend;
 
-import com.ea.entities.GameEntity;
-import com.ea.entities.GameReportEntity;
 import com.ea.repositories.GameRepository;
 import com.ea.repositories.GameReportRepository;
 import com.ea.repositories.PersonaConnectionRepository;
@@ -12,7 +10,6 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -20,14 +17,6 @@ public class API {
     private final GameRepository gameRepository;
     private final GameReportRepository gameReportRepository;
     private final PersonaConnectionRepository personaConnectionRepository;
-
-    public List<GameEntity> getActiveGames() {
-        return gameRepository.findByEndTimeIsNull();
-    }
-
-    public List<GameReportEntity> getActiveReports(GameEntity game) {
-        return gameReportRepository.findActiveReportsWithPersonasByGameId(game.getId());
-    }
 
     public int getPlayersInGame() {
         return gameReportRepository.countActiveNonHostPlayers();

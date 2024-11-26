@@ -285,6 +285,12 @@ input:checked + .slider:before {
     gap: 0.25rem;
 }
 
+.icon-img {
+    width: 24px;
+    height: 24px;
+    display: none;
+}
+
 /* Player List */
 .player-list {
     margin-top: 1rem;

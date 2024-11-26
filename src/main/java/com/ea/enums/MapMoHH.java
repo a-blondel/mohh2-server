@@ -49,6 +49,23 @@ public enum MapMoHH {
     public final String modeId;
     public final String name;
 
+    MapMoHH(String code, String decimalId, String hexId, String modeId, String name) {
+        this.code = code;
+        this.decimalId = decimalId;
+        this.hexId = hexId;
+        this.modeId = modeId;
+        this.name = name;
+    }
+
+    public static String getMapNameByHexId(String hexId) {
+        for (MapMoHH map : MapMoHH.values()) {
+            if (map.hexId.equals(hexId)) {
+                return map.name;
+            }
+        }
+        return null;
+    }
+
     private static final Map<String, List<String>> mapStatId = new HashMap<>();
 
     static {
@@ -67,14 +84,6 @@ public enum MapMoHH {
         mapStatId.put("21", List.of("383")); // BE River (River A)
         mapStatId.put("22", List.of("352", "382")); // BE Ranch
         mapStatId.put("25", List.of("341", "381")); // BE Belgium River Night (River B)
-    }
-
-    MapMoHH(String code, String decimalId, String hexId, String modeId, String name) {
-        this.code = code;
-        this.decimalId = decimalId;
-        this.hexId = hexId;
-        this.modeId = modeId;
-        this.name = name;
     }
 
     public static String getMapStatId(String key) {
