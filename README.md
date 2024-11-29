@@ -43,7 +43,7 @@ You can follow the progress on the [project board](https://github.com/users/a-bl
   - [ ] Online player count
 - [ ] Lobby
   - [x] Games available
-  - [x] Players in game (partially : player list is done, players details isn't)
+  - [x] Players in game
   - [ ] Filter options
   - [x] Create game (almost complete : password protected lobbies isn't handled yet)
   - [x] Join game (almost complete : password protected lobbies isn't handled yet)
