@@ -6,18 +6,20 @@ import com.ea.steps.SocketWriter;
 import com.ea.utils.GameVersUtils;
 import com.ea.utils.Props;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.net.Socket;
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static com.ea.utils.SocketUtils.SPACE_CHAR;
 import static com.ea.utils.SocketUtils.getValueFromSocket;
 
+@Slf4j
 @RequiredArgsConstructor
 @Service
 public class AuthService {
@@ -27,18 +29,6 @@ public class AuthService {
     private final GameService gameService;
     private final SocketWriter socketWriter;
     private final SocketManager socketManager;
-
-    public void png(Socket socket, SocketData socketData) {
-        SocketWrapper socketWrapper = socketManager.getSocketWrapper(socket);
-        if (socketWrapper != null) {
-            AtomicInteger pingReceiveCounter = socketWrapper.getPingReceiveCounter();
-            String time = getValueFromSocket(socketData.getInputMessage(), "TIME");
-            if (time != null) {
-                int pingId = Integer.parseInt(time);
-                pingReceiveCounter.set(pingId);
-            }
-        }
-    }
 
     public void dir(Socket socket, SocketData socketData) {
         String slus = getValueFromSocket(socketData.getInputMessage(), "SLUS");

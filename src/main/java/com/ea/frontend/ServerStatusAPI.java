@@ -1,5 +1,6 @@
 package com.ea.frontend;
 
+import com.ea.enums.MapMoHH;
 import com.ea.frontend.API;
 import com.ea.frontend.DTO;
 import com.ea.repositories.GameReportRepository;
@@ -48,8 +49,10 @@ public class ServerStatusAPI
     private DTO.GameInfo convertToGameInfo(DTO.GameStatusDTO game) {
         return new DTO.GameInfo(
                 game.id(),
-                game.name(),
+                game.name().replaceAll("\"", ""),
                 game.version(),
+                MapMoHH.getMapNameByHexId(game.params().split(",")[1]),
+                game.params(),
                 api.toUTCInstant(game.startTime()),
                 getMaxPlayerSize(game.maxPlayers()),
                 game.hostName(),
@@ -65,7 +68,7 @@ public class ServerStatusAPI
         return gameReportRepository.findActivePlayersByGameId(gameId)
                 .stream()
                 .map(player -> new DTO.PlayerInfo(
-                        player.playerName(),
+                        player.playerName().replaceAll("\"", ""),
                         player.isHost(),
                         api.toUTCInstant(player.startTime()),
                         api.formatDuration(api.toUTCInstant(player.startTime()))

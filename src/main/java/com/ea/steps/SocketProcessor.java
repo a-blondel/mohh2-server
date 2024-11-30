@@ -30,7 +30,6 @@ public class SocketProcessor {
         SocketWrapper socketWrapper = socketManager.getSocketWrapper(socket);
         switch (socketData.getIdMessage()) {
             case ("~png"):
-                authService.png(socket, socketData);
                 break;
             case ("@tic"):
                 socketWriter.write(socket, socketData);

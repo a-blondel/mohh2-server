@@ -1,13 +1,9 @@
 package com.ea.config;
 
-import java.io.IOException;
 import java.net.Socket;
-import java.util.Collections;
-import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import com.ea.dto.SocketData;
 import com.ea.dto.SocketWrapper;
@@ -17,6 +13,7 @@ import com.ea.services.SocketManager;
 import com.ea.steps.SocketReader;
 import com.ea.steps.SocketWriter;
 
+import com.ea.utils.SocketUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -50,32 +47,18 @@ public class TcpSocketThread implements Runnable {
                 pingExecutor.shutdownNow();
             }
             SocketWrapper socketWrapper = socketManager.getSocketWrapper(clientSocket);
+            String playerInfo = SocketUtils.getPlayerInfo(socketWrapper);
             if (socketWrapper != null && socketWrapper.getPersonaEntity() != null) {
                 gameService.endGameReport(socketWrapper);
                 personaService.endPersonaConnection(socketWrapper);
                 socketManager.removeSocket(socketWrapper.getIdentifier());
             }
-            log.info("TCP client session ended: {}", clientSocket.getRemoteSocketAddress());
+            log.info("TCP client session ended: {} {}", clientSocket.getRemoteSocketAddress(), playerInfo);
         }
     }
 
     private void png(Socket socket) {
-        SocketWrapper socketWrapper = socketManager.getSocketWrapper(socket);
-        if (socketWrapper != null) {
-            AtomicInteger pingSendCounter = socketWrapper.getPingSendCounter();
-            AtomicInteger pingReceiveCounter = socketWrapper.getPingReceiveCounter();
-            if (!socketWrapper.getIsHost().get() && pingReceiveCounter.get() != pingSendCounter.get()) {
-                log.warn("Client did not respond to last ping, closing socket");
-                try {
-                    socket.close();
-                } catch (IOException e) {
-                    log.error("Error closing socket", e);
-                }
-                return;
-            }
-            Map<String, String> content = Collections.singletonMap("TIME", String.valueOf(pingSendCounter.incrementAndGet()));
-            SocketData socketData = new SocketData("~png", null, content);
-            socketWriter.write(socket, socketData);
-        }
+        SocketData socketData = new SocketData("~png", null, null);
+        socketWriter.write(socket, socketData);
     }
 }

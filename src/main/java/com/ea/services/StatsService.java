@@ -21,6 +21,7 @@ import java.lang.reflect.Method;
 import java.net.Socket;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -88,7 +89,8 @@ public class StatsService {
         if (MY_LEADERBOARD.mohh2Id.equals(rankingCategory)) {
             personaStatsEntityList = personaStatsRepository.getLeaderboardByVers(vers, 100, offset);
         } else if (TOP_100.mohh2Id.equals(rankingCategory)) {
-            offset = personaStatsRepository.getRankByPersonaIdAndVers(socketWrapper.getPersonaEntity().getId(), vers);
+            Long rank = personaStatsRepository.getRankByPersonaIdAndVers(socketWrapper.getPersonaEntity().getId(), vers);
+            offset = (rank != null) ? rank : 0;
             offset = Math.max(offset - 50, 0);
             personaStatsEntityList = personaStatsRepository.getLeaderboardByVers(vers, 100, offset);
         } else if (WEAPON_LEADERS.mohh2Id.equals(rankingCategory)) {
@@ -362,7 +364,7 @@ public class StatsService {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern(DATETIME_FORMAT);
         List<GameReportEntity> gameReportEntities = gameReportRepository.findByPersonaConnectionPersonaPersAndGameStartTimeAndPlayTimeAndIsHostFalse(
                 playerName, LocalDateTime.parse(startTime, formatter), 0);
-        if(gameReportEntities.size() > 0) {
+        if(!gameReportEntities.isEmpty()) {
             GameReportEntity gameReportEntity = gameReportEntities.get(0);
             socketMapper.toGameReportEntity(gameReportEntity, socketData.getInputMessage());
             gameReportRepository.save(gameReportEntity);
@@ -376,6 +378,20 @@ public class StatsService {
                     personaStatsRepository.save(personaStatsEntity);
                 }
             }
+
+            // This is to make sure the end time is set in case something goes wrong in 'gset'
+            LocalDateTime endTime = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
+            new Thread(
+                    () -> {
+                        try {
+                            Thread.sleep(5000);
+                            gameReportEntity.setEndTime(endTime);
+                            gameReportRepository.save(gameReportEntity);
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                        }
+                    }
+            );
         }
         socketWriter.write(socket, socketData);
     }
@@ -437,8 +453,8 @@ public class StatsService {
                 if(isMohh) {
                     mapKey = "181";
                     for (MapMoHH map : MapMoHH.values()) {
-                        if (map.id.equals("MAP" + i)) {
-                            mapKey = map.key;
+                        if (map.code.equals("MAP" + i)) {
+                            mapKey = map.decimalId;
                             break;
                         }
                     }
@@ -446,8 +462,8 @@ public class StatsService {
                 } else {
                     mapKey = "101";
                     for (MapMoHH2 map : MapMoHH2.values()) {
-                        if (map.id.equals("MAP" + i)) {
-                            mapKey = map.key;
+                        if (map.code.equals("MAP" + i)) {
+                            mapKey = map.decimalId;
                             break;
                         }
                     }

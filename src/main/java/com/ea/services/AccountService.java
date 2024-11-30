@@ -98,7 +98,7 @@ public class AccountService {
 
             if (!error && (update || !spam.equals(accountEntity.getSpam()))) {
                 accountEntity.setSpam(spam);
-                accountEntity.setUpdatedOn(LocalDateTime.now());
+                accountEntity.setUpdatedOn(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
                 accountRepository.save(accountEntity);
             }
 
