@@ -1,40 +1,33 @@
 package com.ea.services;
 
-import java.net.Socket;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
-import lombok.RequiredArgsConstructor;
-import org.apache.commons.lang3.StringUtils;
-import org.springframework.stereotype.Service;
-
 import com.ea.dto.SocketData;
 import com.ea.dto.SocketWrapper;
-import com.ea.entities.GameEntity;
-import com.ea.entities.GameReportEntity;
-import com.ea.entities.PersonaConnectionEntity;
-import com.ea.entities.PersonaEntity;
+import com.ea.entities.*;
 import com.ea.mappers.SocketMapper;
 import com.ea.repositories.GameReportRepository;
 import com.ea.repositories.GameRepository;
 import com.ea.repositories.PersonaConnectionRepository;
+import com.ea.repositories.PersonaStatsRepository;
 import com.ea.steps.SocketWriter;
 import com.ea.utils.GameVersUtils;
+import jakarta.annotation.PreDestroy;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.stereotype.Service;
+
+import java.net.Socket;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import static com.ea.utils.GameVersUtils.VERS_MOHH_PSP;
+import static com.ea.utils.HexUtils.*;
 import static com.ea.utils.SocketUtils.DATETIME_FORMAT;
 import static com.ea.utils.SocketUtils.getValueFromSocket;
-
-import jakarta.annotation.PreDestroy;
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -44,6 +37,7 @@ public class GameService {
     private final GameRepository gameRepository;
     private final GameReportRepository gameReportRepository;
     private final PersonaConnectionRepository personaConnectionRepository;
+    private final PersonaStatsRepository personaStatsRepository;
     private final SocketMapper socketMapper;
     private final PersonaService personaService;
     private final SocketWriter socketWriter;
@@ -415,15 +409,34 @@ public class GameService {
      * @param socketData
      */
     public void gget(Socket socket, SocketData socketData) {
+        SocketWrapper socketWrapper = socketManager.getSocketWrapper(socket);
+        String vers = socketWrapper.getPersonaConnectionEntity().getVers();
         String ident = getValueFromSocket(socketData.getInputMessage(), "IDENT");
         Optional<GameEntity> gameEntityOpt = gameRepository.findById(Long.valueOf(ident));
         if(gameEntityOpt.isPresent()) {
             GameEntity gameEntity = gameEntityOpt.get();
-            socketWriter.write(socket, new SocketData("gget", null, getGameInfo(gameEntity)));
+            socketWriter.write(socket, new SocketData("gget", null, getGameInfo(gameEntity, vers)));
+        } else {
+            socketWriter.write(socket, new SocketData("gget", null, null));
         }
     }
 
+    /**
+     * Get game info without version requirement
+     * @param gameEntity
+     * @return
+     */
     public Map<String, String> getGameInfo(GameEntity gameEntity) {
+        return getGameInfo(gameEntity, "");
+    }
+
+    /**
+     * Get game info
+     * @param gameEntity
+     * @param vers
+     * @return
+     */
+    public Map<String, String> getGameInfo(GameEntity gameEntity, String vers) {
         Long gameId = gameEntity.getId();
         SocketWrapper hostSocketWrapperOfGame = socketManager.getHostSocketWrapperOfGame(gameId);
 
@@ -433,7 +446,7 @@ public class GameService {
         boolean hasHost = hostSocketWrapperOfGame != null;
         String host = hasHost ? "@" + hostSocketWrapperOfGame.getPersonaEntity().getPers() : "@brobot1";
         int count = gameReports.size();
-        count = hasHost ? count : ++count;
+        if (!hasHost) count++;
 
         Map<String, String> content = Stream.of(new String[][] {
                 { "IDENT", String.valueOf(Optional.ofNullable(gameEntity.getOriginalId()).orElse(gameEntity.getId())) },
@@ -441,7 +454,6 @@ public class GameService {
                 { "HOST", host },
                 // { "GPSHOST", hostSocketWrapperOfGame.getPers() },
                 { "PARAMS", gameEntity.getParams() },
-                // { "PARAMS", ",,,b80,d003f6e0656e47423" },
                 { "PLATPARAMS", "0" },  // ???
                 { "ROOM", "1" },
                 { "CUSTFLAGS", "413082880" },
@@ -497,7 +509,7 @@ public class GameService {
                             { "LADDR" + idx[0], ipAddr },
                             { "MADDR" + idx[0], "" },
                             { "OPPART" + idx[0], "0" },
-                            { "OPPARAM" + idx[0], "chgBAMJQAAAVAAAAUkYAAAUAAAABAAAA" },
+                            { "OPPARAM" + idx[0], generateOpParam(personaEntity, vers) },
                             { "OPFLAG" + idx[0], "413082880" },
                             { "OPFLAGS" + idx[0], "413082880" },
                             { "PRES" + idx[0], "0" },
@@ -507,6 +519,29 @@ public class GameService {
                     idx[0]++;
                 });
         return content;
+    }
+
+    /**
+     * Generate the OPPARAM for a player
+     * @param personaEntity
+     * @param vers
+     * @return
+     */
+    private String generateOpParam(PersonaEntity personaEntity, String vers) {
+        PersonaStatsEntity personaStatsEntity = personaStatsRepository.findByPersonaIdAndVers(personaEntity.getId(), vers);
+        Long rankLong = personaStatsRepository.getRankByPersonaIdAndVers(personaEntity.getId(), vers);
+        int rank = (rankLong != null) ? rankLong.intValue() : 0;
+        String loc = personaEntity.getAccount().getLoc();
+        String killHex = personaStatsEntity != null ? reverseEndianness(formatIntToWord(personaStatsEntity.getKill())) : "00000000";
+        String deathHex = personaStatsEntity != null ? reverseEndianness(formatIntToWord(personaStatsEntity.getDeath())) : "00000000";
+        String rankHex = reverseEndianness(formatIntToWord(rank));
+        String locHex = reverseEndianness(formatIntToWord(Integer.parseInt(stringToHex(loc.substring(loc.length() - 2)), 16)));
+        String repHex = reverseEndianness(formatIntToWord(personaEntity.getRp()));
+        String lastHex = reverseEndianness(formatIntToWord(1));
+
+        String concatenatedHex = killHex + deathHex + rankHex + locHex + repHex + lastHex;
+        byte[] byteArray = parseHexString(concatenatedHex);
+        return Base64.getEncoder().encodeToString(byteArray);
     }
 
     /**
