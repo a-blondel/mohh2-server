@@ -9,14 +9,12 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.ea.entities.*;
+import com.ea.repositories.*;
+import com.ea.utils.GameVersUtils;
 import lombok.RequiredArgsConstructor;
 
 import com.ea.dto.SocketData;
 import com.ea.dto.SocketWrapper;
-import com.ea.repositories.GameRepository;
-import com.ea.repositories.PersonaConnectionRepository;
-import com.ea.repositories.PersonaRepository;
-import com.ea.repositories.PersonaStatsRepository;
 import com.ea.steps.SocketWriter;
 import com.ea.utils.AccountUtils;
 import static com.ea.utils.GameVersUtils.VERS_MOHH_PSP_HOST;
@@ -34,6 +32,7 @@ public class PersonaService {
     private final PersonaConnectionRepository personaConnectionRepository;
     private final PersonaStatsRepository personaStatsRepository;
     private final GameRepository gameRepository;
+    private final GameReportRepository gameReportRepository;
     private final SocketWriter socketWriter;
     private final SocketManager socketManager;
 
@@ -201,6 +200,21 @@ public class PersonaService {
         socketWriter.write(socket, socketData);
 
         who(socket, socketWrapper);
+
+        if(socketWrapper != null && socketWrapper.getPersonaConnectionEntity() != null) {
+            List<String> vers = GameVersUtils.getRelatedVers(socketWrapper.getPersonaConnectionEntity().getVers());
+            int playersInLobby = personaConnectionRepository.countPlayersInLobby(vers);
+            int playersInGame = gameReportRepository.countPlayersInGame(vers);
+            content = Stream.of(new String[][] {
+                    { "UIL", String.valueOf(playersInLobby) },
+                    { "UIG", String.valueOf(playersInGame) },
+                    { "UIR", "0" },
+                    { "GIP", "0" },
+                    { "GCR", "0" },
+                    { "GCM", "0" },
+            }).collect(Collectors.toMap(data -> data[0], data -> data[1]));
+            socketWriter.write(socket, new SocketData("+sst", null, content));
+        }
     }
 
     /**

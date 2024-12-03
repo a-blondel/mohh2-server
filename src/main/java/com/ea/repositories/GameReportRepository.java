@@ -50,18 +50,10 @@ public interface GameReportRepository extends JpaRepository<GameReportEntity, Lo
         SELECT COUNT(DISTINCT gr.personaConnection.id) 
         FROM GameReportEntity gr 
         WHERE gr.endTime IS NULL 
-        AND gr.isHost = false
+        AND gr.isHost = false 
+        AND gr.game.vers IN ( :vers )
     """)
-    int countActiveNonHostPlayers();
-
-    @Query("""
-        SELECT gr.personaConnection.persona.pers 
-        FROM GameReportEntity gr 
-        WHERE gr.game.id = :gameId 
-        AND gr.isHost = true 
-        AND gr.endTime IS NULL
-    """)
-    String findHostNameByGameId(@Param("gameId") Long gameId);
+    int countPlayersInGame(List<String> vers);
 
     @Query("""
         SELECT new com.ea.frontend.DTO$PlayerInfoDTO(
@@ -95,13 +87,4 @@ public interface GameReportRepository extends JpaRepository<GameReportEntity, Lo
     """)
     List<DTO.GameStatusDTO> findAllActiveGamesWithStats();
 
-    @Query("""
-        SELECT gr 
-        FROM GameReportEntity gr 
-        JOIN FETCH gr.personaConnection pc 
-        JOIN FETCH pc.persona 
-        WHERE gr.game.id = :gameId 
-        AND gr.endTime IS NULL
-    """)
-    List<GameReportEntity> findActiveReportsWithPersonasByGameId(@Param("gameId") Long gameId);
 }

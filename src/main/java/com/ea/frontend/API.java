@@ -1,6 +1,5 @@
 package com.ea.frontend;
 
-import com.ea.repositories.GameRepository;
 import com.ea.repositories.GameReportRepository;
 import com.ea.repositories.PersonaConnectionRepository;
 import lombok.RequiredArgsConstructor;
@@ -11,19 +10,20 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 
+import static com.ea.utils.GameVersUtils.VERS_MOHH_PSP;
+
 @Service
 @RequiredArgsConstructor
 public class API {
-    private final GameRepository gameRepository;
     private final GameReportRepository gameReportRepository;
     private final PersonaConnectionRepository personaConnectionRepository;
 
     public int getPlayersInGame() {
-        return gameReportRepository.countActiveNonHostPlayers();
+        return gameReportRepository.countPlayersInGame(VERS_MOHH_PSP);
     }
 
     public int getPlayersInLobby() {
-        return personaConnectionRepository.countPlayersInLobby();
+        return personaConnectionRepository.countPlayersInLobby(VERS_MOHH_PSP);
     }
 
     public Instant toUTCInstant(LocalDateTime localDateTime) {
