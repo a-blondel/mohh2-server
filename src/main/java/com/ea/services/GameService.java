@@ -153,11 +153,15 @@ public class GameService {
         List<Map<String, String>> games = new ArrayList<>();
 
         for(GameEntity gameEntity : gameEntities) {
+            String sysflags = gameEntity.getSysflags();
+            if(StringUtils.isNotEmpty(gameEntity.getPass())) {
+                sysflags = String.valueOf(Integer.parseInt(sysflags) | (1 << 16)); // Add password flag (16th bit)
+            }
             games.add(Stream.of(new String[][] {
                     { "IDENT", String.valueOf(gameEntity.getId()) },
                     { "NAME", gameEntity.getName() },
                     { "PARAMS", gameEntity.getParams() },
-                    { "SYSFLAGS", gameEntity.getSysflags() },
+                    { "SYSFLAGS", sysflags },
                     { "COUNT", String.valueOf(gameEntity.getGameReports().stream().filter(report -> null == report.getEndTime()).count()) },
                     { "MAXSIZE", String.valueOf(gameEntity.getMaxsize()) },
             }).collect(Collectors.toMap(data -> data[0], data -> data[1])));
@@ -180,6 +184,11 @@ public class GameService {
         Optional<GameEntity> gameEntityOpt = gameRepository.findById(Long.valueOf(ident));
         if(gameEntityOpt.isPresent()) {
             GameEntity gameEntity = gameEntityOpt.get();
+            String pass = getValueFromSocket(socketData.getInputMessage(), "PASS");
+            if(StringUtils.isNotEmpty(pass) && !pass.equals(gameEntity.getPass())) {
+                socketWriter.write(socket, new SocketData("gjoipass", null, null)); // Wrong password
+                return;
+            }
             if(gameEntity.getEndTime() == null) {
                 startGameReport(socketWrapper, gameEntity);
                 socketWriter.write(socket, socketData);

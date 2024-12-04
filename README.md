@@ -45,8 +45,8 @@ You can follow the progress on the [project board](https://github.com/users/a-bl
   - [x] Games available
   - [x] Players in game
   - [ ] Filter options
-  - [x] Create game (almost complete : password protected lobbies isn't handled yet)
-  - [x] Join game (almost complete : password protected lobbies isn't handled yet)
+  - [x] Create game
+  - [x] Join game
 - [x] Leaderboards
   - [x] My EA Leaderboard
   - [x] EA Top 100
