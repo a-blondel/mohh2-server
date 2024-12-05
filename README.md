@@ -38,15 +38,15 @@ You can follow the progress on the [project board](https://github.com/users/a-bl
   - [x] Use persona
   - [ ] Account recovery (require SMTP)
   - [ ] Password reset (require SMTP)
-- [ ] Main menu
+- [x] Main menu
   - [x] Player info (Country, Kills, Deaths, Score, Rank, Reputation)
-  - [ ] Online player count
+  - [x] Online player count
 - [ ] Lobby
   - [x] Games available
   - [x] Players in game
   - [ ] Filter options
-  - [x] Create game (almost complete : password protected lobbies isn't handled yet)
-  - [x] Join game (almost complete : password protected lobbies isn't handled yet)
+  - [x] Create game
+  - [x] Join game
 - [x] Leaderboards
   - [x] My EA Leaderboard
   - [x] EA Top 100

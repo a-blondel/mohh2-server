@@ -9,14 +9,12 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.ea.entities.*;
+import com.ea.repositories.*;
+import com.ea.utils.GameVersUtils;
 import lombok.RequiredArgsConstructor;
 
 import com.ea.dto.SocketData;
 import com.ea.dto.SocketWrapper;
-import com.ea.repositories.GameRepository;
-import com.ea.repositories.PersonaConnectionRepository;
-import com.ea.repositories.PersonaRepository;
-import com.ea.repositories.PersonaStatsRepository;
 import com.ea.steps.SocketWriter;
 import com.ea.utils.AccountUtils;
 import static com.ea.utils.GameVersUtils.VERS_MOHH_PSP_HOST;
@@ -34,6 +32,7 @@ public class PersonaService {
     private final PersonaConnectionRepository personaConnectionRepository;
     private final PersonaStatsRepository personaStatsRepository;
     private final GameRepository gameRepository;
+    private final GameReportRepository gameReportRepository;
     private final SocketWriter socketWriter;
     private final SocketManager socketManager;
 
@@ -45,10 +44,20 @@ public class PersonaService {
      */
     public void cper(Socket socket, SocketData socketData, SocketWrapper socketWrapper) {
         String pers = getValueFromSocket(socketData.getInputMessage(), "PERS");
+        String sanitizedPers = pers.replaceAll("\"", "").trim();
+        if(sanitizedPers.length() < 3) {
+            socketData.setIdMessage("cperinam");
+            socketWriter.write(socket, socketData);
+            return;
+        } else if(!sanitizedPers.matches("[a-zA-Z0-9 ]+") || !Character.isLetter(sanitizedPers.charAt(0))) {
+            socketData.setIdMessage("cperiper");
+            socketWriter.write(socket, socketData);
+            return;
+        }
 
         Optional<PersonaEntity> personaEntityOpt = personaRepository.findByPers(pers);
         if (personaEntityOpt.isPresent()) {
-            socketData.setIdMessage("cperdupl"); // Duplicate persona error (EC_DUPLICATE)
+            socketData.setIdMessage("cperdupl");
             int alts = Integer.parseInt(getValueFromSocket(socketData.getInputMessage(), "ALTS"));
             if (alts > 0) {
                 String opts = AccountUtils.suggestNames(alts, pers);
@@ -201,6 +210,21 @@ public class PersonaService {
         socketWriter.write(socket, socketData);
 
         who(socket, socketWrapper);
+
+        if(socketWrapper != null && socketWrapper.getPersonaConnectionEntity() != null) {
+            List<String> vers = GameVersUtils.getRelatedVers(socketWrapper.getPersonaConnectionEntity().getVers());
+            int playersInLobby = personaConnectionRepository.countPlayersInLobby(vers);
+            int playersInGame = gameReportRepository.countPlayersInGame(vers);
+            content = Stream.of(new String[][] {
+                    { "UIL", String.valueOf(playersInLobby) },
+                    { "UIG", String.valueOf(playersInGame) },
+                    { "UIR", "0" },
+                    { "GIP", "0" },
+                    { "GCR", "0" },
+                    { "GCM", "0" },
+            }).collect(Collectors.toMap(data -> data[0], data -> data[1]));
+            socketWriter.write(socket, new SocketData("+sst", null, content));
+        }
     }
 
     /**

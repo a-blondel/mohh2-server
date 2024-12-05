@@ -10,7 +10,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.net.Socket;
-import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -28,7 +27,6 @@ public class AuthService {
     private final PersonaService personaService;
     private final GameService gameService;
     private final SocketWriter socketWriter;
-    private final SocketManager socketManager;
 
     public void dir(Socket socket, SocketData socketData) {
         String slus = getValueFromSocket(socketData.getInputMessage(), "SLUS");
