@@ -38,9 +38,9 @@ You can follow the progress on the [project board](https://github.com/users/a-bl
   - [x] Use persona
   - [ ] Account recovery (require SMTP)
   - [ ] Password reset (require SMTP)
-- [ ] Main menu
+- [x] Main menu
   - [x] Player info (Country, Kills, Deaths, Score, Rank, Reputation)
-  - [ ] Online player count
+  - [x] Online player count
 - [ ] Lobby
   - [x] Games available
   - [x] Players in game
