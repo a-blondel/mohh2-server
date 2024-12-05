@@ -44,10 +44,20 @@ public class PersonaService {
      */
     public void cper(Socket socket, SocketData socketData, SocketWrapper socketWrapper) {
         String pers = getValueFromSocket(socketData.getInputMessage(), "PERS");
+        String sanitizedPers = pers.replaceAll("\"", "").trim();
+        if(sanitizedPers.length() < 3) {
+            socketData.setIdMessage("cperinam");
+            socketWriter.write(socket, socketData);
+            return;
+        } else if(!sanitizedPers.matches("[a-zA-Z0-9 ]+") || !Character.isLetter(sanitizedPers.charAt(0))) {
+            socketData.setIdMessage("cperiper");
+            socketWriter.write(socket, socketData);
+            return;
+        }
 
         Optional<PersonaEntity> personaEntityOpt = personaRepository.findByPers(pers);
         if (personaEntityOpt.isPresent()) {
-            socketData.setIdMessage("cperdupl"); // Duplicate persona error (EC_DUPLICATE)
+            socketData.setIdMessage("cperdupl");
             int alts = Integer.parseInt(getValueFromSocket(socketData.getInputMessage(), "ALTS"));
             if (alts > 0) {
                 String opts = AccountUtils.suggestNames(alts, pers);
