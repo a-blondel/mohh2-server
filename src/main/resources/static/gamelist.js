@@ -85,6 +85,7 @@ class GameListManager {
     createGameCard(game) {
         const card = this.gameCardTemplate.content.cloneNode(true);
         const params = game.params;
+        const pass = game.pass;
         const friendlyFire = params.split(',')[2];
         const aimAssist = params.split(',')[3];
         const ranked = params.split(',')[8];
@@ -92,6 +93,9 @@ class GameListManager {
         // Update game info
         card.querySelector('.game-name').textContent = game.name;
         card.querySelector('.game-map').textContent = game.map;
+        if(pass) {
+            card.querySelector('#game-password').style.display = 'flex';
+        }
         if(ranked === '1') {
             card.querySelector('#game-ranked').style.display = 'flex';
         }

@@ -160,7 +160,7 @@ Change `192.168.1.1` to your server's IP address.
 
 ### 3/ JDK
 
-This project has been initiated with the `JDK 17`, download it if needed.
+This project runs with the `JDK 21`, download it if needed.
 
 ### 4/ Maven
 
@@ -243,7 +243,10 @@ docker run -d --restart=unless-stopped --network mohh-network \
 Then, you can start the server using the network :
 ```
 docker run --name mohh-master-server --rm -it \
-  -p 21171:21171 -p 21172:21172 -p 21173:21173 \
+  -p 8080:8080 \
+  -p 11180:11180 -p 11181:11181 -p 11190:11190 -p 11191:11191 \
+  -p 21180:21180 -p 21181:21181 -p 21190:21190 -p 21191:21191 \
+  -p 21170:21170 -p 21171:21171 -p 21120:21120 -p 21121:21121 \
   -e "LOGS=./logs" -e "TCP_HOST_IP=127.0.0.1" \
   -e "DB_URL=jdbc:postgresql://postgres:5432/mohh_db" \
   -e "DB_USERNAME=user" -e "DB_PASSWORD=password" \
