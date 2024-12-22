@@ -63,11 +63,9 @@ public class ServerApp implements CommandLineRunner {
         }
 
         try {
-            if (props.isTosEnabled()) {
-                ServerSocket tosTcpServerSocket = serverConfig.createTcpServerSocket(80);
-                startServerThread(tosTcpServerSocket, this::createTcpSocketThread);
-                SSLServerSocket tosSslServerSocket = serverConfig.createSslServerSocket(443, Certificates.TOS);
-                startServerThread(tosSslServerSocket, this::createSslSocketThread);
+            if (props.isHttpEnabled()) {
+                ServerSocket httpServerSocket = serverConfig.createTcpServerSocket(80);
+                startServerThread(httpServerSocket, this::createTcpSocketThread);
             }
             if(props.getHostedGames().contains("mohh_psp_pal")) {
                 ServerSocket mohhPspPalTcpServerSocket = serverConfig.createTcpServerSocket(11180);

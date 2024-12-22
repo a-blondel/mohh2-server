@@ -25,6 +25,7 @@ public class SocketParser {
     private final Props props;
     private final SocketManager socketManager;
     private final SocketProcessor socketProcessor;
+    private final HttpProcessor httpProcessor;
 
     /**
      * Parses input messages based on current content of the stream
@@ -44,8 +45,8 @@ public class SocketParser {
     }
 
     private void handleHttpRequest(Socket socket, byte[] buffer) {
-        HttpRequestData request = HttpRequestUtils.extractHttpRequest(buffer);
-        HttpProcessor.process(socket, request);
+        HttpRequestData request = HttpRequestUtils.parseHttpRequest(buffer);
+        httpProcessor.process(socket, request);
     }
 
     private void handleSocketData(Socket socket, byte[] buffer, int readLength, ByteBuffer messageBuffer) {
