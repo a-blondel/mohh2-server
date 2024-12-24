@@ -1,3 +1,6 @@
+server:
+    port: 8080
+
 ssl:
   protocols: 'SSLv3'
   cipher-suites: 'SSL_RSA_WITH_RC4_128_MD5,SSL_RSA_WITH_RC4_128_SHA'
@@ -12,8 +15,7 @@ tcp:
     enabled: ${TCP_DEBUG_ENABLED:false}
     exclusions: ${TCP_DEBUG_EXCLUSIONS:~png,+snp}
 tos:
-  enabled: ${TOS_ENABLED:true} # Starts socket servers on port 80 and 443 to handle TOS HTTP(S) requests
-  base_url: ${TOS_BASE_URL:https://tos.ea.com}
+  base_url: ${TOS_BASE_URL:http://localhost}
 ssc2:
   key: 51ba8aee64ddfacae5baefa6bf61e009
 

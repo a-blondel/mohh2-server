@@ -10,8 +10,17 @@ import com.ea.services.SocketManager;
 import com.ea.steps.SocketReader;
 import com.ea.steps.SocketWriter;
 import com.ea.utils.Props;
+import io.netty.bootstrap.ServerBootstrap;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
+import io.netty.channel.*;
+import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.handler.codec.http.*;
+import io.netty.util.CharsetUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.IOUtils;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -19,10 +28,11 @@ import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfi
 
 import javax.net.ssl.SSLServerSocket;
 import javax.net.ssl.SSLSocket;
-import java.io.IOException;
-import java.net.ServerSocket;
-import java.net.Socket;
+import java.io.*;
+import java.net.*;
+import java.nio.charset.StandardCharsets;
 import java.security.Security;
+import java.util.Map;
 import java.util.concurrent.*;
 import java.util.function.Function;
 
@@ -31,7 +41,7 @@ import java.util.function.Function;
 @SpringBootApplication(exclude = { SecurityAutoConfiguration.class })
 public class ServerApp implements CommandLineRunner {
 
-    private ScheduledExecutorService processExpiredGamesThread = Executors.newSingleThreadScheduledExecutor();
+    private final ScheduledExecutorService processExpiredGamesThread = Executors.newSingleThreadScheduledExecutor();
     private ExecutorService clientHandlingExecutor = Executors.newFixedThreadPool(100);
 
     private final Props props;
@@ -62,13 +72,8 @@ public class ServerApp implements CommandLineRunner {
             System.setProperty("javax.net.debug", "all");
         }
 
+        startTcpTunnelServer();
         try {
-            if (props.isTosEnabled()) {
-                ServerSocket tosTcpServerSocket = serverConfig.createTcpServerSocket(80);
-                startServerThread(tosTcpServerSocket, this::createTcpSocketThread);
-                SSLServerSocket tosSslServerSocket = serverConfig.createSslServerSocket(443, Certificates.TOS);
-                startServerThread(tosSslServerSocket, this::createSslSocketThread);
-            }
             if(props.getHostedGames().contains("mohh_psp_pal")) {
                 ServerSocket mohhPspPalTcpServerSocket = serverConfig.createTcpServerSocket(11180);
                 startServerThread(mohhPspPalTcpServerSocket, this::createTcpSocketThread);
@@ -129,6 +134,34 @@ public class ServerApp implements CommandLineRunner {
         }).start();
     }
 
+    private void startTcpTunnelServer() {
+        new Thread(() -> {
+            log.info("Starting tunnel server on port 80");
+            EventLoopGroup bossGroup = new NioEventLoopGroup();
+            EventLoopGroup workerGroup = new NioEventLoopGroup();
+            try {
+                ServerBootstrap b = new ServerBootstrap();
+                b.group(bossGroup, workerGroup)
+                        .channel(NioServerSocketChannel.class)
+                        .childHandler(new ChannelInitializer<>() {
+                            @Override
+                            protected void initChannel(Channel ch) {
+                                ChannelPipeline pipeline = ch.pipeline();
+                                pipeline.addLast(new HttpServerCodec());
+                                pipeline.addLast(new TunnelHandler());
+                            }
+                        });
+                ChannelFuture f = b.bind(80).sync();
+                f.channel().closeFuture().sync();
+            } catch (InterruptedException e) {
+                throw new RuntimeException(e);
+            } finally {
+                bossGroup.shutdownGracefully();
+                workerGroup.shutdownGracefully();
+            }
+        }).start();
+    }
+
     private Runnable createTcpSocketThread(Socket socket) {
         return new TcpSocketThread(socket, socketManager, socketReader, socketWriter, personaService, gameService);
     }
@@ -159,9 +192,7 @@ public class ServerApp implements CommandLineRunner {
     }
 
     private void processExpiredGames() {
-        processExpiredGamesThread.scheduleAtFixedRate(() -> {
-            gameService.closeExpiredGames();
-        }, 30, 60, TimeUnit.SECONDS);
+        processExpiredGamesThread.scheduleAtFixedRate(gameService::closeExpiredGames, 30, 60, TimeUnit.SECONDS);
     }
 
     private void setupThreadPool() {
@@ -179,6 +210,83 @@ public class ServerApp implements CommandLineRunner {
                 threadFactory,
                 handler
         );
+    }
+
+    static class TunnelHandler extends ChannelInboundHandlerAdapter {
+        private DefaultHttpRequest httpRequest;
+        private final StringBuilder requestBody = new StringBuilder();
+
+        @Override
+        public void channelRead(ChannelHandlerContext ctx, Object msg) throws IOException {
+            System.out.println("msg: " + msg);
+            if (msg instanceof DefaultHttpRequest request) {
+                httpRequest = request;
+            } else if (msg instanceof DefaultHttpContent content && !(msg instanceof LastHttpContent)) {
+                ByteBuf buffer = content.content();
+                requestBody.append(buffer.toString(CharsetUtil.UTF_8));
+            } else if (msg instanceof LastHttpContent lastContent) {
+                String uri = httpRequest.uri();
+                HttpMethod method = httpRequest.method();
+                HttpHeaders headers = httpRequest.headers();
+                ByteBuf content = lastContent.content();
+                requestBody.append(content.toString(CharsetUtil.UTF_8));
+
+                System.out.println("uri: " + uri);
+                System.out.println("method: " + method);
+                System.out.println("headers: " + headers);
+                System.out.println("requestBody: " + requestBody);
+
+                URL restUrl = new URL("http://localhost:8080" + uri);
+                HttpURLConnection connection = (HttpURLConnection) restUrl.openConnection();
+                connection.setRequestMethod(method.name());
+                for (Map.Entry<String, String> entry : headers) {
+                    connection.setRequestProperty(entry.getKey(), entry.getValue());
+                }
+                if (method.equals(HttpMethod.POST) || method.equals(HttpMethod.PUT) || method.equals(HttpMethod.PATCH)) {
+                    connection.setDoOutput(true);
+                    BufferedOutputStream out = new BufferedOutputStream(connection.getOutputStream());
+                    out.write(requestBody.toString().getBytes());
+                    out.flush();
+                }
+
+                int responseCode = connection.getResponseCode();
+                byte[] responseBytes;
+                if (uri.startsWith("/images/")) {
+                    InputStream inputStream = connection.getInputStream();
+                    responseBytes = IOUtils.toByteArray(inputStream);
+                } else {
+                    StringBuilder responseBody;
+                    try (StringWriter writer = new StringWriter()) {
+                        IOUtils.copy(connection.getInputStream(), writer, StandardCharsets.UTF_8);
+                        responseBody = new StringBuilder(writer.toString());
+                    }
+                    System.out.println("responseBody: " + responseBody);
+                    responseBytes = responseBody.toString().getBytes();
+                }
+
+                FullHttpResponse response = new DefaultFullHttpResponse(
+                        HttpVersion.HTTP_1_1,
+                        HttpResponseStatus.valueOf(responseCode),
+                        Unpooled.copiedBuffer(responseBytes));
+
+                ctx.write(response);
+                ctx.writeAndFlush(LastHttpContent.EMPTY_LAST_CONTENT);
+                ctx.close();
+                requestBody.setLength(0);
+            } else {
+                ctx.fireChannelRead(msg);
+            }
+        }
+
+        @Override
+        public void channelReadComplete(ChannelHandlerContext ctx) {
+            ctx.flush();
+        }
+
+        @Override
+        public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
+            ctx.close();
+        }
     }
 
 }
