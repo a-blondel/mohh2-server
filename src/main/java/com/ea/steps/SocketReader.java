@@ -20,12 +20,11 @@ public class SocketReader {
      * Waits for data to come from the client
      * Calls a parser to handle input messages from the stream
      * @param socket the socket to read
-     * @throws IOException
      */
     public void read(Socket socket) {
         try {
             InputStream is = socket.getInputStream();
-            byte[] buffer = new byte[4096];
+            byte[] buffer = new byte[1024];
             int readLength;
             while ((readLength = is.read(buffer)) != -1) {
                 parser.parse(socket, buffer, readLength);

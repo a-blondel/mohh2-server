@@ -31,9 +31,6 @@ public class Props {
     @Value("${tcp.debug.exclusions}")
     private List<String> tcpDebugExclusions;
 
-    @Value("${http.enabled}")
-    private boolean httpEnabled;
-
     @Value("${tos.base_url}")
     private String tosBaseUrl;
 

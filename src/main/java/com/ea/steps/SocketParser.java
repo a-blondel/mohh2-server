@@ -5,12 +5,10 @@ import java.nio.ByteBuffer;
 
 import org.springframework.stereotype.Component;
 
-import com.ea.dto.HttpRequestData;
 import com.ea.dto.SocketData;
 import com.ea.dto.SocketWrapper;
 import com.ea.services.SocketManager;
 import com.ea.utils.HexUtils;
-import com.ea.utils.HttpRequestUtils;
 import com.ea.utils.Props;
 import com.ea.utils.SocketUtils;
 
@@ -25,7 +23,6 @@ public class SocketParser {
     private final Props props;
     private final SocketManager socketManager;
     private final SocketProcessor socketProcessor;
-    private final HttpProcessor httpProcessor;
 
     /**
      * Parses input messages based on current content of the stream
@@ -37,16 +34,7 @@ public class SocketParser {
      */
     public void parse(Socket socket, byte[] buffer, int readLength) {
         ByteBuffer messageBuffer = ByteBuffer.allocate(1024);
-        if (HttpRequestUtils.isHttpPacket(buffer)) {
-            handleHttpRequest(socket, buffer);
-        } else {
-            handleSocketData(socket, buffer, readLength, messageBuffer);
-        }
-    }
-
-    private void handleHttpRequest(Socket socket, byte[] buffer) {
-        HttpRequestData request = HttpRequestUtils.parseHttpRequest(buffer);
-        httpProcessor.process(socket, request);
+        handleSocketData(socket, buffer, readLength, messageBuffer);
     }
 
     private void handleSocketData(Socket socket, byte[] buffer, int readLength, ByteBuffer messageBuffer) {
